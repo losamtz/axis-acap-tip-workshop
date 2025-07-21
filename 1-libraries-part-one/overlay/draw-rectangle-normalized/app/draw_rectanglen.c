@@ -43,6 +43,7 @@ static gint overlay_id      = -1;
 //static gint counter         = 10;
 static gint top_color       = 1;
 static gint bottom_color    = 3;
+static gint center_color    = 4;
 
 /***** Drawing functions *****************************************************/
 
@@ -242,10 +243,10 @@ static void render_overlay_cb(gpointer rendering_context,
         cairo_rectangle(rendering_context, 0, 0, overlay_width, overlay_height);
         cairo_fill(rendering_context);
 
-        //  Draw a top rectangle in toggling color
+        //  Draw a top rectangle 
         draw_rectangle(rendering_context, 0, 0, overlay_width, overlay_height / 4, top_color, 9.6);
 
-        //  Draw a bottom rectangle in toggling color
+        //  Draw a bottom rectangle
         draw_rectangle(rendering_context,
                        0,
                        overlay_height * 3 / 4,
@@ -253,6 +254,20 @@ static void render_overlay_cb(gpointer rendering_context,
                        overlay_height,
                        bottom_color,
                        2.0);
+        // Draw a centered rectangle
+        gint rect_width = overlay_width / 4;
+        gint rect_height = overlay_height / 4;
+
+        gint center_x = overlay_width / 2;
+        gint center_y = overlay_height / 2;
+
+        gint left = center_x - rect_width / 2;
+        gint top = center_y - rect_height / 2;
+        gint right = center_x + rect_width / 2;
+        gint bottom = center_y + rect_height / 2;
+
+        draw_rectangle(rendering_context, left, top, right, bottom, center_color, 3.0);
+
     } else {
         syslog(LOG_INFO, "Unknown overlay id!");
     }
@@ -317,7 +332,8 @@ int main(void) {
 
     //  Setup colors
     if (!setup_palette_color(0, 0, 0, 0, 0) || !setup_palette_color(1, 255, 0, 0, 255) ||
-        !setup_palette_color(2, 0, 255, 0, 255) || !setup_palette_color(3, 0, 0, 255, 255)) {
+        !setup_palette_color(2, 0, 255, 0, 255) || !setup_palette_color(3, 0, 0, 255, 255) || 
+        !setup_palette_color(4, 255, 255, 0, 255)) {
         syslog(LOG_ERR, "Failed to setup palette colors");
         return 1;
     }
