@@ -140,6 +140,7 @@ This means your overlay positioning becomes resolution-independent and consisten
 
 ## Visual Representation
 
+---
        y = 1 (top)
          |
  (-1,1)  |  (1,1)
@@ -150,6 +151,7 @@ This means your overlay positioning becomes resolution-independent and consisten
          |
        y = -1 (bottom)
 
+---
 
 - **x = -1** → far left edge of the frame  
 - **x = 0** → horizontal center  
