@@ -1,0 +1,19 @@
+{
+    "schemaVersion": "1.7.3",
+    "resources": {
+        "dbus": {
+            "requiredMethods": ["com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"]
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Dynamic Overview Vapix",
+            "appName": "dynamic_overview_vapix",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        }
+    }
+}
