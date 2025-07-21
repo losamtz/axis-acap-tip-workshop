@@ -141,6 +141,7 @@ This means your overlay positioning becomes resolution-independent and consisten
 ## Visual Representation
 
 ---
+```
        y = 1 (top)
          |
  (-1,1)  |  (1,1)
@@ -150,7 +151,7 @@ This means your overlay positioning becomes resolution-independent and consisten
  (-1,-1) |  (1,-1)
          |
        y = -1 (bottom)
-
+```
 ---
 
 - **x = -1** → far left edge of the frame  
