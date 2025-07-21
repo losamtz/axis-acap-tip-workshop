@@ -122,3 +122,55 @@ This is especially useful if the video is rotated or if digital pan-tilt-zoom (D
 | `AXOVERLAY_CUSTOM_SOURCE`   | Absolute pixel x, y relative to source | Custom position relative to video source |
 
 ---
+
+
+# Normalized Coordinates in Axis ACAP Overlay
+
+## What are Normalized Coordinates?
+
+Instead of specifying overlay positions using absolute pixel values (e.g., 100 pixels from the left), normalized coordinates scale positions to a fixed range between **-1** and **1**, regardless of the video frame's resolution or size.
+
+This means your overlay positioning becomes resolution-independent and consistent across different video sizes.
+
+## Coordinate System Overview
+
+- The coordinate system is centered in the middle of the video frame.
+- The **x-axis** runs horizontally from **-1** (far left edge) to **1** (far right edge).
+- The **y-axis** runs vertically from **-1** (bottom edge) to **1** (top edge).
+
+## Visual Representation
+
+       y = 1 (top)
+         |
+ (-1,1)  |  (1,1)
+         |  
+---------+--------- x = 1 (right)
+         |  
+ (-1,-1) |  (1,-1)
+         |
+       y = -1 (bottom)
+
+
+- **x = -1** → far left edge of the frame  
+- **x = 0** → horizontal center  
+- **x = 1** → far right edge  
+- **y = -1** → bottom edge  
+- **y = 0** → vertical center  
+- **y = 1** → top edge  
+
+## Why Use Normalized Coordinates?
+
+- **Resolution independence:** The same coordinates work on any video size or resolution.  
+- **Consistent positioning:** (0, 0) is always the center.  
+- **Easy corner placement:**  
+  - (-1, 1) → top-left corner  
+  - (1, -1) → bottom-right corner  
+- **Smooth positioning:** Use decimal values to position anywhere in between, e.g., (0.5, -0.3).
+
+## Summary Table
+
+| Coordinate Value | Meaning            | Position on Frame              |
+|------------------|--------------------|-------------------------------|
+| -1               | Minimum normalized  | Left (for x), Bottom (for y)  |
+| 0                | Centered           | Center                        |
+| 1                | Maximum normalized  | Right (for x), Top (for y)     |
