@@ -1,0 +1,9 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": ["${workspaceFolder}/**", "${SDKTARGETSYSROOT}/**"]
+    }
+  ],
+  "version": 4
+}

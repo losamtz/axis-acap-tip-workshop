@@ -15,16 +15,15 @@
  */
 
 /**
- * - axoverlay -
+ * - draw rectangle normalized -
  *
  * This application demonstrates how the use the API axoverlay, by drawing
- * plain boxes using 4-bit palette color format and text overlay using
- * ARGB32 color format.
+ * plain boxes using 4-bit palette color format
  *
  * Colorspace and alignment:
  * 1-bit palette (AXOVERLAY_COLORSPACE_1BIT_PALETTE): 32-byte alignment
  * 4-bit palette (AXOVERLAY_COLORSPACE_4BIT_PALETTE): 16-byte alignment
- * ARGB32 (AXOVERLAY_COLORSPACE_ARGB32): 16-byte alignment
+ * 
  *
  */
 
@@ -38,10 +37,10 @@
 
 #define PALETTE_VALUE_RANGE 255.0
 
-static gint animation_timer = -1;
+//static gint animation_timer = -1;
 static gint overlay_id      = -1;
-static gint overlay_id_text = -1;
-static gint counter         = 10;
+//static gint overlay_id_text = -1;
+//static gint counter         = 10;
 static gint top_color       = 1;
 static gint bottom_color    = 3;
 
@@ -93,41 +92,6 @@ static void draw_rectangle(cairo_t* context,
     cairo_rectangle(context, left, top, right - left, bottom - top);
     cairo_stroke(context);
 }
-
-/**
- * brief Draw a text using cairo.
- *
- * This function draws a text with a specified middle position,
- * which will be adjusted depending on the text length.
- *
- * param context Cairo rendering context.
- * param pos_x Center position coordinate (x).
- * param pos_y Center position coordinate (y).
- */
-static void draw_text(cairo_t* context, const gint pos_x, const gint pos_y) {
-    cairo_text_extents_t te;
-    cairo_text_extents_t te_length;
-    gchar* str        = NULL;
-    gchar* str_length = NULL;
-
-    //  Show text in black
-    cairo_set_source_rgb(context, 0, 0, 0);
-    cairo_select_font_face(context, "serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(context, 32.0);
-
-    // Position the text at a fix centered position
-    str_length = g_strdup_printf("Countdown  ");
-    cairo_text_extents(context, str_length, &te_length);
-    cairo_move_to(context, pos_x - te_length.width / 2, pos_y);
-    g_free(str_length);
-
-    // Add the counter number to the shown text
-    str = g_strdup_printf("Countdown %i", counter);
-    cairo_text_extents(context, str, &te);
-    cairo_show_text(context, str);
-    g_free(str);
-}
-
 /**
  * brief Setup an overlay_data struct.
  *
@@ -159,8 +123,7 @@ static void setup_axoverlay_data(struct axoverlay_overlay_data* data) {
  *
  * return result as boolean
  */
-static gboolean
-setup_palette_color(const int index, const gint r, const gint g, const gint b, const gint a) {
+static gboolean setup_palette_color(const int index, const gint r, const gint g, const gint b, const gint a) {
     GError* error = NULL;
     struct axoverlay_palette_color color;
 
@@ -290,51 +253,12 @@ static void render_overlay_cb(gpointer rendering_context,
                        overlay_height,
                        bottom_color,
                        2.0);
-    } else if (id == overlay_id_text) {
-        //  Show text in black
-        draw_text(rendering_context, overlay_width / 2, overlay_height / 2);
     } else {
         syslog(LOG_INFO, "Unknown overlay id!");
     }
 }
 
-/**
- * brief Callback function which is called when animation timer has elapsed.
- *
- * This function is called when the animation timer has elapsed, which will
- * update the counter, colors and also trigger a redraw of the overlay.
- *
- * param user_data Optional callback user data.
- */
-static gboolean update_overlay_cb(gpointer user_data) {
-    /* Silence compiler warnings for unused parameters/arguments */
-    (void)user_data;
 
-    GError* error = NULL;
-
-    // Countdown
-    counter = counter < 1 ? 10 : counter - 1;
-
-    if (counter == 0) {
-        // A small color surprise
-        top_color    = top_color > 2 ? 1 : top_color + 1;
-        bottom_color = bottom_color > 2 ? 1 : bottom_color + 1;
-    }
-
-    // Request a redraw of the overlay
-    axoverlay_redraw(&error);
-    if (error != NULL) {
-        /*
-         * If redraw fails then it is likely due to that overlayd has
-         * crashed. Don't exit instead wait for overlayd to restart and
-         * for axoverlay to restore the connection.
-         */
-        syslog(LOG_ERR, "Failed to redraw overlay (%d): %s", error->code, error->message);
-        g_error_free(error);
-    }
-
-    return G_SOURCE_CONTINUE;
-}
 
 /***** Signal handler functions **********************************************/
 
@@ -362,7 +286,6 @@ int main(void) {
     setenv("XDG_CACHE_HOME", "/usr/local/packages/axoverlay/localdata", 1);
     GMainLoop* loop    = NULL;
     GError* error      = NULL;
-    GError* error_text = NULL;
     gint camera_height = 0;
     gint camera_width  = 0;
 
@@ -429,33 +352,20 @@ int main(void) {
         return 1;
     }
 
-    // Create an text overlay using ARGB32 color space
-    struct axoverlay_overlay_data data_text;
-    setup_axoverlay_data(&data_text);
-    data_text.width      = camera_width;
-    data_text.height     = camera_height;
-    data_text.colorspace = AXOVERLAY_COLORSPACE_ARGB32;
-    overlay_id_text      = axoverlay_create_overlay(&data_text, NULL, &error_text);
-    if (error_text != NULL) {
-        syslog(LOG_ERR, "Failed to create second overlay: %s", error_text->message);
-        g_error_free(error_text);
-        return 1;
-    }
+    
 
     // Draw overlays
     axoverlay_redraw(&error);
     if (error != NULL) {
         syslog(LOG_ERR, "Failed to draw overlays: %s", error->message);
         axoverlay_destroy_overlay(overlay_id, &error);
-        axoverlay_destroy_overlay(overlay_id_text, &error_text);
         axoverlay_cleanup();
         g_error_free(error);
-        g_error_free(error_text);
         return 1;
     }
 
     // Start animation timer
-    animation_timer = g_timeout_add_seconds(1, update_overlay_cb, NULL);
+    //animation_timer = g_timeout_add_seconds(1, update_overlay_cb, NULL);
 
     // Enter main loop
     g_main_loop_run(loop);
@@ -467,18 +377,12 @@ int main(void) {
         g_error_free(error);
         return 1;
     }
-    axoverlay_destroy_overlay(overlay_id_text, &error_text);
-    if (error_text != NULL) {
-        syslog(LOG_ERR, "Failed to destroy second overlay: %s", error_text->message);
-        g_error_free(error_text);
-        return 1;
-    }
 
     // Release library resources
     axoverlay_cleanup();
 
     // Release the animation timer
-    g_source_remove(animation_timer);
+    //g_source_remove(animation_timer);
 
     // Release main loop
     g_main_loop_unref(loop);
