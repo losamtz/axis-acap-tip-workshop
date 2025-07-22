@@ -42,7 +42,7 @@
 
 static gint overlay_id         = -1;
 static gint circle_color       =  1;
-//static gint bottom_color     =  3;
+static gint triangle_color     =  3;
 static gint rectangle_color    =  4;
 
 
@@ -52,19 +52,28 @@ static gdouble index2cairo(const gint color_index) {
 
 
 static void draw_rectangle(cairo_t* context,
-                           gint left,
-                           gint top,
-                           gint right,
-                           gint bottom,
-                           gint color_index,
-                           gint line_width) {
+                            gfloat center_x,
+                            gfloat center_y,
+                            gfloat width,
+                            gfloat height,
+                            gint overlay_width,
+                            gint overlay_height,
+                            gint color_index,
+                            gint line_width) {
+                                
     gdouble val = 0;
 
     val = index2cairo(color_index);
     cairo_set_source_rgba(context, val, val, val, val);
     cairo_set_operator(context, CAIRO_OPERATOR_SOURCE);
     cairo_set_line_width(context, line_width);
-    cairo_rectangle(context, left, top, right - left, bottom - top);
+
+    gdouble pixel_width = width * overlay_width;
+    gdouble pixel_height = height * overlay_height;
+    gdouble left = (center_x * overlay_width) - (pixel_width / 2);
+    gdouble top = (center_y * overlay_height) - (pixel_height / 2);
+
+    cairo_rectangle(context, left, top, pixel_width, pixel_height);
     cairo_stroke(context);
 }
 
@@ -92,6 +101,31 @@ static void draw_circle(cairo_t* context,
     cairo_arc(context, cx, cy, r, 0, 2 * G_PI);
     cairo_stroke(context);
 }
+
+static void draw_triangle(cairo_t* context,
+                          gint x1, gint y1,
+                          gint x2, gint y2,
+                          gint x3, gint y3,
+                          gint overlay_width,
+                          gint overlay_height,
+                          gint color_index,
+                          gint line_width) {
+
+    gdouble val = 0;
+
+    val = index2cairo(color_index);                        
+    cairo_set_source_rgba(context, val, val, val, val);   // Set fill color
+    cairo_set_operator(context, CAIRO_OPERATOR_OVER);
+    cairo_set_line_width(context, line_width);
+
+    cairo_move_to(context, x1 * overlay_width, y1 * overlay_height);   // First point
+    cairo_line_to(context, x2 * overlay_width, y2 * overlay_height);   // Second point
+    cairo_line_to(context, x3 * overlay_width, y3 * overlay_height);   // Third point
+    cairo_close_path(context);        // Closes the triangle back to the first point
+
+    cairo_fill(context);              // Fill the triangle
+}
+
 static void setup_axoverlay_data(struct axoverlay_overlay_data* data) {
     axoverlay_init_overlay_data(data);
     data->postype         = AXOVERLAY_CUSTOM_NORMALIZED;
@@ -185,41 +219,44 @@ static void render_overlay_cb(gpointer rendering_context,
     syslog(LOG_INFO, "Render callback for rotation: %i", stream->rotation);
     
 
-    if(channel == 0) {                            
-        //  Clear background by drawing a "filled" rectangle
-        val = index2cairo(0);
-        cairo_set_source_rgba(rendering_context, val, val, val, val);
-        cairo_set_operator(rendering_context, CAIRO_OPERATOR_SOURCE);
-        
-        cairo_rectangle(rendering_context, 0, 0, overlay_width, overlay_height); 
-        cairo_fill(rendering_context);
+    if (channel == 0) {
+    // Clear background
+    val = index2cairo(0);
+    cairo_set_source_rgba(rendering_context, val, val, val, val);
+    cairo_set_operator(rendering_context, CAIRO_OPERATOR_SOURCE);
+    cairo_rectangle(rendering_context, 0, 0, overlay_width, overlay_height);
+    cairo_fill(rendering_context);
 
-        // setup for yellow rectangle
-        gint rect_width = overlay_width / 4;
-        gint rect_height = overlay_height / 4;
+    // Draw normalized rectangle centered at (0.5, 0.5), size 0.5 x 0.25
+    draw_rectangle_normalized(rendering_context,
+                               0.5, 0.5,           // center (normalized)
+                               0.5, 0.25,          // size (normalized)
+                               overlay_width,
+                               overlay_height,
+                               rectangle_color,
+                               3.0);
 
-        gint center_x = overlay_width / 2;
-        gint center_y = overlay_height / 2;
-
-        gint left = center_x - rect_width / 2;
-        gint top = center_y - rect_height / 2;
-        gint right = center_x + rect_width / 2;
-        gint bottom = center_y + rect_height / 2;
-        // Draw a yellow centered rectangle
-        draw_rectangle(rendering_context, left, top, right, bottom, rectangle_color, 3.0);   
+    } else if (channel == 1) {
+        // Draw normalized circle centered at (0.5, 0.5), radius 0.25
+        draw_circle(rendering_context,
+                    0.5, 0.5,
+                    0.25,
+                    overlay_width,
+                    overlay_height,
+                    circle_color,
+                    3);
 
     } else {
-
-        draw_circle(rendering_context, 
-            0.5,            // center normalized
-            0.5,            // center normalized
-            0.25,           // radius ormalized
-            overlay_width, 
-            overlay_height, 
-            circle_color,   // color index
-            3);             // line width
+        // Draw normalized triangle with points in normalized coordinates
+        draw_triangle_normalized(rendering_context,
+                                0.5, 0.25,   // top
+                                0.3, 0.75,   // bottom left
+                                0.7, 0.75,   // bottom right
+                                overlay_width,
+                                overlay_height,
+                                triangle_color,
+                                3);
     }
-        
 
 
 }
