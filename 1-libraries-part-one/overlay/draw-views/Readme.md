@@ -1,7 +1,9 @@
-# Draw rectangle normalized coordinates
+# Draw views normalized coordinates
 
 
 ## Description
+
+Draw different shapes for differend existing views when accessing from the web inteface.
 
 Use of palette color space for large overlays like plain boxes, to lower the memory usage.
 
