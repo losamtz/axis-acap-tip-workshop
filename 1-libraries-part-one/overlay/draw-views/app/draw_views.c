@@ -103,9 +103,9 @@ static void draw_circle(cairo_t* context,
 }
 
 static void draw_triangle(cairo_t* context,
-                          gint x1, gint y1,
-                          gint x2, gint y2,
-                          gint x3, gint y3,
+                          gfloat x1, gfloat y1,
+                          gfloat x2, gfloat y2,
+                          gfloat x3, gfloat y3,
                           gint overlay_width,
                           gint overlay_height,
                           gint color_index,
@@ -115,7 +115,6 @@ static void draw_triangle(cairo_t* context,
 
     val = index2cairo(color_index);                        
     cairo_set_source_rgba(context, val, val, val, val);   // Set fill color
-    cairo_set_operator(context, CAIRO_OPERATOR_OVER);
     cairo_set_line_width(context, line_width);
 
     cairo_move_to(context, x1 * overlay_width, y1 * overlay_height);   // First point
