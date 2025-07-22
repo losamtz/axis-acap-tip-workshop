@@ -121,8 +121,8 @@ static void draw_triangle(cairo_t* context,
     cairo_line_to(context, x2 * overlay_width, y2 * overlay_height);   // Second point
     cairo_line_to(context, x3 * overlay_width, y3 * overlay_height);   // Third point
     cairo_close_path(context);        // Closes the triangle back to the first point
-
-    cairo_fill(context);              // Fill the triangle
+    cairo_stroke(context);                            
+    //cairo_fill(context);              // Fill the triangle
 }
 
 static void setup_axoverlay_data(struct axoverlay_overlay_data* data) {

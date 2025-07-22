@@ -12,7 +12,7 @@ Use of palette color space for large overlays like plain boxes, to lower the mem
 
 ```c
 
-tatic void draw_rectangle(cairo_t* context,
+static void draw_rectangle(cairo_t* context,
                             gfloat center_x,
                             gfloat center_y,
                             gfloat width,
@@ -88,7 +88,7 @@ static void draw_triangle(cairo_t* context,
     cairo_line_to(context, x2 * overlay_width, y2 * overlay_height);   // Second point
     cairo_line_to(context, x3 * overlay_width, y3 * overlay_height);   // Third point
     cairo_close_path(context);        // Closes the triangle back to the first point
-
+    //cairo_stroke(context);
     cairo_fill(context);              // Fill the triangle
 }
 ```
