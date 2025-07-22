@@ -60,7 +60,7 @@ static void draw_rectangle(cairo_t* context,
                             gint overlay_height,
                             gint color_index,
                             gint line_width) {
-                                
+
     gdouble val = 0;
 
     val = index2cairo(color_index);
@@ -228,7 +228,7 @@ static void render_overlay_cb(gpointer rendering_context,
     cairo_fill(rendering_context);
 
     // Draw normalized rectangle centered at (0.5, 0.5), size 0.5 x 0.25
-    draw_rectangle_normalized(rendering_context,
+    draw_rectangle(rendering_context,
                                0.5, 0.5,           // center (normalized)
                                0.5, 0.25,          // size (normalized)
                                overlay_width,
@@ -248,7 +248,7 @@ static void render_overlay_cb(gpointer rendering_context,
 
     } else {
         // Draw normalized triangle with points in normalized coordinates
-        draw_triangle_normalized(rendering_context,
+        draw_triangle(rendering_context,
                                 0.5, 0.25,   // top
                                 0.3, 0.75,   // bottom left
                                 0.7, 0.75,   // bottom right
