@@ -39,8 +39,8 @@
 
 
 static gint overlay_id      = -1;
-static gint top_color       =  1;
-static gint bottom_color    =  3;
+//static gint top_color       =  1;
+//static gint bottom_color    =  3;
 static gint center_color    =  4;
 
 /***** Drawing functions *****************************************************/
