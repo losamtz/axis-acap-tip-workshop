@@ -247,3 +247,153 @@ For more details, see [Cairo Operators Documentation](https://cairographics.org/
 
 
 
+## 🖌️ Grayscale Mapping Using `index2cairo` for Cairo Overlays
+
+This function converts a grayscale color index (typically in the range 0–15) into a normalized floating-point value between 0.0 and 1.0, which can be used with cairo_set_source_rgba().
+
+#### 📘 Function Overview
+
+```c
+static gdouble index2cairo(const gint color_index) {
+    return ((color_index << 4) + color_index) / PALETTE_VALUE_RANGE;
+}
+
+```
+
+## Step 1: Bit Manipulation
+
+```c
+((color_index << 4) + color_index)
+```
+
+* `color_index << 4` shifts the value 4 bits to the left (i.e., multiplies it by 16).
+* Adding `color_index` again gives:
+  → `color_index * 16 + color_index = color_index * 17`
+
+This is a standard way to scale a **4-bit value (0–15)** to **8-bit grayscale (0–255)**:
+
+| color\_index (4-bit) | 8-bit Value (× 17) | Description    |
+| -------------------- | ------------------ | -------------- |
+| 0                    | 0                  | Black          |
+| 1                    | 17                 | Very dark gray |
+| ...                  | ...                | ...            |
+| 15                   | 255                | White          |
+
+---
+
+## Step 2: Normalize to \[0.0, 1.0]
+
+```c
+/ PALETTE_VALUE_RANGE
+```
+
+Defined:
+
+```c
+#define PALETTE_VALUE_RANGE 255.0
+```
+
+This scales the 8-bit grayscale value to a Cairo-friendly floating-point value between `0.0` and `1.0`.
+
+---
+
+## 🖌️ How It's Used in Drawing
+
+```c
+val = index2cairo(color_index);
+cairo_set_source_rgba(context, val, val, val, val);
+```
+
+This sets the drawing color in Cairo to a **semi-transparent shade of gray**:
+
+* `R = G = B = val`
+* `A (opacity) = val`
+
+So:
+
+* `color_index = 0` → fully transparent black
+* `color_index = 15` → fully opaque white
+* Intermediate values → semi-transparent grays
+
+---
+
+## 🎨 Visual Mapping Table
+
+| color\_index | 8-bit Gray Value | Normalized val | Visual Description |
+| ------------ | ---------------- | -------------- | ------------------ |
+| 0            | 0                | 0.000          | Transparent Black  |
+| 1            | 17               | 0.067          | Very Dark Gray     |
+| 2            | 34               | 0.133          | Dark Gray          |
+| 4            | 68               | 0.267          | Gray               |
+| 8            | 136              | 0.533          | Medium Gray        |
+| 12           | 204              | 0.800          | Light Gray         |
+| 15           | 255              | 1.000          | White              |
+
+> (Intermediate values omitted for brevity)
+
+---
+
+## ✅ Summary
+
+The `index2cairo()` function:
+
+* Converts a **4-bit grayscale value** to 8-bit via `index × 17`
+* Normalizes it to a float between `0.0` and `1.0`
+* Applies it as an **RGBA color in Cairo** for rendering
+
+This allows clean, consistent grayscale overlays on video streams in Axis ACAP using Cairo.
+
+
+# 🎯 Coordinate vs Color Normalization in Axis ACAP Overlays
+
+When working with Axis ACAP overlays using Cairo, you’ll encounter two different kinds of normalized values:
+
+1. **Overlay coordinates** (for positioning on screen)
+2. **Cairo RGBA values** (for setting color and opacity)
+
+These use **different ranges** and serve **different purposes** — here’s why:
+
+---
+
+## 🗺️ Overlay Coordinate Normalization (`AXOVERLAY_CUSTOM_NORMALIZED`)
+
+- **Range:** `[-1, 1]` for both X and Y
+- **Purpose:** To position overlays relative to the **video frame**, independent of resolution
+- **Centered system:** `0` represents the center of the frame
+
+#### ✅ Examples:
+
+| Coordinate | Meaning              |
+|------------|----------------------|
+| (0, 0)     | Center of the frame  |
+| (-1, 1)    | Top-left corner      |
+| (1, -1)    | Bottom-right corner  |
+
+---
+
+### 🎨 Cairo RGBA Normalization
+
+- **Function:** `cairo_set_source_rgba(context, R, G, B, A)`
+- **Range:** `[0.0, 1.0]` for each channel (Red, Green, Blue, Alpha)
+- **Purpose:** Defines **color** and **opacity**
+- **Standardized:** Common in graphics libraries like OpenGL, SVG, CSS
+
+### ✅ Example:
+```c
+cairo_set_source_rgba(ctx, 1.0, 0.0, 0.0, 0.5); // Semi-transparent red
+```
+
+#### 🔍 Summary: Why the Difference?
+
+| Feature                    | Purpose             | Normalization Range | Center-Based? | Usage Context         |
+|----------------------------|---------------------|----------------------|----------------|------------------------|
+| `AXOVERLAY_CUSTOM_NORMALIZED` | Positioning overlays | `[-1, 1]`              | ✅ Yes         | Spatial (video frame) |
+| `cairo_set_source_rgba`       | Drawing colors      | `[0.0, 1.0]`           | ❌ No          | Color (graphics API)  |
+
+---
+
+#### ✅ Final Notes
+
+- **Overlay coordinates** define **where** something is drawn.
+- **Cairo RGBA values** define **how it looks** (color + transparency).
+- The two are used together but normalized **differently** for logical and technical reasons.

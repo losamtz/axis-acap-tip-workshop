@@ -254,7 +254,7 @@ static void render_overlay_cb(gpointer rendering_context,
                        overlay_height,
                        bottom_color,
                        2.0);
-        // Draw a centered rectangle
+        // Draw a yellow centered rectangle
         gint rect_width = overlay_width / 4;
         gint rect_height = overlay_height / 4;
 
