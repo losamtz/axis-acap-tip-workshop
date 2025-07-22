@@ -37,13 +37,11 @@
 
 #define PALETTE_VALUE_RANGE 255.0
 
-//static gint animation_timer = -1;
+
 static gint overlay_id      = -1;
-//static gint overlay_id_text = -1;
-//static gint counter         = 10;
-static gint top_color       = 1;
-static gint bottom_color    = 3;
-static gint center_color    = 4;
+static gint top_color       =  1;
+static gint bottom_color    =  3;
+static gint center_color    =  4;
 
 /***** Drawing functions *****************************************************/
 
@@ -196,23 +194,7 @@ static void adjustment_cb(gint id,
     syslog(LOG_INFO, "Stream or rotation changed, rotation angle is now: %i", stream->rotation);
 }
 
-/**
- * brief A callback function called when an overlay needs to be drawn.
- *
- * This function is called whenever the system redraws an overlay. This can
- * happen in two cases, axoverlay_redraw() is called or a new stream is
- * started.
- *
- * param rendering_context A pointer to the rendering context.
- * param id Overlay id.
- * param stream Information about the rendered stream.
- * param postype The position type.
- * param overlay_x The x coordinate of the overlay.
- * param overlay_y The y coordinate of the overlay.
- * param overlay_width Overlay width.
- * param overlay_height Overlay height.
- * param user_data Optional user data associated with this overlay.
- */
+
 static void render_overlay_cb(gpointer rendering_context,
                               gint id,
                               struct axoverlay_stream_data* stream,
@@ -230,6 +212,20 @@ static void render_overlay_cb(gpointer rendering_context,
 
     gdouble val = FALSE;
 
+    // setup for yellow rectangle
+    gint rect_width = overlay_width / 4;
+    gint rect_height = overlay_height / 4;
+
+    gint center_x = overlay_width / 2;
+    gint center_y = overlay_height / 2;
+
+    gint left = center_x - rect_width / 2;
+    gint top = center_y - rect_height / 2;
+    gint right = center_x + rect_width / 2;
+    gint bottom = center_y + rect_height / 2;
+
+
+    syslog(LOG_INFO, "Rendering overlay on ID=%d, stream ID=%d, and camera=%d", id, stream->id, stream->camera);                                
     syslog(LOG_INFO, "Render callback for camera: %i", stream->camera);
     syslog(LOG_INFO, "Render callback for overlay: %i x %i", overlay_width, overlay_height);
     syslog(LOG_INFO, "Render callback for stream: %i x %i", stream->width, stream->height);
@@ -240,32 +236,17 @@ static void render_overlay_cb(gpointer rendering_context,
         val = index2cairo(0);
         cairo_set_source_rgba(rendering_context, val, val, val, val);
         cairo_set_operator(rendering_context, CAIRO_OPERATOR_SOURCE);
-        cairo_rectangle(rendering_context, 0, 0, overlay_width, overlay_height);
+        
+        // cairo_rectangle(cr, x, y, width, height);
+        // The X coordinate of the top-left corner.
+        // The Y coordinate of the top-left corner.
+        // The width of the rectangle to draw. => defined by AXOVERLAY_CAIRO_IMAGE_BACKEND
+        // The height of the rectangle to draw. => AXOVERLAY_CAIRO_IMAGE_BACKEND
+        cairo_rectangle(rendering_context, 0, 0, overlay_width, overlay_height); 
         cairo_fill(rendering_context);
 
-        //  Draw a top rectangle 
-        draw_rectangle(rendering_context, 0, 0, overlay_width, overlay_height / 4, top_color, 9.6);
-
-        //  Draw a bottom rectangle
-        draw_rectangle(rendering_context,
-                       0,
-                       overlay_height * 3 / 4,
-                       overlay_width,
-                       overlay_height,
-                       bottom_color,
-                       2.0);
+        
         // Draw a yellow centered rectangle
-        gint rect_width = overlay_width / 4;
-        gint rect_height = overlay_height / 4;
-
-        gint center_x = overlay_width / 2;
-        gint center_y = overlay_height / 2;
-
-        gint left = center_x - rect_width / 2;
-        gint top = center_y - rect_height / 2;
-        gint right = center_x + rect_width / 2;
-        gint bottom = center_y + rect_height / 2;
-
         draw_rectangle(rendering_context, left, top, right, bottom, center_color, 3.0);
 
     } else {
@@ -293,7 +274,7 @@ static gboolean signal_handler(gpointer loop) {
 /**
  * brief Main function.
  *
- * This main function draws two plain boxes and one text, using the
+ * This main function draws one yellow rectangle, using the
  * API axoverlay.
  */
 int main(void) {
@@ -368,8 +349,6 @@ int main(void) {
         return 1;
     }
 
-    
-
     // Draw overlays
     axoverlay_redraw(&error);
     if (error != NULL) {
@@ -379,9 +358,6 @@ int main(void) {
         g_error_free(error);
         return 1;
     }
-
-    // Start animation timer
-    //animation_timer = g_timeout_add_seconds(1, update_overlay_cb, NULL);
 
     // Enter main loop
     g_main_loop_run(loop);
@@ -396,9 +372,6 @@ int main(void) {
 
     // Release library resources
     axoverlay_cleanup();
-
-    // Release the animation timer
-    //g_source_remove(animation_timer);
 
     // Release main loop
     g_main_loop_unref(loop);

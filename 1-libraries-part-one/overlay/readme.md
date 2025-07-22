@@ -1,6 +1,7 @@
 # Overlay
 
-In this chapter we will make use of axoverlay to draw boxes, text and finally set an image/logo in the stream. 
+This chapter explains the use of axoverlay to draw boxes, text and finally set an image/logo in the stream. In genaral, axoverlay follows a general setup and flow 
+
 
 We will start with boxes creating several apps: 
 
@@ -11,6 +12,101 @@ We will go through some of the setting relevant to the cameras, mostly "normaliz
 Note:
 It is preferable to use Palette color space for large overlays like plain boxes, to lower the memory usage. More detailed overlays like text overlays, should instead use ARGB32 color space.
 
+##  🎯 Overview: axoverlay and Cairo roles
+
+| Component  | Role                                                                                 |
+|------------|--------------------------------------------------------------------------------------|
+| **axoverlay** | The Axis-specific API that sets up overlays, handles video stream integration, resolution, positions, and render callbacks. |
+| **Cairo**     | The graphics library used to draw on the overlay canvas (text, shapes, lines, images, etc.). |
+
+---
+
+### 🔁 Typical Flow of Interaction
+
+1. **`axoverlay_init()`**
+
+    You initialize the overlay system with `axoverlay_settings`.
+
+    - You register a `render_callback` which is called when the overlay should be drawn.
+    - You can also set position types like `AXOVERLAY_CUSTOM_NORMALIZED`.
+
+2. **`axoverlay_create_overlay()`**
+
+    You create one or more overlays, specifying which stream and position to attach to.
+
+3. **`render_callback()`**
+
+    Every frame (or periodically), Axis calls your render callback, e.g.:
+
+    ```c
+    static void render_overlay_cb(gpointer rendering_context,
+                                  gint id,
+                                  struct axoverlay_stream_data* stream,
+                                  enum axoverlay_position_type postype,
+                                  gfloat overlay_x,
+                                  gfloat overlay_y,
+                                  gint overlay_width,
+                                  gint overlay_height,
+                                  gpointer user_data)
+    {
+        // This is where you use Cairo to draw on the overlay.
+    }
+    ```
+
+---
+
+### Cairo Drawing Inside the Callback
+
+You use the passed `rendering_context` (which is a Cairo context: `cairo_t*`) to issue drawing commands:
+
+```c
+cairo_set_source_rgba(ctx, r, g, b, a);
+cairo_rectangle(ctx, x, y, w, h);
+cairo_fill(ctx);
+```
+These commands draw on a canvas that overlays the video stream.
+
+---
+
+### ⏱️ Execution Order Summary
+
+```c
+main() {
+    axoverlay_init();                 // 1️⃣ Setup overlay system
+    axoverlay_create_overlay();      // 2️⃣ Create overlays (attach to streams)
+    ...                              // GLib main loop starts
+}
+
+render_callback(...) {
+    // 3️⃣ Called automatically when it's time to render the overlay
+    cairo_* functions;               // 4️⃣ Use Cairo to draw content
+}
+```
+
+### 🔄 How They Work Together
+
+| axoverlay                               | Cairo                            |
+|----------------------------------------|---------------------------------|
+| Owns the overlay buffer and stream attachment. | Does the drawing itself.         |
+| Provides resolution and context in callback.    | Uses that context to render.     |
+| Handles scale, rotation, and placement.          | Ignores stream logic. Just draws.|
+| Thinks in terms of streams.                        | Thinks in terms of 2D surfaces.  |
+
+✅ Example Sequence
+
+```c
+// Main init
+axoverlay_settings s = { ... };
+axoverlay_init(&s, &error);         // Registers render callback
+axoverlay_create_overlay(...);      // For camera stream 1
+
+// Later, in callback (called by Axis)
+render_overlay_cb(...) {
+    cairo_set_source_rgb(ctx, 1, 1, 0);          // Yellow
+    cairo_rectangle(ctx, 0, 0, 100, 50);         // Rectangle
+    cairo_fill(ctx);                              // Render
+}
+```
 
 # Normalized Coordinates in Axis ACAP Overlay
 
