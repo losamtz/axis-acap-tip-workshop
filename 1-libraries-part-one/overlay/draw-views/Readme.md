@@ -7,6 +7,9 @@ Use of palette color space for large overlays like plain boxes, to lower the mem
 
 ## Build
 
-docker build --tag draw-rectangle-normal --build-arg ARCH=aarch64 .
-
-docker cp $(docker create draw-rectangle-normal):/opt/app ./build
+```
+docker build --tag draw-view --build-arg ARCH=aarch64 .
+```
+```
+docker cp $(docker create draw-view):/opt/app ./build
+```
