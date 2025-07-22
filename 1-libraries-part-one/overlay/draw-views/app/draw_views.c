@@ -68,7 +68,7 @@ static void draw_rectangle(cairo_t* context,
     cairo_stroke(context);
 }
 
-static void draw_rectangle(cairo_t* context,
+static void draw_circle(cairo_t* context,
                            gfloat center_x,
                            gfloat center_y,
                            gfloat radius,
@@ -210,7 +210,14 @@ static void render_overlay_cb(gpointer rendering_context,
 
     } else {
 
-        draw_circle(rendering_context, 0.5, 0.5, overlay_width, overlay_height, circle_color, 3);
+        draw_circle(rendering_context, 
+            0.5,            // center normalized
+            0.5,            // center normalized
+            0.25,           // radius ormalized
+            overlay_width, 
+            overlay_height, 
+            circle_color,   // color index
+            3);             // line width
     }
         
 
