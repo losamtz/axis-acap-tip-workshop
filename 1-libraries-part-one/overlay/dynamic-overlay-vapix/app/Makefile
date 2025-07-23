@@ -3,7 +3,7 @@ OBJS1	= dynamic_overview_vapix.c
 
 PROGS	= $(PROG1)
 
-PKGS = gio-2.0 glib-2.0 cairo
+PKGS = gio-2.0 libcurl jansson
 CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PKGS))
 LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PKGS))
 LDFLAGS  += -s -laxoverlay
