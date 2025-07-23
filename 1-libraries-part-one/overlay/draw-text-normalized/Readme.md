@@ -5,6 +5,33 @@
 
 Use of palette color space for large overlays like plain boxes, to lower the memory usage.
 
+## Initialize and setup an overlay_data struct with default values.
+
+```c
+    static void setup_axoverlay_data(struct axoverlay_overlay_data* data) {
+    axoverlay_init_overlay_data(data);
+    data->postype         = AXOVERLAY_CUSTOM_NORMALIZED;
+    data->anchor_point    = AXOVERLAY_ANCHOR_CENTER;
+    data->x               = 0.0;
+    data->y               = 0.0;
+    data->scale_to_stream = FALSE;
+}
+```
+
+## Color space settings for text: ARGB32
+
+```c
+
+    struct axoverlay_overlay_data data_text;
+    setup_axoverlay_data(&data_text);
+    data_text.width      = camera_width;
+    data_text.height     = camera_height;
+    data_text.colorspace = AXOVERLAY_COLORSPACE_ARGB32;
+    overlay_id_text      = axoverlay_create_overlay(&data_text, NULL, &error_text);
+    
+```
+
+
 ## Draw text
 ---
 ```c
