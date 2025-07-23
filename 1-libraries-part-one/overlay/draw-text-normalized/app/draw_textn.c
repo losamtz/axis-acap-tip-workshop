@@ -36,74 +36,20 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-#define PALETTE_VALUE_RANGE 255.0
+
+typedef struct {
+    double r;
+    double g;
+    double b;
+} RGBColor;
+
+static RGBColor color;
 
 static gint animation_timer = -1;
-static gint overlay_id      = -1;
 static gint overlay_id_text = -1;
 static gint counter         = 10;
-static gint top_color       = 1;
-static gint bottom_color    = 3;
 
-/***** Drawing functions *****************************************************/
 
-/**
- * brief Converts palette color index to cairo color value.
- *
- * This function converts the palette index, which has been initialized by
- * function axoverlay_set_palette_color to a value that can be used by
- * function cairo_set_source_rgba.
- *
- * param color_index Index in the palette setup.
- *
- * return color value.
- */
-static gdouble index2cairo(const gint color_index) {
-    return ((color_index << 4) + color_index) / PALETTE_VALUE_RANGE;
-}
-
-/**
- * brief Draw a rectangle using palette.
- *
- * This function draws a rectangle with lines from coordinates
- * left, top, right and bottom with a palette color index and
- * line width.
- *
- * param context Cairo rendering context.
- * param left Left coordinate (x1).
- * param top Top coordinate (y1).
- * param right Right coordinate (x2).
- * param bottom Bottom coordinate (y2).
- * param color_index Palette color index.
- * param line_width Rectange line width.
- */
-static void draw_rectangle(cairo_t* context,
-                           gint left,
-                           gint top,
-                           gint right,
-                           gint bottom,
-                           gint color_index,
-                           gint line_width) {
-    gdouble val = 0;
-
-    val = index2cairo(color_index);
-    cairo_set_source_rgba(context, val, val, val, val);
-    cairo_set_operator(context, CAIRO_OPERATOR_SOURCE);
-    cairo_set_line_width(context, line_width);
-    cairo_rectangle(context, left, top, right - left, bottom - top);
-    cairo_stroke(context);
-}
-
-/**
- * brief Draw a text using cairo.
- *
- * This function draws a text with a specified middle position,
- * which will be adjusted depending on the text length.
- *
- * param context Cairo rendering context.
- * param pos_x Center position coordinate (x).
- * param pos_y Center position coordinate (y).
- */
 static void draw_text(cairo_t* context, const gint pos_x, const gint pos_y) {
     cairo_text_extents_t te;
     cairo_text_extents_t te_length;
@@ -111,7 +57,7 @@ static void draw_text(cairo_t* context, const gint pos_x, const gint pos_y) {
     gchar* str_length = NULL;
 
     //  Show text in black
-    cairo_set_source_rgb(context, 0, 0, 0);
+    cairo_set_source_rgb(context, color.r, color.g, color.b);
     cairo_select_font_face(context, "serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     cairo_set_font_size(context, 32.0);
 
@@ -145,38 +91,7 @@ static void setup_axoverlay_data(struct axoverlay_overlay_data* data) {
     data->scale_to_stream = FALSE;
 }
 
-/**
- * brief Setup palette color table.
- *
- * This function initialize and setup an palette index
- * representing ARGB values.
- *
- * param color_index Palette color index.
- * param r R (red) value.
- * param g G (green) value.
- * param b B (blue) value.
- * param a A (alpha) value.
- *
- * return result as boolean
- */
-static gboolean
-setup_palette_color(const int index, const gint r, const gint g, const gint b, const gint a) {
-    GError* error = NULL;
-    struct axoverlay_palette_color color;
 
-    color.red      = r;
-    color.green    = g;
-    color.blue     = b;
-    color.alpha    = a;
-    color.pixelate = FALSE;
-    axoverlay_set_palette_color(index, &color, &error);
-    if (error != NULL) {
-        g_error_free(error);
-        return FALSE;
-    }
-
-    return TRUE;
-}
 
 /***** Callback functions ****************************************************/
 
@@ -271,26 +186,7 @@ static void render_overlay_cb(gpointer rendering_context,
     syslog(LOG_INFO, "Render callback for stream: %i x %i", stream->width, stream->height);
     syslog(LOG_INFO, "Render callback for rotation: %i", stream->rotation);
 
-    if (id == overlay_id) {
-        //  Clear background by drawing a "filled" rectangle
-        val = index2cairo(0);
-        cairo_set_source_rgba(rendering_context, val, val, val, val);
-        cairo_set_operator(rendering_context, CAIRO_OPERATOR_SOURCE);
-        cairo_rectangle(rendering_context, 0, 0, overlay_width, overlay_height);
-        cairo_fill(rendering_context);
-
-        //  Draw a top rectangle in toggling color
-        draw_rectangle(rendering_context, 0, 0, overlay_width, overlay_height / 4, top_color, 9.6);
-
-        //  Draw a bottom rectangle in toggling color
-        draw_rectangle(rendering_context,
-                       0,
-                       overlay_height * 3 / 4,
-                       overlay_width,
-                       overlay_height,
-                       bottom_color,
-                       2.0);
-    } else if (id == overlay_id_text) {
+    if (id == overlay_id_text) {
         //  Show text in black
         draw_text(rendering_context, overlay_width / 2, overlay_height / 2);
     } else {
@@ -315,11 +211,12 @@ static gboolean update_overlay_cb(gpointer user_data) {
     // Countdown
     counter = counter < 1 ? 10 : counter - 1;
 
-    if (counter == 0) {
-        // A small color surprise
-        top_color    = top_color > 2 ? 1 : top_color + 1;
-        bottom_color = bottom_color > 2 ? 1 : bottom_color + 1;
-    }
+    if (counter >= 0 && counter <= 3) 
+        color = (RGBColor){ 1.0, 0.0, 0.0}; // red
+    else if (counter > 3 && counter <= 7)
+        color = (RGBColor){ 0.0, 0.0, 1.0}; // blue
+    else
+        color = (RGBColor){0.0, 1.0, 0.0}; // Green
 
     // Request a redraw of the overlay
     axoverlay_redraw(&error);
@@ -392,13 +289,6 @@ int main(void) {
         return 1;
     }
 
-    //  Setup colors
-    if (!setup_palette_color(0, 0, 0, 0, 0) || !setup_palette_color(1, 255, 0, 0, 255) ||
-        !setup_palette_color(2, 0, 255, 0, 255) || !setup_palette_color(3, 0, 0, 255, 255)) {
-        syslog(LOG_ERR, "Failed to setup palette colors");
-        return 1;
-    }
-
     // Get max resolution for width and height
     camera_width = axoverlay_get_max_resolution_width(1, &error);
     if (error != NULL) {
@@ -416,19 +306,8 @@ int main(void) {
 
     syslog(LOG_INFO, "Max resolution (width x height): %i x %i", camera_width, camera_height);
 
-    // Create a large overlay using Palette color space
-    struct axoverlay_overlay_data data;
-    setup_axoverlay_data(&data);
-    data.width      = camera_width;
-    data.height     = camera_height;
-    data.colorspace = AXOVERLAY_COLORSPACE_4BIT_PALETTE;
-    overlay_id      = axoverlay_create_overlay(&data, NULL, &error);
-    if (error != NULL) {
-        syslog(LOG_ERR, "Failed to create first overlay: %s", error->message);
-        g_error_free(error);
-        return 1;
-    }
 
+    
     // Create an text overlay using ARGB32 color space
     struct axoverlay_overlay_data data_text;
     setup_axoverlay_data(&data_text);
@@ -446,7 +325,6 @@ int main(void) {
     axoverlay_redraw(&error);
     if (error != NULL) {
         syslog(LOG_ERR, "Failed to draw overlays: %s", error->message);
-        axoverlay_destroy_overlay(overlay_id, &error);
         axoverlay_destroy_overlay(overlay_id_text, &error_text);
         axoverlay_cleanup();
         g_error_free(error);
@@ -460,13 +338,6 @@ int main(void) {
     // Enter main loop
     g_main_loop_run(loop);
 
-    // Destroy the overlay
-    axoverlay_destroy_overlay(overlay_id, &error);
-    if (error != NULL) {
-        syslog(LOG_ERR, "Failed to destroy first overlay: %s", error->message);
-        g_error_free(error);
-        return 1;
-    }
     axoverlay_destroy_overlay(overlay_id_text, &error_text);
     if (error_text != NULL) {
         syslog(LOG_ERR, "Failed to destroy second overlay: %s", error_text->message);
