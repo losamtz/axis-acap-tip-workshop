@@ -101,7 +101,8 @@ vapix_post_json(CURL* handle, const char* credentials, const char* endpoint, con
     free(text_response);
     return json_response;
 }
-
+```
+```c
 static json_t* add_text(CURL* handle, const char* credentials) {
     const char* endpoint = "/axis-cgi/dynamicoverlay/dynamicoverlay.cgi";
 
@@ -112,9 +113,11 @@ static json_t* add_text(CURL* handle, const char* credentials) {
         "  \"method\": \"addText\","
         "  \"params\": {"
         "    \"camera\": 1,"
-        "    \"text\": \"AXIS TIP Paris workshop %c\","
+        "    \"text\": \"AXIS TIP Paris workshop - Date %c\","
         "    \"position\": \"topLeft\","
-        "    \"textColor\": \"white\""        
+        "    \"textColor\": \"white\","
+        "    \"fontSize": 14","
+        "    \"textBGColor\": \"black\""  
         "   }"
         "}";
 
