@@ -1,4 +1,4 @@
-# Draw rectangle normalized coordinates
+# Draw text with VAPIX Overlay API
 
 
 ## Description
