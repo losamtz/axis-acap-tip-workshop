@@ -1,5 +1,5 @@
 PROG1	= dynamic_overview_vapix
-OBJS1	= dynamic_overview_vapix.c
+OBJS1	= $(wildcard *.c)
 
 PROGS	= $(PROG1)
 

@@ -1,5 +1,7 @@
 #include <curl/curl.h>
 #include <gio/gio.h>
+#include "curl-request.h"
+#include "panic.h"
 
 
 static size_t append_to_gstring_callback(char* ptr, size_t size, size_t nmemb, void* userdata) {
@@ -8,8 +10,7 @@ static size_t append_to_gstring_callback(char* ptr, size_t size, size_t nmemb, v
     return processed_bytes;
 }
 
-static char*
-vapix_post(CURL* handle, const char* credentials, const char* endpoint, const char* request) {
+char* vapix_post(CURL* handle, const char* credentials, const char* endpoint, const char* request) {
     GString* response = g_string_new(NULL);
     char* url         = g_strdup_printf("http://127.0.0.12/%s", endpoint);
 

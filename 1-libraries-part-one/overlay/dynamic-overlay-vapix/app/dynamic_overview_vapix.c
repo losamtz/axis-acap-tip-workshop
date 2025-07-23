@@ -4,6 +4,7 @@
 #include <syslog.h>
 #include "panic.h"
 #include "vapix-credentials.h"
+#include "curl-request.h"
 
 
 static json_t*

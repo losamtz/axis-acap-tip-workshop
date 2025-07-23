@@ -1,4 +1,7 @@
 #include <gio/gio.h>
+#include <stdio.h>
+#include "panic.h"
+#include "vapix-credentials.h"
 
 static char* parse_credentials(GVariant* result) {
     char* credentials_string = NULL;
