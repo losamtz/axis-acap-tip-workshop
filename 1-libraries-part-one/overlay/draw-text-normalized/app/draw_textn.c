@@ -179,7 +179,6 @@ static void render_overlay_cb(gpointer rendering_context,
     (void)overlay_x;
     (void)overlay_y;
 
-    gdouble val = FALSE;
 
     syslog(LOG_INFO, "Render callback for camera: %i", stream->camera);
     syslog(LOG_INFO, "Render callback for overlay: %i x %i", overlay_width, overlay_height);

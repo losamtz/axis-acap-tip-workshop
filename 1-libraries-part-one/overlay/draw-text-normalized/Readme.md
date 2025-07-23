@@ -36,9 +36,9 @@ static void draw_text(cairo_t* context, const gint pos_x, const gint pos_y) {
 ## Build
 
 ```bash
-docker build --tag draw-rectangle-normal --build-arg ARCH=aarch64 .
+docker build --tag draw-text --build-arg ARCH=aarch64 .
 ```
 
 ```bash
-docker cp $(docker create draw-rectangle-normal):/opt/app ./build
+docker cp $(docker create draw-text):/opt/app ./build
 ```
