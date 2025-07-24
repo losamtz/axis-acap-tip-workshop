@@ -126,7 +126,7 @@ static json_t* add_text(CURL* handle, const char* credentials) {
 ```
 or
 ```c
-json_t* root = json_object();
+    json_t* root = json_object();
     json_t* params = json_object();
 
     // Fill the "params" object
