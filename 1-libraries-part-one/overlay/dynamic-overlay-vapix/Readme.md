@@ -113,10 +113,10 @@ static json_t* add_text(CURL* handle, const char* credentials) {
         "  \"method\": \"addText\","
         "  \"params\": {"
         "    \"camera\": 1,"
-        "    \"text\": \"AXIS TIP Paris workshop - Date %c\","
+        "    \"text\": \"AXIS TIP Paris workshop - Date: %c\","
         "    \"position\": \"topLeft\","
         "    \"textColor\": \"white\","
-        "    \"fontSize": 14","
+        "    \"fontSize\": 32,"
         "    \"textBGColor\": \"black\""  
         "   }"
         "}";
