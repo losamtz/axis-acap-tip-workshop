@@ -124,7 +124,25 @@ static json_t* add_text(CURL* handle, const char* credentials) {
     return vapix_post_json(handle, credentials, endpoint, request);
 }
 ```
+or
+```c
+json_t* root = json_object();
+    json_t* params = json_object();
 
+    // Fill the "params" object
+    json_object_set_new(params, "camera", json_integer(1));
+    json_object_set_new(params, "text", json_string("AXIS TIP Paris workshop - Date: %c"));
+    json_object_set_new(params, "position", json_string("topLeft"));
+    json_object_set_new(params, "textColor", json_string("white"));
+    json_object_set_new(params, "fontSize", json_integer(60));
+    json_object_set_new(params, "textBGColor", json_string("black"));
+
+    // Fill the root object
+    json_object_set_new(root, "apiVersion", json_string("1.0"));
+    json_object_set_new(root, "context", json_string("abc"));
+    json_object_set_new(root, "method", json_string("addText"));
+    json_object_set_new(root, "params", params);
+```
 ## Build
 
 ```bash
