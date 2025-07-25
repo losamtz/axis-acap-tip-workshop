@@ -164,7 +164,7 @@ or all bboxes together
     bbox_draw_path(bbox);
 
     // Draw all queued geometry simultaneously
-    !bbox_commit(bbox, 0u))
+    bbox_commit(bbox, 0u)
 ```
 ### 6 - Destroy
 
