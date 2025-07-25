@@ -63,9 +63,9 @@ static void single_channel(void) {
         panic("Failed creating: %s", strerror(errno));
 
     // if (scene_normalized)
-        bbox_coordinates_scene_normalized(bbox);
+        //bbox_coordinates_scene_normalized(bbox);
     // else
-    //     bbox_coordinates_frame_normalized(bbox);
+    bbox_coordinates_frame_normalized(bbox);
 
     bbox_clear(bbox);  // Remove all old bounding-boxes
 
