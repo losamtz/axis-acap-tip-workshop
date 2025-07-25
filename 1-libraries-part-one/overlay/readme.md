@@ -12,7 +12,7 @@ We will go through some of the setting relevant to the cameras, mostly "normaliz
 Note:
 It is preferable to use Palette color space for large overlays like plain boxes, to lower the memory usage. More detailed overlays like text overlays, should instead use ARGB32 color space.
 
-##  🎯 Overview: axoverlay and Cairo roles
+###  Overview: axoverlay and Cairo roles
 
 | Component  | Role                                                                                 |
 |------------|--------------------------------------------------------------------------------------|
@@ -21,7 +21,7 @@ It is preferable to use Palette color space for large overlays like plain boxes,
 
 ---
 
-### 🔁 Typical Flow of Interaction
+### Typical Flow of Interaction
 
 1. **`axoverlay_init()`**
 
@@ -68,7 +68,7 @@ These commands draw on a canvas that overlays the video stream.
 
 ---
 
-### ⏱️ Execution Order Summary
+### Execution Order Summary
 
 ```c
 main() {
@@ -83,7 +83,7 @@ render_callback(...) {
 }
 ```
 
-### 🔄 How They Work Together
+### How They Work Together
 
 | axoverlay                               | Cairo                            |
 |----------------------------------------|---------------------------------|
@@ -108,15 +108,15 @@ render_overlay_cb(...) {
 }
 ```
 
-# Normalized Coordinates in Axis ACAP Overlay
+## Normalized Coordinates in Axis ACAP Overlay
 
-## What are Normalized Coordinates?
+### What are Normalized Coordinates?
 
 Instead of specifying overlay positions using absolute pixel values (e.g., 100 pixels from the left), normalized coordinates scale positions to a fixed range between **-1** and **1**, regardless of the video frame's resolution or size.
 
 This means your overlay positioning becomes resolution-independent and consistent across different video sizes.
 
-## Coordinate System Overview
+### Coordinate System Overview
 
 - The coordinate system is centered in the middle of the video frame.
 - The **x-axis** runs horizontally from **-1** (far left edge) to **1** (far right edge).
@@ -163,7 +163,7 @@ This means your overlay positioning becomes resolution-independent and consisten
 | 1                | Maximum normalized  | Right (for x), Top (for y)     |
 
 
-### Overlay Position Types
+## Overlay Position Types
 
 #### The different position types:
 
@@ -286,9 +286,9 @@ This is especially useful if the video is rotated or if digital pan-tilt-zoom (D
 
 ```
 
-# Cairo settings
+## Cairo settings
 
-## Cairo Compositing Operators Overview
+### Cairo Compositing Operators Overview
 
 This table summarizes some of the most commonly used compositing operators in the [Cairo graphics library](https://cairographics.org/operators/). These operators determine how new drawings (source) interact with existing content (destination).
 
@@ -343,11 +343,11 @@ For more details, see [Cairo Operators Documentation](https://cairographics.org/
 
 
 
-## 🖌️ Grayscale Mapping Using `index2cairo` for Cairo Overlays
+### Grayscale Mapping Using `index2cairo` for Cairo Overlays
 
 This function converts a grayscale color index (typically in the range 0–15) into a normalized floating-point value between 0.0 and 1.0, which can be used with cairo_set_source_rgba().
 
-#### 📘 Function Overview
+#### Function Overview
 
 ```c
 static gdouble index2cairo(const gint color_index) {
@@ -356,7 +356,7 @@ static gdouble index2cairo(const gint color_index) {
 
 ```
 
-## Step 1: Bit Manipulation
+### Step 1: Bit Manipulation
 
 ```c
 ((color_index << 4) + color_index)
@@ -377,7 +377,7 @@ This is a standard way to scale a **4-bit value (0–15)** to **8-bit grayscale 
 
 ---
 
-## Step 2: Normalize to \[0.0, 1.0]
+### Step 2: Normalize to \[0.0, 1.0]
 
 ```c
 / PALETTE_VALUE_RANGE
@@ -393,7 +393,7 @@ This scales the 8-bit grayscale value to a Cairo-friendly floating-point value b
 
 ---
 
-## 🖌️ How It's Used in Drawing
+### How It's Used in Drawing
 
 ```c
 val = index2cairo(color_index);
@@ -413,7 +413,7 @@ So:
 
 ---
 
-## 🎨 Visual Mapping Table
+### Visual Mapping Table
 
 | color\_index | 8-bit Gray Value | Normalized val | Visual Description |
 | ------------ | ---------------- | -------------- | ------------------ |
@@ -429,7 +429,7 @@ So:
 
 ---
 
-## ✅ Summary
+### ✅ Summary
 
 The `index2cairo()` function:
 
@@ -440,7 +440,7 @@ The `index2cairo()` function:
 This allows clean, consistent grayscale overlays on video streams in Axis ACAP using Cairo.
 
 
-# 🎯 Coordinate vs Color Normalization in Axis ACAP Overlays
+### Coordinate vs Color Normalization in Axis ACAP Overlays
 
 When working with Axis ACAP overlays using Cairo, you’ll encounter two different kinds of normalized values:
 
@@ -451,7 +451,7 @@ These use **different ranges** and serve **different purposes** — here’s why
 
 ---
 
-## 🗺️ Overlay Coordinate Normalization (`AXOVERLAY_CUSTOM_NORMALIZED`)
+### Overlay Coordinate Normalization (`AXOVERLAY_CUSTOM_NORMALIZED`)
 
 - **Range:** `[-1, 1]` for both X and Y
 - **Purpose:** To position overlays relative to the **video frame**, independent of resolution
@@ -467,19 +467,19 @@ These use **different ranges** and serve **different purposes** — here’s why
 
 ---
 
-### 🎨 Cairo RGBA Normalization
+### Cairo RGBA Normalization
 
 - **Function:** `cairo_set_source_rgba(context, R, G, B, A)`
 - **Range:** `[0.0, 1.0]` for each channel (Red, Green, Blue, Alpha)
 - **Purpose:** Defines **color** and **opacity**
 - **Standardized:** Common in graphics libraries like OpenGL, SVG, CSS
 
-### ✅ Example:
+#### ✅ Example:
 ```c
 cairo_set_source_rgba(ctx, 1.0, 0.0, 0.0, 0.5); // Semi-transparent red
 ```
 
-#### 🔍 Summary: Why the Difference?
+### 🔍 Summary: Why the Difference?
 
 | Feature                    | Purpose             | Normalization Range | Center-Based? | Usage Context         |
 |----------------------------|---------------------|----------------------|----------------|------------------------|

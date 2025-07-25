@@ -1,0 +1,26 @@
+{
+    "schemaVersion": "1.7.3",
+    "resources": {
+        "dbus": {
+            "requiredMethods": [
+                "com.axis.Graphics2.*",
+                "com.axis.Overlay2.*"
+            ]
+        },
+        "linux": {
+            "user": {
+                "groups": ["video"]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "BBox Multi View Scene N",
+            "appName": "bbox_multi_view_scenen",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "runMode": "never",
+            "version": "1.0.0"
+        }
+    }
+}
