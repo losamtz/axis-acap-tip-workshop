@@ -9,7 +9,7 @@ Upload a logo and set in corner positions with normalized coordinates
 
 ---
 ```c
-tatic void draw_logo(cairo_t *context,
+static void draw_logo(cairo_t *context,
                       const char *image_path,
                       gfloat pad_x, gfloat pad_y,       // Normalized padding from edge
                       gfloat norm_width,                // Max normalized width

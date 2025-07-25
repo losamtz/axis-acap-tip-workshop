@@ -3,7 +3,8 @@
 
 ## Description
 
-Use of palette color space for large overlays like plain boxes, to lower the memory usage.
+Draw text using cairo and colorspace ARGB32 with normalized coordinates (initial axoverlay setup).
+
 
 ## Initialize and setup an overlay_data struct with default values.
 

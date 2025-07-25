@@ -7,6 +7,13 @@ Draw different shapes for differend existing views when accessing from the web i
 
 Use of palette color space for large overlays like plain boxes, to lower the memory usage.
 
+## Select channel in render_cb
+
+```c
+size_t channel = stream->camera - 1;
+
+```
+
 ## Draw functions
 ---
 
@@ -96,9 +103,9 @@ static void draw_triangle(cairo_t* context,
 
 ## Build
 
+```bash
+docker build --tag draw-views --build-arg ARCH=aarch64 .
 ```
-docker build --tag draw-view --build-arg ARCH=aarch64 .
-```
-```
-docker cp $(docker create draw-view):/opt/app ./build
+```bash
+docker cp $(docker create draw-views):/opt/app ./build
 ```
