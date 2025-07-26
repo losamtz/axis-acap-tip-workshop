@@ -31,19 +31,19 @@ static void single_channel(void) {
         panic("Failed creating: %s", strerror(errno));
 
     
-    bbox_coordinates_frame_normalized(bbox);
+    bbox_coordinates_scene_normalized(bbox);
 
     bbox_clear(bbox);  // Remove all old bounding-boxes
 
     // Create all needed colors [These operations are slow!]
-    const bbox_color_t red   = bbox_color_from_rgb(0xff, 0x00, 0x00);
+    //const bbox_color_t red   = bbox_color_from_rgb(0xff, 0x00, 0x00);
     //const bbox_color_t blue  = bbox_color_from_rgb(0x00, 0x00, 0xff);
-    //const bbox_color_t green = bbox_color_from_rgb(0x00, 0xff, 0x00);
+    const bbox_color_t green = bbox_color_from_rgb(0x00, 0xff, 0x00);
 
     bbox_style_outline(bbox);                      
     bbox_thickness_thin(bbox);                     
-    bbox_color(bbox, red);                         
-    bbox_rectangle(bbox, 0.05, 0.05, 0.95, 0.95);  
+    bbox_color(bbox, green);                         
+    bbox_rectangle(bbox, 0.1, 0.1, 0.90, 0.90);  
 
     // Draw all queued geometry simultaneously
     if (!bbox_commit(bbox, 0u))

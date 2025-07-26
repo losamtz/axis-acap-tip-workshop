@@ -1,8 +1,8 @@
-PROG1 = bbox_view_framen
+PROG1 = bbox_view_scenen
 OBJS1 = $(PROG1).c
 PROGS = $(PROG1)
 
-PKGS = bbox
+PKGS = bbox gio-2.0 glib-2.0
 
 CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PKGS))
 LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PKGS))

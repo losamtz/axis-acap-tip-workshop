@@ -1,11 +1,9 @@
-# Draw views normalized coordinates
+# Draw view with scene normalized coordinates
 
 
 ## Description
 
-Draw different shapes for differend existing views when accessing from the web inteface.
-
-Use of palette color space for large overlays like plain boxes, to lower the memory usage.
+Draw a fixed red rectangle with frame normalization. In this case we are using GMainLoop to keep the rendering permanent, and destroy it only when exiting the application.
 
 ## Create a bbox on channel 1
 
