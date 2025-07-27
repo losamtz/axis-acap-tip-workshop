@@ -15,7 +15,7 @@
 
 static double xpos = 0.0;  // starting x position
 static const double box_width = 0.1;
-static const double y = 0.5;
+static const double y = 0.3;
 static const double height = 0.1;
 static int dir = -1;
 
@@ -41,18 +41,19 @@ static gboolean update_bbox(gpointer user_data) {
         panic("Failed creating: %s", strerror(errno));
 
     
-    bbox_coordinates_scene_normalized(bbox);
+    bbox_coordinates_frame_normalized(bbox);
 
     bbox_clear(bbox);  // Remove all old bounding-boxes
 
     // Create all needed colors [These operations are slow!]
     //const bbox_color_t red   = bbox_color_from_rgb(0xff, 0x00, 0x00);
-    const bbox_color_t blue  = bbox_color_from_rgb(0x00, 0x00, 0xff);
+    //const bbox_color_t blue  = bbox_color_from_rgb(0x00, 0x00, 0xff);
     //const bbox_color_t green = bbox_color_from_rgb(0x00, 0xff, 0x00);
+    const bbox_color_t yellow = bbox_color_from_rgb(0xff, 0xff, 0x00);  // Yellow
 
     bbox_style_corners(bbox);                      
     bbox_thickness_medium(bbox);                     
-    bbox_color(bbox, blue);                         
+    bbox_color(bbox, yellow);                         
 
     xpos += dir * 0.02;
 

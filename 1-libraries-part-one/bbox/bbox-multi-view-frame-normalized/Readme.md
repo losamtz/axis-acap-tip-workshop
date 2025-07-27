@@ -1,9 +1,9 @@
-# Draw multi-view with scene normalized coordinates
+# Draw multi-view with frame normalized coordinates
 
 
 ## Description
 
-Draw a movig blue red rectangle with scene normalization. 
+Draw a movig yellow rectangle with scene normalization. 
 
 ## Create a bbox on channel 1
 
@@ -67,8 +67,8 @@ bbox_destroy(bbox);
 ## Build
 
 ```bash
-docker build --tag bbox-multi-view-sn --build-arg ARCH=aarch64 .
+docker build --tag bbox-multi-view-fn --build-arg ARCH=aarch64 .
 ```
 ```bash
-docker cp $(docker create bbox-multi-view-sn):/opt/app ./build
+docker cp $(docker create bbox-multi-view-fn):/opt/app ./build
 ```
