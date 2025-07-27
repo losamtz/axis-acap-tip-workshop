@@ -12,15 +12,7 @@ Scene coordinate system is normalized to [0,0]-[1,1] and follows the filmed scen
 
 Frame coordinate system is normalized and aligned with the camera frame, i.e. top-left is [0,0] and bottom-right is [1,1].
 
-## Here's a side-by-side comparison:
 
-![Scene vs frame](scene_vs_frame.png)
-
-Red box = frame_normalized() — moves with the camera.
-
-- On the left, the camera is in its original position. The red box marks an object (like a car).
-
-- On the right, the camera rotated, and the object appears in a different part of the frame, so the red box moved — even though the object didn’t move in the real world.
 
 ```c
 bbox_coordinates_frame_normalized(bbox);
@@ -76,7 +68,7 @@ You map or transform frame-based bounding boxes into the scene-space (if support
 
 ### 1 - Select view to draw
 
-#### single view (channel: 1)
+#### single view (select which channel)
 ---
 ```c
 bbox_t* bbox = bbox_view_new(1u);
@@ -86,6 +78,15 @@ bbox_t* bbox = bbox_view_new(1u);
 
 ```c
 bbox_t* bbox = bbox_new(2u, 1u, 2u);
+
+```
+
+If the video channel output selected is not present this call will succeed and not block the application. Good for multiviews or selected a view it is not the main one.
+
+```c
+
+if (!bbox_video_output(bbox, true))
+    panic("Failed enabling video-output: %s", strerror(errno));
 
 ```
 ---

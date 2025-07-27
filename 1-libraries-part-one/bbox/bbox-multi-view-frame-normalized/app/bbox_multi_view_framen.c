@@ -40,6 +40,8 @@ static gboolean update_bbox(gpointer user_data) {
     if (!bbox)
         panic("Failed creating: %s", strerror(errno));
 
+    if (!bbox_video_output(bbox, true))
+    panic("Failed enabling video-output: %s", strerror(errno));
     
     bbox_coordinates_frame_normalized(bbox);
 

@@ -3,12 +3,23 @@
 
 ## Description
 
-Draw a movig blue red rectangle with scene normalization. 
+Draw a yellow box moving from axis [0.0,0.5]  to [1.0,0.5] and back in several view areas, simulating object tracking in the scene.
 
-## Create a bbox on channel 1
+Note: Using object detection models, the coordenates are provided to be able to draw the the boxes. THis case just simulates that scenario.
+
+## Create a bbox on channel 1, 2, 3 and 4
 
 ```c
-bbox_t* bbox = bbox_view_new(1u);
+bbox_t* bbox = bbox_new(4u, 1u, 2u, 3u, 4u);
+
+```
+
+## If the video channel output selected is not present this call will succeed and not block the application. Good for multiviews or selected a view it is not the main one.
+
+```c
+
+if (!bbox_video_output(bbox, true))
+    panic("Failed enabling video-output: %s", strerror(errno));
 
 ```
 
