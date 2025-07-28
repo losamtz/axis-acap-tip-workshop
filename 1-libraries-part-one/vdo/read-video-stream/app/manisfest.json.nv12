@@ -1,0 +1,14 @@
+{
+    "schemaVersion": "1.7.3",
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Read Video Stream NV12",
+            "appName": "read_video_stream_nv12",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "runOptions": "--format nv12 --frames 25",
+            "runMode": "never",
+            "version": "1.0.0"
+        }
+    }
+}
