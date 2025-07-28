@@ -1,4 +1,4 @@
-# Reead Video Stream
+# Read Video Stream
 
 ## Description:
 
