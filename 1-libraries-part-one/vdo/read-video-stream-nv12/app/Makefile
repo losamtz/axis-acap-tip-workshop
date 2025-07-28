@@ -1,4 +1,4 @@
-PROG1	= read_video_stream
+PROG1	= read_video_stream_nv12
 OBJS1	= $(PROG1).c
 PROGS	= $(PROG1)
 

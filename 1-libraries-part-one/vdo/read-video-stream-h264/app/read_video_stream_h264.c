@@ -15,8 +15,6 @@
 
 static VdoStream* stream;
 static gboolean shutdown       = FALSE;
-static const gchar* param_desc = "";
-static const gchar* summary    = "Encoded video client";
 
 static void print_frame(VdoFrame* frame) {
     if (!vdo_frame_get_is_last_buffer(frame))
@@ -45,48 +43,23 @@ static void print_frame(VdoFrame* frame) {
            vdo_frame_get_size(frame));
 
 }
-// Set vdo format from input parameter
-static gboolean set_format(VdoMap* settings, gchar* format, GError** error) {
-    if (g_strcmp0(format, "h264") == 0) {
-        vdo_map_set_uint32(settings, "format", VDO_FORMAT_H264);
-    } else if (g_strcmp0(format, "h265") == 0) {
-        vdo_map_set_uint32(settings, "format", VDO_FORMAT_H265);
-    } else if (g_strcmp0(format, "jpeg") == 0) {
-        vdo_map_set_uint32(settings, "format", VDO_FORMAT_JPEG);
-    } else if (g_strcmp0(format, "nv12") == 0) {
-        vdo_map_set_uint32(settings, "format", VDO_FORMAT_YUV);
-        vdo_map_set_string(settings, "subformat", "NV12");
-    } else if (g_strcmp0(format, "y800") == 0) {
-        vdo_map_set_uint32(settings, "format", VDO_FORMAT_YUV);
-        vdo_map_set_string(settings, "subformat", "Y800");
-    } else {
-        g_set_error(error,
-                    VDO_CLIENT_ERROR,
-                    VDO_ERROR_NOT_FOUND,
-                    "Format \"%s\" is not supported\n",
-                    format);
-        return FALSE;
-    }
 
-    return TRUE;
-}
-// Facilitate graceful shutdown with CTRL-C
 static void handle_sigint(int signum) {
     (void)signum;
     shutdown = TRUE;
 }
 
-int main() {
+int main(void) {
 
     GError* error      = NULL;
     gchar* format      = "h264";
-    guint frames       = NFRAMES;
     gchar* output_file = "/dev/null";
     FILE* dest_f       = NULL;
 
     openlog(NULL, LOG_PID, LOG_USER);
 
     dest_f = fopen(output_file, "wb");
+    
     if (!dest_f) {
         g_set_error(&error, VDO_CLIENT_ERROR, VDO_ERROR_IO, "open failed: %m");
         goto exit;
@@ -98,8 +71,14 @@ int main() {
     // Set vdostream settings
 
     VdoMap* settings = vdo_map_new();
-    if (!set_format(settings, format, &error))
-        goto exit;
+    
+
+    // Set format to H264
+    vdo_map_set_uint32(settings, "format", VDO_FORMAT_H264);
+
+    // set format to NV12
+    // vdo_map_set_uint32(settings, "format", VDO_FORMAT_YUV);
+    //vdo_map_set_string(settings, "subformat", "NV12");
 
     // Set default arguments
     vdo_map_set_uint32(settings, "width", 640);
@@ -185,7 +164,6 @@ int main() {
     g_clear_error(&error);
     g_clear_object(&stream);
 
-    //g_option_context_free(context);
 
     return ret;  
 }

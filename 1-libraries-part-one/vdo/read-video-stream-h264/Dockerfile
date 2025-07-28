@@ -10,6 +10,4 @@ ARG VDO_FORMAT
 # Building the ACAP application
 COPY ./app /opt/app/
 WORKDIR /opt/app
-RUN cp /opt/app/manifest.json.${VDO_FORMAT} manifest.json && \
-    . /opt/axis/acapsdk/environment-setup* && \
-    acap-build .
+RUN . /opt/axis/acapsdk/environment-setup* && acap-build .

@@ -146,9 +146,9 @@ vdo_stream_buffer_unref(stream, &buffer, &error);
 ## Build
 
 ```bash
-docker build --tag read-video-stream --build-arg ARCH=aarch64 .
+docker build --tag read-video-stream-h264 --build-arg ARCH=aarch64 .
 ```
 ```bash
-docker cp $(docker read-video-stream):/opt/app ./build
+docker cp $(docker create read-video-stream-h264):/opt/app ./build
 ```
 
