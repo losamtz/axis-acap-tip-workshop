@@ -5,8 +5,8 @@
 This application show case the basic use of this library which is reading the stream and frames properties.
 
 ## Setup
-
-### Set video stream settings
+---
+#### Set video stream settings
 
 ```c
 
@@ -14,7 +14,7 @@ VdoMap* settings = vdo_map_new();
 
 ```
 
-### Specify settings - Set format
+#### Specify settings - Set format
 
 H264 format for recording:
 ```c
@@ -29,7 +29,7 @@ vdo_map_set_string(settings, "subformat", "NV12");
 ```
 
 
-### Specify settings - Set width and height
+#### Specify settings - Set width and height
 
 ```c
 
@@ -38,7 +38,7 @@ vdo_map_set_uint32(settings, "height", 360);
 
 ```
 
-### Create a new stream object with configured settings
+#### Create a new stream object with configured settings
 
 ```c
 
@@ -58,8 +58,11 @@ vdo_map_get_uint32(info, "height", 0);
 vdo_map_get_uint32(info, "framerate", 0);
 
 ```
-
+---
 ## Start the stream
+
+---
+#### Start
 
 ```c
 
@@ -67,7 +70,7 @@ vdo_stream_start(stream, &error); // return boolean
 
 ```
 
-### Create a buffer for each frame
+#### Create a buffer for each frame
 
 ```c
 
@@ -75,11 +78,12 @@ VdoBuffer* buffer = vdo_stream_get_buffer(stream, &error);
 VdoFrame* frame   = vdo_buffer_get_frame(buffer);
 
 ```
+---
 
 ## Actions after starting the stream
 
-
-### Get frame info 
+---
+#### Get frame info 
 
 Check last frame is available - Tests whether this frame is last buffer
 
@@ -108,11 +112,11 @@ Get Frame size:
 
 ```c
 
-vdo_frame_get_size(frame)
+vdo_frame_get_size(frame);
 
 ```
 
-### Get buffer data (the frame) for recording 
+#### Get buffer data (the frame) for recording 
 
 Pointer to underlaying buffer
 
@@ -137,5 +141,5 @@ Release buffer
 vdo_stream_buffer_unref(stream, &buffer, &error);
 
 ```
-
+---
 
