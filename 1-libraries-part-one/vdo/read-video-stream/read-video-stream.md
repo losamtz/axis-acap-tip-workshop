@@ -128,7 +128,7 @@ gpointer data = vdo_buffer_get_data(buffer);
 Write data to sd card or networkshare (in this case to /dev/null - noware)
 
 ```c
-
+gchar* output_file = "/dev/null";
 FILE* dest_f = fopen(output_file, "wb");
 fwrite(data, vdo_frame_get_size(frame), 1, dest_f);
 
