@@ -1,0 +1,168 @@
+<!-- Endpoint: /vapix/services -->
+
+<!-- Request GetProfiles -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<Envelope xmlns="http://www.w3.org/2003/05/soap-envelope">
+    <Header/>
+    <Body >
+        <GetProfiles xmlns="http://www.onvif.org/ver20/media/wsdl">
+            <Type>VideoSource</Type>
+            <Type>VideoEncoder</Type>
+            <Type>AudioSource</Type>
+            <Type>AudioEncoder</Type>
+            <Type>AudioDecoder</Type>
+            <Type>AudioOutput</Type>
+            <Type>Analytics</Type>
+            <Type>Metadata</Type>
+            <Type>PTZ</Type>
+        </GetProfiles>
+    </Body>
+</Envelope>
+
+<!-- Response GetProfilesResponse -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:SOAP-ENC="http://www.w3.org/2003/05/soap-encoding"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:c14n="http://www.w3.org/2001/10/xml-exc-c14n#"
+    xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+    xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"
+    xmlns:wsa5="http://www.w3.org/2005/08/addressing"
+    xmlns:tt="http://www.onvif.org/ver10/schema"
+    xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2"
+    xmlns:tns1="http://www.onvif.org/ver10/topics"
+    xmlns:tnsaxis="http://www.axis.com/2009/event/topics"
+    xmlns:tev="http://www.onvif.org/ver10/events/wsdl"
+    xmlns:tr2="http://www.onvif.org/ver20/media/wsdl"
+    xmlns:axt="http://www.onvif.org/ver20/analytics"
+    xmlns:ter="http://www.onvif.org/ver10/error">
+    <SOAP-ENV:Header></SOAP-ENV:Header>
+    <SOAP-ENV:Body>
+        <tr2:GetProfilesResponse>
+            <tr2:Profiles fixed="false" token="profile_1_h264">
+                <tr2:Name>profile_1 h264</tr2:Name>
+                <tr2:Configurations>
+                    <tr2:VideoSource token="0">
+                        <tt:Name>user0</tt:Name>
+                        <tt:UseCount>3</tt:UseCount>
+                        <tt:SourceToken>0</tt:SourceToken>
+                        <tt:Bounds height="2160" width="3840" y="0" x="0"></tt:Bounds>
+                        <tt:Extension>
+                            <tt:Rotate>
+                                <tt:Mode>ON</tt:Mode>
+                                <tt:Degree>0</tt:Degree>
+                            </tt:Rotate>
+                        </tt:Extension>
+                    </tr2:VideoSource>
+                    <tr2:VideoEncoder Profile="Main" GovLength="32" token="default_1_h264">
+                        <tt:Name>default_1 h264</tt:Name>
+                        <tt:UseCount>1</tt:UseCount>
+                        <tt:Encoding>H264</tt:Encoding>
+                        <tt:Resolution>
+                            <tt:Width>3840</tt:Width>
+                            <tt:Height>2160</tt:Height>
+                        </tt:Resolution>
+                        <tt:RateControl>
+                            <tt:FrameRateLimit>25</tt:FrameRateLimit>
+                            <tt:BitrateLimit>2147483647</tt:BitrateLimit>
+                        </tt:RateControl>
+                        <tt:Multicast>
+                            <tt:Address>
+                                <tt:Type>IPv4</tt:Type>
+                                <tt:IPv4Address>224.0.0.73</tt:IPv4Address>
+                            </tt:Address>
+                            <tt:Port>7073</tt:Port>
+                            <tt:TTL>5</tt:TTL>
+                            <tt:AutoStart>false</tt:AutoStart>
+                        </tt:Multicast>
+                        <tt:Quality>70</tt:Quality>
+                    </tr2:VideoEncoder>
+                </tr2:Configurations>
+            </tr2:Profiles>
+            <tr2:Profiles fixed="false" token="profile_1_jpeg">
+                <tr2:Name>profile_1 jpeg</tr2:Name>
+                <tr2:Configurations>
+                    <tr2:VideoSource token="0">
+                        <tt:Name>user0</tt:Name>
+                        <tt:UseCount>3</tt:UseCount>
+                        <tt:SourceToken>0</tt:SourceToken>
+                        <tt:Bounds height="2160" width="3840" y="0" x="0"></tt:Bounds>
+                        <tt:Extension>
+                            <tt:Rotate>
+                                <tt:Mode>ON</tt:Mode>
+                                <tt:Degree>0</tt:Degree>
+                            </tt:Rotate>
+                        </tt:Extension>
+                    </tr2:VideoSource>
+                    <tr2:VideoEncoder token="default_1_jpeg">
+                        <tt:Name>default_1 jpeg</tt:Name>
+                        <tt:UseCount>1</tt:UseCount>
+                        <tt:Encoding>JPEG</tt:Encoding>
+                        <tt:Resolution>
+                            <tt:Width>3840</tt:Width>
+                            <tt:Height>2160</tt:Height>
+                        </tt:Resolution>
+                        <tt:RateControl>
+                            <tt:FrameRateLimit>25</tt:FrameRateLimit>
+                            <tt:BitrateLimit>2147483647</tt:BitrateLimit>
+                        </tt:RateControl>
+                        <tt:Multicast>
+                            <tt:Address>
+                                <tt:Type>IPv4</tt:Type>
+                                <tt:IPv4Address>0.0.0.0</tt:IPv4Address>
+                            </tt:Address>
+                            <tt:Port>0</tt:Port>
+                            <tt:TTL>5</tt:TTL>
+                            <tt:AutoStart>false</tt:AutoStart>
+                        </tt:Multicast>
+                        <tt:Quality>70</tt:Quality>
+                    </tr2:VideoEncoder>
+                </tr2:Configurations>
+            </tr2:Profiles>
+            <tr2:Profiles fixed="false" token="profile_1_h265">
+                <tr2:Name>profile_1 h265</tr2:Name>
+                <tr2:Configurations>
+                    <tr2:VideoSource token="0">
+                        <tt:Name>user0</tt:Name>
+                        <tt:UseCount>3</tt:UseCount>
+                        <tt:SourceToken>0</tt:SourceToken>
+                        <tt:Bounds height="2160" width="3840" y="0" x="0"></tt:Bounds>
+                        <tt:Extension>
+                            <tt:Rotate>
+                                <tt:Mode>ON</tt:Mode>
+                                <tt:Degree>0</tt:Degree>
+                            </tt:Rotate>
+                        </tt:Extension>
+                    </tr2:VideoSource>
+                    <tr2:VideoEncoder Profile="Main" GovLength="32" token="default_1_h265">
+                        <tt:Name>default_1 h265</tt:Name>
+                        <tt:UseCount>1</tt:UseCount>
+                        <tt:Encoding>H265</tt:Encoding>
+                        <tt:Resolution>
+                            <tt:Width>3840</tt:Width>
+                            <tt:Height>2160</tt:Height>
+                        </tt:Resolution>
+                        <tt:RateControl>
+                            <tt:FrameRateLimit>25</tt:FrameRateLimit>
+                            <tt:BitrateLimit>2147483647</tt:BitrateLimit>
+                        </tt:RateControl>
+                        <tt:Multicast>
+                            <tt:Address>
+                                <tt:Type>IPv4</tt:Type>
+                                <tt:IPv4Address>0.0.0.0</tt:IPv4Address>
+                            </tt:Address>
+                            <tt:Port>0</tt:Port>
+                            <tt:TTL>5</tt:TTL>
+                            <tt:AutoStart>false</tt:AutoStart>
+                        </tt:Multicast>
+                        <tt:Quality>70</tt:Quality>
+                    </tr2:VideoEncoder>
+                </tr2:Configurations>
+            </tr2:Profiles>
+        </tr2:GetProfilesResponse>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

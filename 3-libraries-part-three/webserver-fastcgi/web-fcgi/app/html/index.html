@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTMX AXIS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+     <!-- Link Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <!-- HTMX -->
+    <script src="js/htmx.min.js"></script>
+    <script>
+        htmx.logger = function(elt, event, data) {
+            if(console) {
+                console.log("🧭 HTMX log:", event, elt, data);
+            }
+        };
+    </script>
+</head>
+<body class="bg-light text-dark p-4">
+
+    <div class="container">
+        <h1 class="mb-4">AXIS FCGI Parameters</h1>
+
+        <!-- Button that triggers HTMX GET request -->
+        <button class="btn btn-primary mb-3"
+                hx-get="/local/webfcgi/param-acap.cgi"
+                hx-trigger="click"
+                hx-target="#request-uri"
+                hx-swap="innerHTML"
+        >
+            Retrieve REQUEST_URI
+        </button>
+        
+        <!-- Container where HTMX response is rendered -->
+        <div id="request-uri" class="border p-3 bg-white">
+            Content will be loaded here...
+        </div>
+        <hr>
+        <form hx-post="/local/webfcgi/param-acap.cgi">
+            <input id="password" name="password" type="password"
+                hx-post="/validate"
+                hx-trigger="change"
+                hx-sync="closest form:abort">
+            <button type="submit">Save</button>
+        </form>
+    </div>
+    
+     <!-- Optional: Bootstrap CSS for styling -->
+    <script type="text/javascript" src="js/boostrap.bundle.min.js"></script>
+</body>
+</html>

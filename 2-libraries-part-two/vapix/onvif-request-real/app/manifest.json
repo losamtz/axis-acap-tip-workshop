@@ -1,0 +1,19 @@
+{
+    "schemaVersion": "1.7.4",
+    "resources": {
+        "dbus": {
+            "requiredMethods": ["com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"]
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "onvif request real",
+            "appName": "onvif_request_real",
+            "vendor": "Andrés at Axis TIP",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        }
+    }
+}
