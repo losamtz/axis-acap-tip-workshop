@@ -244,7 +244,7 @@ In the example from the lesson before, we created an overlay on a specific locat
 
 When using the axoverlay API, as mentioned before, an overlay is rendered through the render_callback whenever a new stream is created. In addition, axoverlay_redraw can be called to trigger a refreshment of the overlay which will call the render_callback.
 In our simple example, we rendered the overlay only once when the screen was created. After that it remained static. In any cases you might want to draw dynamic content that moves around. You can achieve this by calling the axoverlay_redraw method e.g. once every iteration in your main loop (i.e. every time your deep learning model has been used for inference), or you could use functions such as the GLib g_timeout_add() along with the desired redraw time interval to trigger a time-based redraw.
---
+
 
 --
 ## Extra details
