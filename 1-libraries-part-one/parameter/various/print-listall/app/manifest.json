@@ -1,0 +1,31 @@
+{
+    "schemaVersion": "1.7.4",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "appName": "printall",
+            "vendor": "Andrés at AXIS TIP",
+            "version": "1.0.0",
+            "runMode": "never",
+            "embeddedSdkVersion": "3.0"
+        },
+        "configuration": {
+            "paramConfig": [
+                {
+                    "name": "CheckCameraParameter",
+                    "default": "no",
+                    "type": "string"
+                }
+                
+            ]
+        }
+    }
+}

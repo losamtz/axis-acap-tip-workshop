@@ -1,0 +1,22 @@
+{
+    "schemaVersion": "1.7.4",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "appName": "simple_log_parameter",
+            "friendlyName": "Simple Log Parameter",
+            "vendor": "Axis",
+            "version": "1.0.0",
+            "runMode": "never",
+            "embeddedSdkVersion": "3.0"
+        }
+    }
+}
