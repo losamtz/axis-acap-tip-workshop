@@ -9,15 +9,15 @@ Example 1 declaration:                  Note: Namespaces and unnecessary tags re
 ```xml
 <TopicSet>
     <CameraApplicationPlatform>
-        <PulseSendStless NiceName="Pulse Send Stless">
-            <PulseID topic="true" NiceName="Pulse Send Stless">
+        <SendData NiceName="Send Data">
+            <SendDataEvent topic="true" NiceName="Send Data Evemt">
                 <MessageInstance>
                     <DataInstance>
-                        <SimpleItemInstance Type="int" Name="value"/>
+                        <SimpleItemInstance Type="string" Name="value"/>
                     </DataInstance>
                 </MessageInstance>
-            </PulseID>
-        </PulseSendStless>
+            </SendDataEvent>
+        </SendData>
     </CameraApplicationPlatform>
 . . .
 </TopicSet>
@@ -26,16 +26,16 @@ Example 1 declaration:                  Note: Namespaces and unnecessary tags re
 ## Build
 
 ```bash
-docker build --build-arg ARCH=aarch64 --tag pulse-send-stless .
+docker build --build-arg ARCH=aarch64 --tag send-data .
 ```
 
 ```bash
-docker cp $(docker create pulse-send-stless):/opt/app ./build
+docker cp $(docker create send-data):/opt/app ./build
 ```
 
 ## Read Data stream
 
 ```bash
-gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:PulseSendStless/axis:PulseID" ! fdsink
+gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:SendData/axis:SendDataEvent" ! fdsink
 
 ```

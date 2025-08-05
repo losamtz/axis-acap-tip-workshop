@@ -255,7 +255,7 @@ static guint setup_declaration(AXEventHandler* event_handler) {
     //Moving
     if (!ax_event_key_value_set_add_key_value(
             key_value_set, "Moving", NULL /* namespace */,
-            &ycoord, AX_VALUE_TYPE_STRING, &error)) {
+            moving, AX_VALUE_TYPE_STRING, &error)) {
         syslog(LOG_WARNING, "Could not add key/value pair: %s", error->message);
         g_error_free(error);
         ax_event_key_value_set_free(key_value_set);

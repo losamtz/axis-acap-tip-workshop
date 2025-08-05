@@ -2,6 +2,8 @@
 #include <syslog.h>
 #include <time.h>
 #include <axsdk/axevent.h>
+#include <glib-object.h>
+#include <glib.h>
 
 #define LOG(fmt, args...)    { syslog(LOG_INFO, fmt, ## args); printf(fmt, ## args); }
 #define LOG_ERROR(fmt, args...)    { syslog(LOG_CRIT, fmt, ## args); printf(fmt, ## args); }
@@ -12,7 +14,7 @@
 #define TOPIC0_NAME "ACAP"
 #define TOPIC1_TAG  "PulseSendStless"
 #define TOPIC1_NAME "Pulse Send Stless"
-#define EVENT_TAG   "PulseID"
+#define EVENT_TAG   "PulseEvent"
 #define EVENT_NAME  "Pulse Event Stless"
 
 typedef struct {
@@ -104,7 +106,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
                                   1, 
                                   &declaration, 
                                   (AXDeclarationCompleteCallback)declaration_complete, 
-                                  start_value, 
+                                  &start_value, 
                                   NULL)) {
         syslog(LOG_WARNING, "Could not declare: %s", error->message);
         g_error_free(error);

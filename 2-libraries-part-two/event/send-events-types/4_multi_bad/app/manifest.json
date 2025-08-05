@@ -2,8 +2,8 @@
     "schemaVersion": "1.7.0",
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Pulse send event",
-            "appName": "pulse_send",
+            "friendlyName": "Multiple choises bad",
+            "appName": "multi_bad",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com",
