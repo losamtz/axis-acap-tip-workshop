@@ -1,0 +1,14 @@
+{
+    "schemaVersion": "1.7.0",
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Send Pulse",
+            "appName": "send_pulse",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        }
+    }
+}

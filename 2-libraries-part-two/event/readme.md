@@ -1,8 +1,58 @@
 # Events
 
-Axis cameras have a built-in event bus, and ACAP applications can produce or consume events using the axevent library. Consumers can see the events in the RTSP streams or by connecting the camera to an MQTT broker and configuring event forwarding. Additionally, there is an event rule engine in the cameras that can be used to trigger actions based on events. In this lesson, we will go over the specifics of how events are produced from ACAP applications, and how their configuration affects what we can use them for.
+The event system make use of event bus via gdbus where applications using axevent library, produce or consumes events.
 
-### Event Topics and Namespaces
+**Event Producer**
+A process (e.g., com.axis.Event) **emits/sends** a signal on the D-Bus system bus.
+Example: Motion detection, port input change, analytics events.
+
+**D-Bus Bus (system)**
+The dbus-daemon handles message routing between clients.
+
+**Event Consumer**
+Your application connects to the system bus (via gdbus in GLib), **subscribes** to a bus name, object path, and interface, and receives events in a callback.
+
+```
+
+[Producer 1] \
+              \
+[Producer 2] ---->  [ D-Bus Bus ] ----> [Consumer 1]
+              /
+[Producer 3] /
+
+```
+
+You can consume the events through rtsp which carries metadata, by mqtt connecting a client (subscriber) to a message broker and through Event VAPIX API subscription.
+
+
+#### Event Bus Flow (GDBus)
+
++-------------------+              +-------------------+
+|   Event Producer  |              |   Event Consumer  |
+| (Axis service,    |              |  (Your ACAP app)  |
+|  ONVIF, Declared  |              |                   |
+|event in your ACAP)|              |                   |
++--------+----------+              +---------+---------+
+         |                                     ^
+         | emits D-Bus signal                  |
+         v                                     |
++--------+-------------------------------------+---------+
+|                   D-Bus Bus                             |
+| (system bus via gdbus / dbus-daemon)                     |
+| - Handles connections                                    |
+| - Routes signals by bus name & object path               |
+| - Delivers method calls and signal broadcasts            |
++----------------------------------------------------------+
+         |                                     ^
+         |                                     |
+         v                                     |
++--------+----------+              +-----------+---------+
+|   GDBusProxy /    |              |  g_signal_connect() |
+|   GDBusConnection |-------------->  Signal handler     |
+|   (GLib binding)  |              |  parses args, etc.  |
++-------------------+              +---------------------+
+
+### Event Topics
 
 Different services and applications in the camera can trigger events, therefore a topological structure of the topic is used to differentiate between the source of the event. Events are declared with a topology of names and namespaces. There are two namespaces, tnsaxis which is Axis specific and tns1 which is defined in the open ONVIF standard.
 
