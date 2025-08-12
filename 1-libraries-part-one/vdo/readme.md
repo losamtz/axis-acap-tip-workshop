@@ -34,55 +34,107 @@ It's the source or sink of video frames, depending on your use case:
 - If you're reading frames (e.g., image processing), you get frames from the stream.
 - If you're providing frames (e.g., custom image provider), you push frames to the stream.
 
-## VdoBuffer: The Video Buffer
+# ACAP Video Streaming (libvdo) Course Syllabus
 
-Represents a single video frame, including:
+## Overview
+Hands-on course for ACAP developers to master the `libvdo` API for real-time video capture and processing on Axis devices.
 
-- Pixel data
-- Metadata (e.g., timestamp, resolution, format)
-- Allocated by the stream or via a VdoBufferPool.
+---
 
-## Relationship Between VdoStream and VdoBuffer
-Here's how they typically relate in an ACAP application:
+## Course Modules
 
-### 1. Buffer Allocation
+### Module 1: Introduction & Setup
+- **Objective**: Get familiar with `libvdo`, tools, and repo examples.
+- **Overview**:
+  - Learn about `VdoStream`, `VdoFrame`, `VdoBuffer`, `VdoMap`, and `Vdo Types` :contentReference[oaicite:1]{index=1}.
+  - Clone and run `vdostream` example from the `acap-native-sdk-examples` repo :contentReference[oaicite:2]{index=2}.
+  - Validate environment setup using Docker SDK image :contentReference[oaicite:3]{index=3}.
 
-Buffers are allocated from the stream:
+**Lab**: Run the `vdostream` example; verify it compiles and captures frames.
 
-```c
+---
 
-vdo_stream_get_buffer(stream, &buffer);
+### Module 2: Stream Control & Frame Capture
+- **Objective**: Learn stream life-cycle and frame retrieval.
+- **Content**:
+  - Build settings using `VdoMap`, create and start a stream (`vdo_stream_new`, `vdo_stream_start`, etc.) :contentReference[oaicite:4]{index=4}.
+  - Retrieve frames via `vdo_stream_get_buffer()` and inspect `VdoFrame` metadata :contentReference[oaicite:5]{index=5}.
+  
+**Lab**: Build your own “pull frames” loop that prints timestamps and keyframe info.
 
-```
-### 2. Buffer Filling or Rendering
+---
 
-You fill the buffer (e.g., draw something on it with Cairo).
+### Module 3: Snapshot API & Event FDs
+- **Objective**: Capture single frames & handle stream events.
+- **Content**:
+  - Use `vdo_stream_snapshot()` for JPEG captures :contentReference[oaicite:6]{index=6}.
+  - Learn to use `VDO_INTENT_EVENTFD`, retrieve event FDs for non-blocking handling :contentReference[oaicite:7]{index=7}.
 
- => If you’re implementing an image provider, this is where you draw the content.
+**Lab**: Implement snapshot feature; then use `get_event_fd()` and `poll()` to trigger actions on key frames.
 
-### 3. Buffer Submission * not correct. To be fixed!!!
-!!!!
-You submit the buffer back to the stream to be rendered or sent:
+---
 
-```c
+### Module 4: Dynamic Streaming & Channel Control
+- **Objective**: Control stream parameters in real-time.
+- **Content**:
+  - Use `vdo_stream_set_framerate()` and dynamic flags (`dynamic.framerate`, `dynamic.bitrate`, etc.) :contentReference[oaicite:8]{index=8}.
+  - Query channel capabilities using `vdo_channel_get()` and `vdo_channel_get_resolutions()` :contentReference[oaicite:9]{index=9}.
 
-vdo_stream_submit_buffer(stream, buffer);
-```
-!!!!
-## High-Level Lifecycle (Image Provider Example)
+**Lab**: Create a stream that adapts framerate dynamically and reports valid resolutions.
 
-1. Axis camera starts a VdoStream.
-2. The app receives a callback or notification to provide a new frame.
-3. The app:
+---
 
-- Allocates or reuses a VdoBuffer
-- Draws content (e.g., overlays, graphics, logo)
-- Submits it back via vdo_stream_submit_buffer()
+### Module 5: Advanced Use Cases—Larod Integration
+- **Objective**: Combine video capture with on-device inference.
+- **Content**:
+  - Explore `vdo-larod` example: capture YUV frames and process with Larod API :contentReference[oaicite:10]{index=10}.
 
-Axis video stack displays or encodes the buffer as a video frame.
+**Lab**: Modify the example to convert YUV data to RGB and feed into a simple inference model.
 
+---
 
-## Optional Additions
-You can use VdoBufferPool to manage buffers efficiently.
-You can map the buffer memory to Cairo or OpenCV to draw or process it.
+### Module 6: Performance Tuning
+- **Objective**: Optimize buffer and stream performance.
+- **Content**:
+  - Understand `buffer.count`, `buffer.strategy`, forced key frames, and bitrate control settings :contentReference[oaicite:11]{index=11}.
 
+**Lab**: Benchmark latency and frame loss under different buffer strategies.
+
+---
+
+### Module 7: Error Handling & GMainLoop Integration
+- **Objective**: Write robust, responsive code.
+- **Content**:
+  - Implement proper `GError` handling.
+  - Integrate streaming into `GMainLoop` for event-driven streaming.
+
+**Lab**: Refactor code into a GLib-friendly main loop; simulate error conditions.
+
+---
+
+### Module 8: Final Project
+- **Objective**: Build a complete application combining learned modules.
+- **Project**:
+  - Capture and display video.
+  - Show resolution options.
+  - Include snapshot and stream event handling.
+  - (Optional) Run inference on captured frames.
+
+---
+
+## Extra Resources
+- **Repository examples**: `vdostream`, `vdo-larod`, other C samples :contentReference[oaicite:12]{index=12}.
+- **ACAP documentation and streaming API reference** :contentReference[oaicite:13]{index=13}.
+- **Known issue**: Memory leak in ARTPEC firmware ≤ 10.10 fixed in 10.11.65 :contentReference[oaicite:14]{index=14}.
+
+---
+
+## Next Steps
+- Add a **CI pipeline** using `vdostream` sample to verify continuity.
+- Create **Mermaid diagrams** for streaming architecture.
+- Expand to other APIs: Overlay, Parameter, Event systems (**cross-API labs**).
+
+---
+
+Let me know if you want full sample code for each lab or integrations into a GitHub classroom setup!
+::contentReference[oaicite:15]{index=15}
