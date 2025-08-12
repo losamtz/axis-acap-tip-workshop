@@ -131,15 +131,13 @@ Hands-on course for ACAP developers to master the `libvdo` API for real-time vid
 
 # Sample readme to add to each lab
 
-1) YUV/NV12 for Larod — setup + safe plane read
+## 1) YUV/NV12 for Larod — setup + safe plane read
 Heads-up: exact option keys differ slightly across ACAP SDK/VDO versions. Two common patterns are shown. If one doesn’t work on your firmware, try the other and/or print the stream’s negotiated settings.
 
-A. Configure the stream for NV12
+###A. Configure the stream for NV12
 Pattern A (common on newer SDKs):
 
-c
-Copy
-Edit
+```c
 VdoMap *m = vdo_map_new();
 vdo_map_set_string(m, "channel", "0");
 vdo_map_set_string(m, "format",  "yuv");      // raw
@@ -147,46 +145,33 @@ vdo_map_set_string(m, "yuv.format", "nv12");  // NV12 (Y plane + interleaved UV)
 vdo_map_set_int   (m, "width",    640);
 vdo_map_set_int   (m, "height",   384);
 vdo_map_set_int   (m, "framerate", 10);
-Pattern B (older/alt):
+```
 
-c
-Copy
-Edit
-VdoMap *m = vdo_map_new();
-vdo_map_set_string(m, "channel", "0");
-vdo_map_set_string(m, "format", "yuv");
-vdo_map_set_string(m, "fourcc", "NV12");      // sometimes fourcc is used
-vdo_map_set_int   (m, "width", 640);
-vdo_map_set_int   (m, "height", 384);
 If neither works, quickly dump the settings to see what the device accepted:
 
-c
-Copy
-Edit
+```c
 VdoStream *s = vdo_stream_new(m, &err);
 // after start:
 VdoMap *eff = vdo_stream_get_settings(s);
 gchar *txt = vdo_map_to_string(eff);
 g_print("Effective settings: %s\n", txt);
 g_free(txt);
-B. Safely read NV12 planes (with strides)
+
+```
+### B. Safely read NV12 planes (with strides)
+
 NV12 layout:
 
-Plane 0 (Y): height rows, strideY bytes per row
-
-Plane 1 (UV interleaved): height/2 rows, strideUV bytes per row
+- Plane 0 (Y): height rows, strideY bytes per row
+- Plane 1 (UV interleaved): height/2 rows, strideUV bytes per row
 
 You must respect stride (don’t assume stride == width).
-
 Below is a “pattern” that works across SDK variants:
 
-If the SDK exposes helpers like vdo_frame_get_width/height/stride() for each plane, use them.
+- If the SDK exposes helpers like vdo_frame_get_width/height/stride() for each plane, use them.
+- If not, read them from the frame’s meta map (keys often look like "width", "height", "y.stride", "uv.stride").
 
-If not, read them from the frame’s meta map (keys often look like "width", "height", "y.stride", "uv.stride").
-
-c
-Copy
-Edit
+```c
 #include <glib.h>
 #include <vdo-stream.h>
 
@@ -271,14 +256,18 @@ static void process_one_nv12(VdoBuffer *buf) {
 
   g_free(tight);
 }
-Why pack to “tight” NV12?
+```
+### Why pack to “tight” NV12?
 Larod models often expect contiguous (no padding) tensors. Packing respects device strides while giving Larod exactly width*height + width*height/2 bytes.
 
-2) README templates with checklists (one per lab)
+--
+
+# 2) README templates with checklists (one per lab)
 Use these as README.md files in each lab folder. Each has a Goal, What you’ll learn, Steps, Validation, and Troubleshooting. Add screenshots where noted.
 
 lab1_hello_stream/README.md
-Lab 1 — Hello VdoStream
+### Lab 1 — Hello VdoStream
+
 Goal: Open a stream, start it, and print timestamp/keyframe for ~60 frames.
 You’ll learn: Creating VdoStream, pulling buffers, returning buffers.
 
@@ -298,8 +287,11 @@ If vdo_stream_new fails, print error and verify channel/format.
 
 If you get timeouts, ensure the camera’s stream is enabled and resolution is supported.
 
+--
+
 lab2_snapshot/README.md
-Lab 2 — Snapshot API
+### Lab 2 — Snapshot API
+
 Goal: Save a JPEG snapshot to /tmp/snap.jpg.
 You’ll learn: Using vdo_stream_snapshot(), writing a buffer to file.
 
@@ -314,8 +306,11 @@ Snapshot image (thumbnail) or file listing showing non-zero size.
 Troubleshooting
 If snapshot times out, bump the timeout to 3000 ms and ensure format=jpeg is acceptable for your channel.
 
+--
+
 lab3_eventfd_poll/README.md
-Lab 3 — Event FD + poll()
+### Lab 3 — Event FD + poll()
+
 Goal: Use the stream’s event file descriptor; log only keyframes.
 You’ll learn: poll() integration, non-blocking buffer pulls, keyframe check.
 
@@ -330,8 +325,11 @@ Terminal showing poll timeouts and keyframe lines.
 Troubleshooting
 If no keyframes, ensure GOP/keyframe interval is non-infinite on the video configuration.
 
+--
+
 lab4_dynamic_fps/README.md
-Lab 4 — Dynamic FPS
+### Lab 4 — Dynamic FPS
+
 Goal: Change FPS every 3 seconds while the stream is running.
 You’ll learn: GMainLoop, GLib timers, vdo_stream_set_framerate() (or dynamic map).
 
@@ -346,8 +344,11 @@ Terminal lines showing framerate changes and ongoing frames.
 Troubleshooting
 If set_framerate isn’t supported, log it and try re-applying a small settings map if your SDK allows it.
 
+--
+
 lab5_caps/README.md
-Lab 5 — Capability Query
+### Lab 5 — Capability Query
+
 Goal: Pick a valid resolution from capabilities and start the stream.
 You’ll learn: Reading channel caps, parsing a resolution list, configuring width/height.
 
@@ -362,8 +363,11 @@ Terminal lines showing the chosen resolution and frame sizes.
 Troubleshooting
 If you can’t find capability keys, print the entire map and inspect (vdo_map_to_string).
 
+--
+
 lab6_graceful/README.md
-Lab 6 — Graceful Shutdown
+### Lab 6 — Graceful Shutdown
+
 Goal: Run a GMainLoop, pull frames, handle SIGINT/SIGTERM cleanly.
 You’ll learn: Signal handling, stopping the stream, freeing resources.
 
@@ -378,8 +382,11 @@ Terminal showing frames then a clean shutdown after Ctrl+C.
 Troubleshooting
 If it doesn’t quit, ensure your signal handler calls g_main_loop_quit.
 
+--
+
 labX_nv12_larod/README.md (optional “Larod bridge” lab)
-Lab X — NV12 to Larod
+## Lab X — NV12 to Larod
+
 Goal: Stream NV12 frames and pack them into a tight buffer suitable for Larod.
 You’ll learn: Handling strides, plane offsets, packing tensors.
 
@@ -395,3 +402,4 @@ Terminal showing frame dimensions and successful Larod inference (if hooked up).
 
 Troubleshooting
 If plane offsets/strides are zero or missing, dump frame meta and adjust key names ("y.stride", "uv.stride", "y.offset", "uv.offset" vary by SDK).
+--
