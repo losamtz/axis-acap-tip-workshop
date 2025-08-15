@@ -39,7 +39,7 @@ curl --anyauth -u root:pass "http://192.168.0.90/axis-cgi/param.cgi?action=list&
 5. Update the parameter (triggers callback)
 
 ```bash
-curl --anyauth -u root:pass "http://192.168.0.90/axis-cgi/param.cgi?action=update&root.parameter_runtime=anyvalue"
+curl --anyauth -u root:pass "http://192.168.0.90/axis-cgi/param.cgi?action=update&root.parameter_runtime.ParameterRuntime=anyvalue"
 
 ```
 6. check logs again
