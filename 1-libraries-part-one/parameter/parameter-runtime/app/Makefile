@@ -1,4 +1,4 @@
-PROG1	= parameter_custom_interface
+PROG1	= parameter_runtime
 OBJS1	= $(PROG1).c
 PROGS	= $(PROG1)
 
