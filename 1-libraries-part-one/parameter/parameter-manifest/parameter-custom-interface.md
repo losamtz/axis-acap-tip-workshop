@@ -17,19 +17,19 @@ root.parameter_manifest.*
 1. Go to app http://192.168.0.90/camera/index.html#/apps > Parameter manifest > settings
 2. Set a string value in the input box, i.e. "hello"
 
---
+
 
 ![Parameter Manifest settings page](./settings_parameter_manifest.png)
 
---
+
 
 3. Check the logs, under app logs or http://192.168.0.90/axis-cgi/admin/systemlog.cgi?appname=parameter_manifest
 
---
+
 
 ![Parameter Manifest logs](./log_parameter_manifest.png)
 
---
+
 
 4. Use VAPIX param.cgi to list and update parameters.
 
