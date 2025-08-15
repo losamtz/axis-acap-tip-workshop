@@ -1,16 +1,20 @@
 # Events
 
-The event system make use of event bus via gdbus where applications using axevent library, produce or consumes events.
+The axevent library provides an interface to the event system found in Axis devices.
+
+The purpose of the AXEvents library is to provide applications with a mechanism for sending and receiving events. There are two different roles an application can assume when interacting with the event system.
+
 
 **Event Producer**
 A process (e.g., com.axis.Event) **emits/sends** a signal on the D-Bus system bus.
 Example: Motion detection, port input change, analytics events.
 
-**D-Bus Bus (system)**
-The dbus-daemon handles message routing between clients.
 
 **Event Consumer**
 Your application connects to the system bus (via gdbus in GLib), **subscribes** to a bus name, object path, and interface, and receives events in a callback.
+
+Note: D-Bus Bus (system)
+The dbus-daemon handles message routing between clients.
 
 ```
 
@@ -24,25 +28,28 @@ Your application connects to the system bus (via gdbus in GLib), **subscribes** 
 
 You can consume the events through rtsp which carries metadata, by mqtt connecting a client (subscriber) to a message broker and through Event VAPIX API subscription.
 
+### Important
+
+The axevent library is designed to be used with the GLib library. An application using the axevent library must have a running GMainLoop.
 
 #### Event Bus Flow (GDBus)
 
 +-------------------+              +-------------------+
 |   Event Producer  |              |   Event Consumer  |
-| (Axis service,    |              |  (Your ACAP app)  |
+| (Axis service,    |              |   Your ACAP app   |
 |  ONVIF, Declared  |              |                   |
-|event in your ACAP)|              |                   |
+| event in ACAP)    |              |                   |
 +--------+----------+              +---------+---------+
          |                                     ^
          | emits D-Bus signal                  |
          v                                     |
 +--------+-------------------------------------+---------+
 |                   D-Bus Bus                             |
-| (system bus via gdbus / dbus-daemon)                     |
-| - Handles connections                                    |
-| - Routes signals by bus name & object path               |
-| - Delivers method calls and signal broadcasts            |
-+----------------------------------------------------------+
+|  (system bus via gdbus / dbus-daemon)                  |
+|  - Handles connections                                 |
+|  - Routes signals by bus name & object path            |
+|  - Delivers method calls and signal broadcasts         |
++--------------------------------------------------------+
          |                                     ^
          |                                     |
          v                                     |
@@ -52,16 +59,58 @@ You can consume the events through rtsp which carries metadata, by mqtt connecti
 |   (GLib binding)  |              |  parses args, etc.  |
 +-------------------+              +---------------------+
 
+### The three aspects of events
+
+The axevent library operates on three different aspects of events
+
+- events
+- declarations
+- subscriptions
+
+### Events 
+
+1. An event is an instance of an event declaration.
+2. The events type must be declared before the producer can send the event.
+3. Each event contains a AXEventKeyValueSet and a settable timestamp.
+4. The key/value set describes the keys and values that constitute the event.
+5. the timestamp will be interpreted by the consumer as the time at which the event ocurred
+
+All events are expressed as a set of key/value pairs where the key should be assigned to a namespace.
+
+```
+   tns1:topic0=Device
+tnsaxis:topic1=IO
+tnsaxis:topic2=Port
+          port=0
+         state=1
+```
+The general form of a key/value pair can be described as:
+
+```
+The general form of a key/value pair can be described as
+
+```bash
+[name space:]<key>=<value>
+
+```
+
+The namespace's primary purpose is to avoid name clashes but is also used to distinguish between events declared by different vendors. Each vendor should define their own namespace. In the I/O port example, the namespace tns1 is defined by Onvif and tnxaxis is defined by Axis. The keys "port" and "state" are not assigned to a namespace.
+
+
+
 ### Event Topics
 
-Different services and applications in the camera can trigger events, therefore a topological structure of the topic is used to differentiate between the source of the event. Events are declared with a topology of names and namespaces. There are two namespaces, tnsaxis which is Axis specific and tns1 which is defined in the open ONVIF standard.
+There are two namespaces, tnsaxis which is Axis specific and tns1 which is defined in the open ONVIF standard.
 
 As is mentioned in the documentation for the example application send_event, tnsaxis-events are visible in the device webpage. When declaring Axis events in an ACAP, the topic0 value should be set to CameraApplicationPlatform.
 
 #### Namespaces
 
-It is mandatory to set a namespace when declaring events. Even though it is possible to create new
-namespaces, an ACAP service should always use the Axis namespace “tnsaxis”. You can also use ONVIF name space “tns1”.
+When declaring events it is required to set a namespace. Following are the supported namespaces:
+
+- tnsaxis – Axis namespace to use with Axis events
+
+- tns1 – ONVIF namespace to use with ONVIF events
 
 #### Special Attributes
 

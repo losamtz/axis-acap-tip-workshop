@@ -1,13 +1,32 @@
 {
-    "schemaVersion": "1.7.3",
+    "schemaVersion": "1.7.4",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Parameter custom interface",
-            "appName": "parameter_custom_interface",
-            "vendor": "Axis Communications",
+            "friendlyName": "parameter manifest",
+            "appName": "parameter_manifest",
+            "vendor": "Andrés",
             "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0"
+        },
+        "configuration": {
+            "paramConfig": [
+                {
+                    "name": "ParameterManifest",
+                    "default": "no",
+                    "type": "string"
+                }
+            ]
         }
     }
 }

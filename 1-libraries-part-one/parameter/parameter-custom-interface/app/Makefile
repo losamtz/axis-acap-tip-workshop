@@ -1,8 +1,8 @@
-PROG1	= parameter_custom_interface
-OBJS1	= $(PROG1).c
-PROGS	= $(PROG1)
+PROGS     = checkparameter
+SRCS      = checkparameter.c
+OBJS      = $(SRCS:.c=.o)
 
-PKGS = gio-2.0 gio-unix-2.0 axparameter
+PKGS = glib-2.0 gio-2.0 axparameter
 
 CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PKGS))
 LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PKGS))
@@ -22,8 +22,8 @@ CFLAGS += -Wall \
 
 all: $(PROGS)
 
-$(PROG1): $(OBJS1)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+$(PROGS): $(OBJS)
+	$(CC) $(LDFLAGS) $^ $(LIBS) $(LDLIBS) -o $@
 
 clean:
-	rm -f $(PROGS) *.o *.eap* *_LICENSE.txt package.conf* param.conf tmp* manifest.json
+	rm -f $(PROGS) *.o *.eap* *_LICENSE.txt package.conf* param.conf tmp*
