@@ -37,13 +37,13 @@ Manifest file
 ## What the app does (timeline)
 
 1. User opens your app page (/local/parameter_custom_interface/index.html):
-- UI fetches current values via param.cgi?action=list.
+    - UI fetches current values via param.cgi?action=list.
 
 2. User edits and saves:
-- UI updates root.Parameter_custom_interface.MulticastAddress, root.Parameter_custom_interface.MulticastPort
+    - UI updates root.Parameter_custom_interface.MulticastAddress, root.Parameter_custom_interface.MulticastPort
 
 3. The C app sees parameter changes:
-- Callback schedules ax_parameter_set → writes RTP parameters after 1s.
+    - Callback schedules ax_parameter_set → writes RTP parameters after 1s.
 
 4. Camera RTP config now matches app params.
 
@@ -54,7 +54,7 @@ Manifest file
 
 ![Parameter custom modal initial settings page](./modal_ui_settings.png)
 
-2. Change values nad save.
+2. Change values and save.
 3. Check the values under http://192.168.0.90/camera/index.html#/system/plainConfig/group/Network > Network / RTP / R0
 
 4. Refresh the UI, it should look like this:
