@@ -1,4 +1,4 @@
-# parameter_manifest — AXIS Parameter API demo
+# AXIS Parameter API demo - parameter_manifest
 
 A tiny ACAP app that shows how to watch and react to parameter changes using the AXIS Parameter API (axsdk/axparameter.h).
 It registers a callback, runs a GMainLoop, and logs every time the parameter changes.
