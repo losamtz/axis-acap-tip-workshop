@@ -12,7 +12,7 @@ root.parameter_manifest.*
 - Cleanly exits on SIGINT/SIGTERM.
 - Prints changes to syslog (and stdout via the LOG macro)
 
-## Test the callback
+## Lab: Test the callback
 
 1. Go to app http://192.168.0.90/camera/index.html#/apps > Parameter manifest > settings
 2. Set a string value in the input box, i.e. "hello"

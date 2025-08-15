@@ -1,0 +1,38 @@
+{
+    "schemaVersion": "1.7.4",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Parameter custom interface",
+            "appName": "parameter_custom_interface",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "paramConfig": [
+                {
+                    "name": "MulticastAddress",
+                    "default": "224.0.0.1",
+                    "type": "string:maxlen=64"
+                },
+                {
+                    "name": "MulticastPort",
+                    "default": "1024",
+                    "type": "int:maxlen=5;min=1024;max=65535"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parameter Settings Updater</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+
+    <!-- Font awesome -->
+    <link rel="stylesheet" href="css/font-awesome/css/font-awesome.min.css">
+
+</head>
+
+<body>
+
+    <div class="container mt-6">
+        <!-- Modal HTML -->
+        <div class="modal fade" id="parameterModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
+                        <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
+                    </div>
+
+                    <div class="modal-body">
+                        <form id="settingsForm">
+                            <div class="form-group">
+                                <label for="multicastAddress">Multicast Address</label>
+                                <input type="text" class="form-control" id="multicastAddress" name="MulticastAddress" value="224.0.0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="multicastPort">Multicast port</label>
+                                <input type="text" class="form-control" id="multicastPort" name="MulticastPort" value="1024">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-warning">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var myModal = new bootstrap.Modal(document.getElementById('parameterModal'), {
+                backdrop: 'static',
+                keyboard: false
+            });
+            myModal.show();
+        });
+    </script>
+    <!-- Bootstrap JS (includes Popper) -->
+    <script src="js/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/onload.js"></script>
+    <script src="js/submitForm.js"></script>
+</body>
+
+</html>

@@ -2,16 +2,33 @@
 
 Manage parameters at runtime using the AXParameter API: add/remove parameters, set values, list them, and react to changes via callbacks.
 
-## What it does
+## Objectives
 
 - Create and scope an AXParameter handle to your app.
-- Add parameters dynamically (with default & metadata - type of variable).
+- Add parameters dynamically (with default & type of variable - meta).
 - List parameters in your app namespace.
 - Remove parameters at runtime.
 - Set parameter values and trigger callbacks.
 - Keep a GLib main loop running and handle SIGINT/SIGTERM.
 
-## Test the callback
+## What the app does (timeline)
+
+1. Creates a parameter handle bound to root.parameter_runtime.
+2. Adds:
+    - ParameterRuntime = "no"
+    - ParameterToRemoveRuntime = "yes"
+
+3. Lists all parameters in the app scope.
+4. Removes ParameterToRemoveRuntime.
+5. Sets ParameterRuntime = "yes" (and triggers callback).
+6. Lists the remaining parameters.
+7. Registers callbacks:
+    - ParameterRuntime
+    - (also registers for ParameterToRemoveRuntime, which is already removed — harmless)
+
+8. Enters GMainLoop and waits for changes/signals.
+
+## Lab: Test the callback
 
 
 1. As sooon as you start the app, o to app http://192.168.0.90/camera/index.html#/apps > Parameter runtime > settings. It should look like this:
