@@ -1,4 +1,4 @@
-PROG1	= parameter_custom_interface
+PROG1	= parameter_manifest
 OBJS1	= $(PROG1).c
 PROGS	= $(PROG1)
 

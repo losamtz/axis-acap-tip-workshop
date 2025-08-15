@@ -30,8 +30,8 @@ static void acap_parameter_changed(const gchar* name, const gchar* value, gpoint
     
     const char* name_without_qualifiers = &name[strlen("root." APP_NAME ".")];
     syslog(LOG_INFO, "%s was changed to '%s' just now", name_without_qualifiers, value);
-    
-    free(name_without_qualifiers);
+
+    //free(name_without_qualifiers);
     //free(value);
 }
 int main(void) {
@@ -43,13 +43,13 @@ int main(void) {
 
     // 1. Create a new AXParameter handle.
     AXParameter* handle = ax_parameter_new(APP_NAME, &error);
-    if (handle == NULL)
+    if(handle == NULL)
         panic("%s", error->message);
 
-        syslog(LOG_INFO, "Starting handle");
+    syslog(LOG_INFO, "Starting handle");
 
     // 2. Act on changes to IsCustomized as soon as they happen.
-    if (!ax_parameter_register_callback(handle, "ParameterManifest", acap_parameter_changed, NULL, &error))
+    if(!ax_parameter_register_callback(handle, "ParameterManifest", acap_parameter_changed, NULL, &error))
         panic("%s", error->message);
     
     // 3. Start listening to callbacks by launching a GLib main loop.
