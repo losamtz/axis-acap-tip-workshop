@@ -18,7 +18,7 @@
  * - subscribe_to_event.c -
  *
  * This example illustrates how to setup an subscription to
- * an ACAP event. => PulseSendStless service / PulseEvent
+ * an ACAP event. => SendData service / SendDataEvent
  *
  * Error handling has been omitted for the sake of brevity.
  */
@@ -75,9 +75,9 @@ static void subscription_callback(guint subscription, AXEvent* event, gpointer *
  * brief Setup a subscription for an event.
  *
  * Initialize a subscription for AXEventKeyValueSet that matches
- * tnsaxis:PulseSendStless/tnsaxis:PulseEvent, which is using the VAPIX namespace "tnsaxis".
+ * tnsaxis:SendData/tnsaxis:SendDataEvent, which is using the VAPIX namespace "tnsaxis".
  *
- * Topic: tnsaxis:CameraApplicationPlatform/tnsaxis:PulseSendStless/tnsaxis:PulseEvent
+ * Topic: tnsaxis:CameraApplicationPlatform/tnsaxis:SendData/tnsaxis:SendDataEvent
  *
  * param handler Event handler.
  * param token Token as user data to the callback function.

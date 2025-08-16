@@ -1,4 +1,4 @@
-# Draw rectangle normalized coordinates
+# Add Logo normalized coordinates
 
 
 ## Description
