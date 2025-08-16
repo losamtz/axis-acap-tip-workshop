@@ -28,7 +28,6 @@ typedef struct {
 } AppData;
 
 static AppData* app_data = NULL;
-//static guint declarations_done = 0;
 
 static void setup_values(void) {
   for (int i = 0; i < MAX_DECLARATIONS; ++i) {

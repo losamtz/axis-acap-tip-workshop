@@ -1,4 +1,4 @@
-# Event API – Send Data Sample
+# Event API – Send Data (stateless)
 
 This sample demonstrates how to **declare and send custom data events** using the Axis **Event API**.
 

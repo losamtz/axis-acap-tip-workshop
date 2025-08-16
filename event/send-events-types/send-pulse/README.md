@@ -1,4 +1,4 @@
-# Stateless Event - Send Pulse
+# Event API – Send Pulse (stateless)
 
 Stateless ONVIF/Axis event “pulse” generator for ACAP.
 This sample declares a stateless event under the CameraApplicationPlatform topic and periodically sends it with a numeric value that steps 0→100 by 10.
@@ -41,7 +41,7 @@ Declares the event and defines the topic hierarchy and data fields.
 Callback when declaration succeeds. Sets initial values and starts the periodic event timer.
 
 - send_event()
-Creates an event, adds key/value pairs, and sends it through ax_event_handler_send_event. sends it with a numeric value that steps 0→100 by 10.
+Creates an event, adds key/value pairs, and sends it through ax_event_handler_send_event. sends it with a numeric value that steps 0 → 100 by 10.
 
 - main()
 Initializes syslog, seeds RNG, creates the event handler, registers declaration, and runs the GLib main loop.
