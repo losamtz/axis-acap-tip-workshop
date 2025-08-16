@@ -138,13 +138,23 @@ Create a rule:
 
 You’ll see the rule trigger only when the app’s cycle reaches that value.
 
+## Notes
+
+- **Source vs Data**:
+
+    - **Source** → known at **declaration time**, yields a **dropdown** in UI, suitable when the set is predefined (ports, channels, codes).
+
+    - **Data** → **free-text** in UI, values can vary at runtime, richer telemetry; filters rely on string/number match typed by the user.
+
+- This sample intentionally demonstrates both for clarity; in production, prefer one semantic to avoid duplicated fields.
+
 ## Build
 
 ```bash
-docker build --build-arg ARCH=aarch64 --tag pulse-send-stless .
+docker build --build-arg ARCH=aarch64 --tag pulse-pulse-dropdown .
 ```
 
 ```bash
-docker cp $(docker create pulse-send-stless):/opt/app ./build
+docker cp $(docker create pulse-pulse-dropdown):/opt/app ./build
 ```
 
