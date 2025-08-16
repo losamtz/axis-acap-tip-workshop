@@ -44,6 +44,6 @@ Sample	                            What to Verify
 bbox-multi-view	                    A moving box travels horizontally across all views simultaneously.
 bbox-view	                        A static box is drawn that frames the entire selected view.
 
-## Theory/lib flow summary
+## Lib flow summary
 
 [bbox-api](./bbox-api.md "Go to bbox flow")
