@@ -7,9 +7,9 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "onvif request real",
-            "appName": "onvif_request_real",
-            "vendor": "Andrés at Axis TIP",
+            "friendlyName": "onvif request",
+            "appName": "onvif_request",
+            "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
