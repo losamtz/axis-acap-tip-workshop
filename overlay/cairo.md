@@ -200,7 +200,7 @@ cairo_set_source_rgba(ctx, 1.0, 0.0, 0.0, 0.5); // Semi-transparent red
 
 ---
 
-#### ✅ Final Notes
+#### Final Notes
 
 - **Overlay coordinates** define **where** something is drawn.
 - **Cairo RGBA values** define **how it looks** (color + transparency).
