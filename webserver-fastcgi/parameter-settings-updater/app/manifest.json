@@ -13,7 +13,7 @@
         "setup": {
             "friendlyName": "Parameter Settings Updater",
             "appName": "parametersettings",
-            "vendor": "Andrés at Axis TIP",
+            "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
