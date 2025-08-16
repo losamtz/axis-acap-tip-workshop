@@ -22,7 +22,7 @@ Each event carries user-defined key/value pairs (Temperature, Load, UsedMemory, 
 This sample declares the event as stateless (1), meaning each fired event is independent and does not represent an ongoing state.
 
 - **User-defined data**
-Keys are marked with isApplicationData so that they are treated as application-specific metrics.
+Keys are marked with isApplicationData so that they are treated as application-specific metrics. They will not appear in the event rule.
 
 - **Event loop**
 A GLib main loop schedules periodic event generation every 3 seconds using g_timeout_add_seconds.
