@@ -58,11 +58,8 @@ static void multicast_address_callback(const gchar *name, const gchar *value, gp
     struct message *msg = malloc(sizeof(struct message));
     char *param_to_change = "root.Network.RTP.R0.VideoAddress";
 
-    ;
     msg->name = strdup(param_to_change);
     msg->value = strdup(value);
-
-    // set_parameter(axparameter, "root.Network.RTP.R0.VideoAddress", (char*)value); // might need a settimeout
 
     g_timeout_add_seconds(1, set_parameter, msg);
 

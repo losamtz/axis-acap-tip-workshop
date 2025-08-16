@@ -1,40 +1,83 @@
-# Parameter
+# ACAP Parameter API – Workshop Overview
 
-The AXParameter interface enables data and application settings to be saved so that they are not lost during a reboot or firmware upgrade of the Axis product.
+Welcome to **Module 1: Parameter API** of the *Axis ACAP Tip Workshop*.  
+This section focuses on understanding and mastering ACAP’s **AXParameter API**—the foundation for making ACAP applications configurable and responsive to runtime changes.
 
-Parameters specific to the application can be preconfigured when the application is created or be added in runtime.
-In addition, AXParameter makes it possible to define callback functions that perform specific actions if a parameter is updated, for example if the user updates a parameter using the Axis product's web pages.
+---
 
-Data which only is used and altered by the application should not be handled by AXParameter. Such data can instead be handled by, for example, GLib GKeyFile.
+## Lab Samples Included
 
-Note that the parameters are not private to the application. The parameters can be read via VAPIX by a user with operator privilege, and they can be modified by a user with admin privilege. The parameters can also be modified from another application if the application users belongs to the same group, e.g. two applications running as dynamic users.
+This folder contains three progressive hands-on samples:
 
-## Details description
+### 1. `parameter_manifest`
+- **Objective**: Demonstrates how to create and register application parameters via the **application manifest**.
+- **Key Features**:
+  - Parameters are declared in the manifest file.
+  - Application code registers callbacks to respond to parameter changes.
+  - Graceful shutdown with signal handling.
+- **What you'll learn**:
+  - Using `ax_parameter_new()` to open a parameter handle.
+  - Registering callbacks with `ax_parameter_register_callback()`.
+  - Integrating with a GLib main loop to monitor parameter updates.
 
-AXParameter and its associated functions. Contains functions for adding, removing, setting and getting parameters. The interface supports registering callback functions when a parameter value is updated.
+---
 
-**Parameters**
-For an application only one AXParameter instance should be created and shared globally.
+### 2. `parameter_runtime`
+- **Objective**: Demonstrates how to **add, remove, set, and list parameters dynamically** at runtime.
+- **Key Features**:
+  - `ax_parameter_add()` to add new parameters.
+  - `ax_parameter_set()` to update values (with optional callback trigger).
+  - `ax_parameter_remove()` to unregister parameters.
+  - `ax_parameter_list()` to inspect current parameters.
+- **What you'll learn**:
+  - Building applications that can evolve parameter sets during runtime.
+  - Observing parameter updates via syslog.
+  - Linking parameter changes to application logic.
 
-Callback functions should avoid blocking calls, i.e. never call any axparameter method as this will very likely lead to a deadlock. In other words, there may only be one axparameter call at the time. A better way to handle updates of other parameters from a callback is to use a global data object that gets updated.
+---
 
-**Parameter Types**
-These are all the parameter types possible to set with ax_parameter_add
+### 3. `parameter_custom_interface`
+- **Objective**: Demonstrates how to build a **custom web interface** to edit parameters live.
+- **Key Features**:
+  - A Bootstrap-based modal UI for editing parameters.
+  - JavaScript (`onload.js` and `submitForm.js`) fetching parameters with `/axis-cgi/param.cgi` and updating them.
+  - Tight coupling between the browser UI and AXParameter callbacks in the ACAP application.
+- **What you'll learn**:
+  - Bridging backend parameter logic with a frontend.
+  - Securely fetching and setting parameters via CGI.
+  - Delivering user-friendly configuration panels on Axis devices.
 
-| Name     | Type Format                                                                                                                                      | Example                                                        | Description                                                                                                                                                                                                                               |
-|----------|--------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Enum     | `type = "enum:option1[|nice name1][,option2[|nice name2][,...]]"`                                                                               | `type = "enum:TCPIP|Generic TCP/IP,HTTP|Generic HTTP,OFF|OFF"`<br>`type = "enum:1|Low,10|Medium,30|High"` | Rendered as drop-down lists in the ACAP settings interface. Options are separated by commas, and if desired, a nice value can be provided after the `|` symbol. The nice value is what the user sees in the UI.                          |
-| Bool     | `type = "bool:no,yes"`                                                                                                                           | `type = "bool:no,yes"`                                         | Rendered as a checkbox in the ACAP settings interface. The first value represents the unchecked state.                                                                                                                                     |
-| String   | `type = "string[:maxlen=X]"`                                                                                                                     | `type = "string:maxlen=64"`                                    | Rendered as a plain text input field for strings. Optional maximum length (`maxlen`) can be added. All Unicode characters are supported.                                                                                                   |
-| Int      | `type = "int[:[maxlen=X;][min=Y;][max=Z]]"`<br>`type = "int[:[maxlen=X;][range=[Y,][A-Z]]]"`<br>`type = "int"` | `type = "int:min=0"`<br>`type = "int:maxlen=3;min=0;max=100"`<br>`type = "int:maxlen=5;range=0,1024-65535"` | Rendered as a plain text input field for integers. Supports optional `maxlen`, `min`, `max`, and `range` parameters. Ranges can be comma-separated values or min-max spans, and both forms include the endpoints.                          |
-| Password | `type = "password[:maxlen=X]"`                                                                                                                   | `type = "password:maxlen=64"`                                  | Rendered as a masked text input (`*`) for strings in the ACAP settings interface. Only readable via `axparameter`, not via `param.cgi`. Supports optional `maxlen`.                                                                      |
+---
 
+## How to Work Through the Labs
 
-**Control Words**
-When creating a new parameter with ax_parameter_add, it is also possible to prepend an extra control word, that will impact how the parameter is handled. Here is a list of the possible control words.
+1. **Start with `parameter_manifest`**  
+   Understand the basics of parameter creation, registration, and monitoring.
 
-| Name      | Example                | Description                                                                                                               |
-|-----------|------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| Hidden    | `type = "hidden:string"`   | Hides the parameter from the list of parameters in the ACAP settings interface.                                           |
-| NoSync    | `type = "nosync:string"`   | Changes to the parameter are temporary and last only until the ACAP is restarted or the parameter is reloaded.            |
-| ReadOnly  | `type = "readonly:string"` | The parameter cannot be modified using `axparameter` or `param.cgi`. It appears grayed out in the ACAP settings interface. |
+2. **Move to `parameter_runtime`**  
+   Learn how to manipulate parameters dynamically during the lifetime of your application.
+
+3. **Finish with `parameter_custom_interface`**  
+   Build a real-world UI that lets end users configure your application interactively.
+
+---
+
+## Lab Workflow Summary
+
+| Lab / Sample                  | Primary Focus             | Expected Learning Outcomes                  |
+|-------------------------------|---------------------------|---------------------------------------------|
+| `parameter_manifest`          | Static parameter setup    | Manifest-declared params, callbacks, signals |
+| `parameter_runtime`           | Dynamic param management  | Adding, setting, listing, removing params    |
+| `parameter_custom_interface`  | UI-driven parameter edits | Bridging web UI with AXParameter backend     |
+
+> Recommended path: **manifest → runtime → custom interface**.
+
+---
+
+## Prerequisites
+
+- ACAP SDK with Docker-based toolchain
+- Basic familiarity with **C** and **GLib**
+- Axis device with web access
+- Browser for testing the custom UI
+
