@@ -80,26 +80,25 @@ GMainLoop* loop = g_main_loop_new(NULL, FALSE);
 g_main_loop_run(loop);
 
 ```
+## Lab
 
-
-Install the produced ACAP package on the camera (Web UI → Apps → Upload & Install).
-
-Start the app from the camera Apps page.
-
-For a live test, also install and run the matching producer (send-data) on the same camera.
+1. Install the produced ACAP package on the camera (Web UI → Apps → Upload & Install).
+2. Start the app from the camera Apps page.
+3. For a live test, also install and run the matching producer (send-data) on the same camera.
 
 Verify it works
-1) Watch logs    Apps > acap > app log
+4. Watch logs    Apps > acap > app log
 
 You should see lines similar to:
-
+```
 subscribe-event-data: Started logging from subscribe event application
 subscribe-event-data: Temperature: 72.830000 C
 subscribe-event-data: Load: 1.120000
 subscribe-event-data: Used Memory: 223 (MB)
 subscribe-event-data: Free Memory: 277 (MB)
+```
 
-2) Confirm topic match
+5. Confirm topic match
 
 Make sure the producer uses exactly:
 
@@ -110,6 +109,9 @@ topic2 = tnsaxis:SendDataEvent
 ```
 
 If these differ, your subscription won’t receive anything.
+
+
+## Extra
 
 
 ## Lab 1 — Add a new key
