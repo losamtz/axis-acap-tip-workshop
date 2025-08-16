@@ -1,4 +1,4 @@
-# Draw view with scene normalized coordinates
+# Draw view with normalized coordinates
 
 
 ## Description

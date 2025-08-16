@@ -35,17 +35,11 @@ Tip: some folders contain multiple labs that build on each other. Open each fold
 ## What you’ll learn (high level)
 
 - **Parameters**: declare (manifest), add at runtime, list/remove, and subscribe to callbacks; wire a custom HTML UI (FastCGI) that round-trips to param.cgi/axparameter.
-
 - **Events**: differences between stateless & property events; declaring source (dropdown) vs data (free text), and subscribing with filters.
-
 - **VDO**: grabbing frames efficiently, NV12/RGBA formats, timestamps/metadata, and safe plane access.
-
 - **Overlay**: drawing layers/text/shapes with axoverlay, controlling z-order/opacity, and dynamic update loops.
-
 - **BBox**: converting frame-normalized ↔ scene-normalized, drawing, and simple metrics.
-
 - **Web UI**: FastCGI endpoint patterns + Bootstrap UIs; parameter viewer/editor.
-
 - **VAPIX**: small HTTP calls to system/config APIs (auth, query, set) for glue logic.
 
 
