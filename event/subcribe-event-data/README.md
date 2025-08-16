@@ -1,5 +1,5 @@
 
-Event API – Subscribe Event Data
+## Event API – Subscribe Event Data
 
 **Subscribe to and log data events from another ACAP app**
 
