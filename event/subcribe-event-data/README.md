@@ -133,7 +133,7 @@ and log it.
 
 - Test: Events only show up when the producer sets HighMem=1.
 
-## ab 3 — Multiple subscriptions
+## Lab 3 — Multiple subscriptions
 
 - Create two independent subscriptions:
     - One to SendDataEvent
