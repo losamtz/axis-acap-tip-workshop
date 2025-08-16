@@ -44,9 +44,11 @@ static void generate_random_data(AppData *app_data) {
 
   // Simulate used memory between 0 and total
   app_data->used_memory = rand() % TOTAL_MEMORY;
-  LOG("used memory: %u MB, free memory: %u MB\n", app_data->used_memory, app_data->free_memory);
+  
   // Free memory is the rest
   app_data->free_memory = TOTAL_MEMORY - app_data->used_memory;
+
+  LOG("used memory: %u MB, free memory: %u MB\n", app_data->used_memory, app_data->free_memory);
 }
 
 static gboolean send_data(AppData *send_data) {
