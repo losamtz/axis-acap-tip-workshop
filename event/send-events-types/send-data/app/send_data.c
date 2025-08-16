@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <time.h>
+#include <stdlib.h> // For rand() and srand()
 #include <axsdk/axevent.h>
 #include <glib-object.h>
 #include <glib.h>
@@ -126,7 +127,7 @@ static guint setup_declaration(AXEventHandler *event_handler) {
       gdouble temperature               = 0.5;
       gdouble load                      = 0.0;
       guint used_memory                 = 0;
-      gboolean free_memory              = 0;
+      guint free_memory                 = 0;
       //GError *error                     = NULL;
 
       
