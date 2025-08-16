@@ -119,11 +119,11 @@ gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.
 
 6. Check if application send pulse is listed when creating an event
 
-![Event settings](./pulse_event_listed.png)
+![Event settings](./pulse_drop_down.png)
 
 7. Check the available actions. You will see that "while is active" actions are greyed out due to require state.
 
-![Actions listing](./event_stateless_actions.png)
+![Actions listing](./action_stateless.png)
 
 8. Action Rule (UI)
 
@@ -131,6 +131,9 @@ Create a rule:
 
 - When: Event → CameraApplicationPlatform / SendPulseDropDown / SendPulseDropDownEvent
 - Filter: Dropdown Value → pick e.g. 50
+
+![Actions listing](./dropdown.png)
+
 - Then: check Log, MQTT publish, create a text overlay, etc...
 
 You’ll see the rule trigger only when the app’s cycle reaches that value.
