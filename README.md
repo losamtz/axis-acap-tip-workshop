@@ -5,22 +5,20 @@ GitHub
 
 ## Repo map
 
-    - bbox/ — Bounding-box helpers and demos
+- bbox/ — Bounding-box helpers and demos
     Learn about frame-normalized vs scene-normalized coordinates, conversions, drawing, and common operations (e.g., IoU).
 
-    - event/ — AXEvent publisher/subscriber patterns
+- event/ — AXEvent publisher/subscriber patterns
     Stateless vs property events, marking source vs data fields, and dropdown (source) declarations + timed sends.
 
-    - overlay/ — axoverlay examples
+- overlay/ — axoverlay examples
     Create layers, draw primitives/text, manage z-order and alpha, and render dynamic overlays over live video.
 
-    - parameter/ — Three ways to work with axparameter
+- parameter/ — Three ways to work with axparameter
 
-        1. Manifest parameters (declared in package.conf),
-
-        2. Runtime create/update/list/remove via API,
-
-        3. Custom UI that reads/writes parameters from a web page.
+    1. Manifest parameters (declared in package.conf),
+    2. Runtime create/update/list/remove via API,
+    3. Custom UI that reads/writes parameters from a web page.
 
 - vapix/ — VAPIX HTTP API examples
 Calling param.cgi / events / I/O from scripts or tiny clients (GET/POST patterns, auth, and safe parsing).
