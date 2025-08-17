@@ -50,7 +50,7 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
 
     - Text style (font size, color), baseline positioning
     - Updating text dynamically (e.g., time tick, FPS, custom label)
-    - Clarity/antialiasing considerations
+
 ---
 
 4) **`draw-views`**
