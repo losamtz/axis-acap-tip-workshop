@@ -1,0 +1,51 @@
+{
+    "schemaVersion": "1.7.4",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Web Parameter Thread",
+            "appName": "web_parameter_thread",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "httpConfig": [
+                {
+                    "access": "admin",
+                    "name": "parameter-acap.cgi",
+                    "type": "fastCgi"
+                },
+                {
+                    "access": "admin",
+                    "name": "information-acap.cgi",
+                    "type": "fastCgi"
+                }
+            ],
+            "paramConfig": [
+                {
+                    "name": "IpAddress",
+                    "default": "192.168.0.90",
+                    "type": "string"
+                },
+                {
+                    "name": "Port",
+                    "default": "8080",
+                    "type": "string"
+                }
+            ]
+            
+        }
+    }
+}

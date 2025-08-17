@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Web Parameter thread - fastcgi</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 720px; margin: auto; }
+      label { display:block; margin:.75rem 0 .25rem; }
+      input { padding:.5rem; width: 100%; max-width: 320px; }
+      button { margin-top: 1rem; padding:.6rem 1rem; }
+      pre { background:#111; color:#eee; padding:1rem; overflow:auto; }
+    </style>
+  </head>
+  <body>
+    <h1>IP Settings (FastCGI + AXParameter)</h1>
+    <div>
+      <label>IP Address</label>
+      <input id="addr" placeholder="192.168.0.90" />
+      <label>Port</label>
+      <input id="port" placeholder="8080" />
+      <button id="save">Save</button>
+    </div>
+
+    <h2>Response</h2>
+    <pre id="out">{}</pre>
+
+    <script>
+      async function loadInfo() {
+        const res = await fetch('/local/web_parameter_thread/information-acap.cgi', { cache: 'no-store' });
+        const json = await res.json();
+        document.getElementById('out').textContent = JSON.stringify(json, null, 2);
+        if (json.MulticastAddress) document.getElementById('addr').value = json.MulticastAddress;
+        if (json.MulticastPort) document.getElementById('port').value = json.MulticastPort;
+      }
+      async function save() {
+        const body = {
+          IpAddress: document.getElementById('addr').value.trim(),
+          Port: document.getElementById('port').value.trim()
+        };
+        const res = await fetch('/local/web_parameter_thread/parameter-acap.cgi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const json = await res.json();
+        document.getElementById('out').textContent = JSON.stringify(json, null, 2);
+      }
+      document.getElementById('save').addEventListener('click', save);
+      loadInfo();
+    </script>
+  </body>
+</html>
