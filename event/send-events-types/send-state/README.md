@@ -98,14 +98,42 @@ static gboolean send_event(AppData* d) {
 - Filter: active (free-text / boolean) → try 1
 - Then: choose an action text overlay while rule is active
 
+![Event config](./event_state_overlay.png)
+
 5. Check paylad:
 
 ```bash
-gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:PulseSendState/axis:PulseSendStateEvent" ! fdsink
+gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:SendState/axis:SendStateEvent" ! fdsink
 
 ```
 
+It should look like this:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<tt:MetadataStream xmlns:tt="http://www.onvif.org/ver10/schema">
+    <tt:Event>
+        <wsnt:NotificationMessage xmlns:tns1="http://www.onvif.org/ver10/topics" xmlns:tnsaxis="http://www.axis.com/2009/event/topics" xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2" xmlns:wsa5="http://www.w3.org/2005/08/addressing"><wsnt:Topic Dialect="http://docs.oasis-open.org/wsn/t-1/TopicExpression/Simple">tnsaxis:CameraApplicationPlatform/SendState/SendStateEvent</wsnt:Topic>
+        <wsnt:ProducerReference>
+            <wsa5:Address>uri://834f16ae-0f06-437c-8d04-2ad363dfc88d/ProducerReference</wsa5:Address>
+        </wsnt:ProducerReference>
+            <wsnt:Message>
+                <tt:Message UtcTime="2025-08-17T05:07:54.678151Z" PropertyOperation="Changed">
+                    <tt:Source></tt:Source>
+                    <tt:Key></tt:Key>
+                    <tt:Data>
+                        <tt:SimpleItem Name="active" Value="1"/>
+                    </tt:Data>
+                </tt:Message>
+            </wsnt:Message>
+        </wsnt:NotificationMessage>
+    </tt:Event>
+</tt:MetadataStream>
+```
+
 You’ll see it trigger every time the state flips to the filtered value.
+
+![Triggered state](./alarm_overlay.png)
 
 ## How this differs from a stateless pulse
 

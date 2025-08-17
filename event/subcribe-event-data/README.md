@@ -86,16 +86,16 @@ g_main_loop_run(loop);
 2. Start the app from the camera Apps page.
 3. For a live test, also install and run the matching producer (send-data) on the same camera.
 
-Verify it works
+**Verify it works**
 4. Watch logs    Apps > acap > app log
 
 You should see lines similar to:
 ```
-subscribe-event-data: Started logging from subscribe event application
-subscribe-event-data: Temperature: 72.830000 C
-subscribe-event-data: Load: 1.120000
-subscribe-event-data: Used Memory: 223 (MB)
-subscribe-event-data: Free Memory: 277 (MB)
+subscribe_event_data[10917]: Temperature: 53.540000 C
+subscribe_event_data[10917]: Load: 2.440000
+subscribe_event_data[10917]: Used Memory: 39 (MB)
+subscribe_event_data[10917]: Free Memory: 461 (MB)
+
 ```
 
 5. Confirm topic match
@@ -126,14 +126,8 @@ and log it.
 
 - Test: See the hostname printed in subscriber logs.
 
-## Lab 2 — Narrow the subscription
 
-- Add a data filter to your subscription KVS, e.g. subscribe only when UsedMemory > 250.
-(Since subscription matching is equality-based, simulate this by sending a dedicated HighMem boolean from the producer and filtering on HighMem=1.)
-
-- Test: Events only show up when the producer sets HighMem=1.
-
-## Lab 3 — Multiple subscriptions
+## Lab 2 — Multiple subscriptions
 
 - Create two independent subscriptions:
     - One to SendDataEvent
@@ -141,9 +135,3 @@ and log it.
 
 - Log which subscription id fired in the callback for clarity.
 - Test: Trigger both producer apps and see both streams of logs.
-
-## Lab 4 — Robust error handling
-
-- Add checks for the return values of all Event API calls.
-- If ax_event_handler_subscribe fails, log the error and exit cleanly.
-- Test: Temporarily break a topic string and confirm the app reports a clear error.
