@@ -1,20 +1,94 @@
-# Draw views normalized coordinates
+# Overlay API - Draw views 
+
+This sample shows how to use the Axis axoverlay API with the `Cairo image backend` to render different shapes `per camera channel` using normalized coordinates:
+
+- **Channel 1** → centered rectangle (normalized size 0.5 × 0.25)
+- **Channel 2** → centered circle (normalized radius 0.25)
+- **Channel 3+** → centered triangle (three normalized points)
+
+It demonstrates:
+
+- Initializing axoverlay and registering **render** and **adjustment** callbacks.
+- Creating a full-frame **4-bit palette** overlay ( `AXOVERLAY_COLORSPACE_4BIT_PALETTE`).
+- Using `normalized coordinates` for device-independent layout.
+- Converting palette indices to Cairo color with a tiny helper.
+- Handling rotation & resolution changes per stream.
+
+## What the app does
+
+1. Verifies `AXOVERLAY_CAIRO_IMAGE_BACKEND` support.
+2. Initializes axoverlay with:
+
+    - render_overlay_cb — draws a shape based on stream->camera.
+    - adjustment_cb — updates overlay width/height on rotation/resolution changes.
+
+3. Sets up a small **palette** (index→ARGB).
+4. Creates one large overlay sized to the stream’s **max resolution**.
+5. Draws once via `axoverlay_redraw()` and then remains responsive to stream changes.
+
+**Channel mapping (0-based in code, 1-based on device):**
+
+- stream->camera == 1 → rectangle
+- stream->camera == 2 → circle
+- stream->camera >= 3 → triangle
+
+## Key files / functions
+
+- `setup_axoverlay_data` – normalized position, center anchor, stream scaling off.
+- `setup_palette_color` – defines palette entries for 4-bit palette mode.
+- `index2cairo` – converts palette index to Cairo [0..1] float.
+- `draw_rectangle`, `draw_circle`, `draw_triangle` – helpers that accept normalized inputs and convert to   pixels using current overlay size.
+
+- `adjustment_cb` – swaps width/height for 90°/270° rotation and logs the change.
+- `render_overlay_cb` – clears the background and draws the shape for the current stream->camera.
 
 
-## Description
+## Lab:
 
-Draw different shapes for differend existing views when accessing from the web inteface.
+1. Launch the app from the camera’s Apps page, then open Live View(s).
+2. Check
 
-Use of palette color space for large overlays like plain boxes, to lower the memory usage.
+- Channel 1 shows a centered rectangle.
+- Channel 2 shows a centered circle.
+- Channel 3 (and above) shows a centered triangle.
+- Changing stream resolution or rotation keeps shapes correctly sized/centered (watch syslog for adjustment logs).
+- Shapes render with the palette colors defined in code.
 
-## Select channel in render_cb
+## Normalized coordinates (how this sample uses them)
+
+- All shape positions/sizes use normalized values (0.0 .. 1.0):
+
+    - Center (0.5, 0.5) = middle of the overlay.
+    - Width/Height are fractions of overlay size; radius scales with the smaller dimension for consistent look.
+
+- This makes the overlay resolution-independent; the helper converts normalized values → pixels at render time.
+
+## Customization
+
+1. Change shapes by channel:
+
+    - Edit the if (channel == 0) ... else if (channel == 1) ... else ... block in render_overlay_cb.
+
+2. Adjust sizes/positions:
+
+    - Update normalized dims in the draw helpers (e.g., rectangle 0.5 × 0.25, circle radius 0.25).
+
+3. Colors:
+
+    - Modify palette entries in setup_palette_color and use different indices (circle_color, triangle_color, rectangle_color).
+
+--- 
+
+## Code flow
+
+### Select channel in render_cb
 
 ```c
 size_t channel = stream->camera - 1;
 
 ```
 
-## Draw functions
+### Draw functions
 ---
 
 ```c
