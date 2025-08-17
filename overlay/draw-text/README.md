@@ -1,9 +1,36 @@
 # Overlay API - Draw text
 
+This sample shows how to use the Axis axoverlay API with the **Cairo image backend** to render animated text over the video stream. It demonstrates:
 
-## Description
+- Initializing axoverlay (Cairo backend) and registering **render** and **adjustment callbacks**.
+- Creating an **ARGB32** overlay sized to the stream’s max resolution.
+- Drawing text with Cairo (cairo_show_text) and updating it via a GLib timer (g_timeout_add_seconds).
+- Triggering redraws with axoverlay_redraw on every timer tick.
 
-Draw text using cairo and colorspace ARGB32 with normalized coordinates (initial axoverlay setup).
+## What the app does
+
+- Verifies AXOVERLAY_CAIRO_IMAGE_BACKEND support.
+- Initializes axoverlay and creates one ARGB32 overlay covering the stream.
+- Starts a 1-second animation timer that:
+
+    - Counts down from 10 to 0 (then wraps).
+    - Changes the text color depending on the counter:
+
+        - 10–8 → green
+        - 7–4 → blue
+        - 3–0 → red
+
+    - Calls axoverlay_redraw() to re-render.
+
+- In render_overlay_cb, draws centered text like:
+Countdown 7
+
+## Key code to read
+
+- `setup_axoverlay_data`: Normalized positioning, anchor center.
+- `adjustment_cb`: Updates overlay dimensions on resolution/rotation change.
+- `render_overlay_cb`: Uses Cairo to draw the countdown text, centered.
+- `update_overlay_cb`: Timer callback that updates the counter/color and requests a redraw.
 
 
 ## Initialize and setup an overlay_data struct with default values.
@@ -61,6 +88,33 @@ static void draw_text(cairo_t* context, const gint pos_x, const gint pos_y) {
 }
 ```
 ---
+
+## Lab: run & verify
+
+1. Start the app from the camera’s Apps page, then open Live View.
+
+2. Check:
+
+-  Text “Countdown N” appears roughly centered.
+-  The number decrements every second.
+-  The text color band switches as N changes (green → blue → red).
+-  Changing resolution or rotation keeps the text centered (watch syslog for adjustment logs).
+
+## Configuration (in code)
+
+Inside draw_text / render_overlay_cb:
+
+- Font: "serif", bold, size 32.0.
+- Centering: computed via cairo_text_extents and overlay width/height.
+- Color: global RGBColor color set by update_overlay_cb.
+
+To tweak:
+
+1. Change font family/size in draw_text.
+2. Adjust position (e.g., overlay_width / 2, overlay_height / 2) to move the label.
+3. Modify the interval in g_timeout_add_seconds(1, ...).
+
+
 ## Build
 
 ```bash
