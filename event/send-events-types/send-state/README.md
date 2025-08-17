@@ -85,7 +85,7 @@ static gboolean send_event(AppData* d) {
 
 ## LAB: 
 
-1. Use the same build flow you use for other samples in this repo (Makefile, SDK container, etc.).
+1. Build your app. Instruction under **build**
 2. Install the produced ACAP package on the camera (Web UI → Apps → Upload & Install).
 3. Start the app from the camera Apps page.
 
@@ -152,9 +152,9 @@ Pick **stateful** for things like “while rule is active”.
 ## Build
 
 ```bash
-docker build --build-arg ARCH=aarch64 --tag pulse-send-stless .
+docker build --build-arg ARCH=aarch64 --tag send-state .
 ```
 
 ```bash
-docker cp $(docker create pulse-send-stless):/opt/app ./build
+docker cp $(docker create send-state):/opt/app ./build
 ```
