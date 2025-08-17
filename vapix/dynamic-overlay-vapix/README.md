@@ -1,4 +1,4 @@
-# Dynamic Overlay VAPIX API - Draw text with VAPIX Overlay API
+# VAPIX API - Dynamic Overlay
 
 This sample shows how to create a dynamic text overlay on an Axis device using the VAPIX Dynamic Overlay API over HTTP. This library makes it able to add text overlay, images and boxes which can also be configured through the web interface of the camera. The sample demonstrates:
 
