@@ -20,52 +20,52 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
 
 # Samples
 
-1. `add-logo`
+1) **`add-logo`**
 
-**Goal**: Load a static image (e.g., PNG) and place it as an overlay.
+    **Goal**: Load a static image (e.g., PNG) and place it as an overlay.
 
-What to look for:
+    What to look for:
 
-- How the image buffer is loaded and handed to the overlay
-- Positioning/pinning (top-left, bottom-right, fixed offsets)
-- Handling of alpha channel (transparency)
+    - How the image buffer is loaded and handed to the overlay
+    - Positioning/pinning (top-left, bottom-right, fixed offsets)
+    - Handling of alpha channel (transparency)
 
-2) `draw-rectangle`
+2) **`draw-rectangle`**
 
-**Goal**: Draw a rectangle overlay with custom color and line width.
+    **Goal**: Draw a rectangle overlay with custom color and line width.
 
-What to look for:
+    What to look for:
 
-- Rectangle creation API
-- Coordinates and size (pixels vs normalized, depending on the snippet)
-- Updating the rectangle (e.g., move/resize)
+    - Rectangle creation API
+    - Coordinates and size (pixels vs normalized, depending on the snippet)
+    - Updating the rectangle (e.g., move/resize)
 
-3) `draw-text`
+3) **`draw-text`**
 
-**Goal**: Render a text overlay (e.g., “Hello ACAP” or a counter).
+    **Goal**: Render a text overlay (e.g., “Hello ACAP” or a counter).
 
-What to look for:
+    What to look for:
 
-- Text style (font size, color), baseline positioning
-- Updating text dynamically (e.g., time tick, FPS, custom label)
-- Clarity/antialiasing considerations
+    - Text style (font size, color), baseline positioning
+    - Updating text dynamically (e.g., time tick, FPS, custom label)
+    - Clarity/antialiasing considerations
 
-4) `draw-views`
+4) **`draw-views`**
 
-**Goal**: Attach overlays to multiple views (multi-sensor / multi-stream devices).
+    **Goal**: Attach overlays to multiple views (multi-sensor / multi-stream devices).
 
-What to look for:
+    What to look for:
 
-- Enumerating views/streams
-- Creating one overlay per view (e.g., a moving box across X axis on each view)
-- Coordinating updates across views
+    - Enumerating views/streams
+    - Creating one overlay per view (e.g., a moving box across X axis on each view)
+    - Coordinating updates across views
 
-5) dynamic-overlay-vapix
+5) **`dynamic-overlay-vapix`**
 
-Goal: Create/update overlays via VAPIX (HTTP endpoint - dynamicoverlay.cgi). Overlay settings can also be modified via UI (position, color, size font). This sample is also under **vapix** folder as part of **Vapix API**.
+    Goal: Create/update overlays via VAPIX (HTTP endpoint - dynamicoverlay.cgi). Overlay settings can also be modified via UI (position, color, size font). This sample is also under **vapix** folder as part of **Vapix API**.
 
-What to look for:
+    What to look for:
 
-- The VAPIX endpoints and payloads used to create, update, get, delete
-- Parameter names (position, text, color) and required encodings
+    - The VAPIX endpoints and payloads used to create, update, get, delete
+    - Parameter names (position, text, color) and required encodings
 
