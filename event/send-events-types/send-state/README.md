@@ -83,7 +83,7 @@ static gboolean send_event(AppData* d) {
 ```
 
 
-## LAB:Build & install
+## LAB: 
 
 1. Use the same build flow you use for other samples in this repo (Makefile, SDK container, etc.).
 2. Install the produced ACAP package on the camera (Web UI → Apps → Upload & Install).
@@ -95,7 +95,7 @@ static gboolean send_event(AppData* d) {
 4. Create a rule:
 
 - When: Event → CameraApplicationPlatform / SendState / SendStateEvent
-- Filter: active (free-text / boolean) → try 1
+- Filter: active (by default)
 - Then: choose an action text overlay while rule is active
 
 ![Event config](./event_state_overlay.png)
