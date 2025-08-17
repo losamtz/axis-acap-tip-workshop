@@ -5,10 +5,10 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
 | Sample / Lab              | What it demonstrates                                       | Typical use case                               |
 | ------------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
 | **add-logo**              | Loading an image (logo) and placing it as an overlay       | Branding, watermarking                         |
-| **draw-rectangle**        | Drawing a rectangle overlay with color/line params         | Highlight ROIs, simple boxes                   |
+| **draw-rectangle**        | Drawing a rectangle overlay with color/line params         | simple boxes                   |
 | **draw-text**             | Rendering text strings on the stream                       | Status readouts, counters, labels              |
 | **drawviews**             | Creating overlays for **multiple views/streams**           | Multi-sensor/multiview products                |
-| **dynamic-overlay-vapix** | Creating/updating overlays via **VAPIX** (HTTP) at runtime | Remote control dashboards, scripts, automation |
+| **dynamic-overlay-vapix** | Creating/updating overlays via **VAPIX** (HTTP) at runtime | Remote control dashboards, scripts, automation or through ACAP|
 
 
 ## How overlays work (quick mental model)
