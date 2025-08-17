@@ -72,7 +72,7 @@ const char *soap_body =
 
 ```
 
-3) POST to the ONVIF endpoint
+3) POST to the VAPIX endpoint (it will change ONVIF settings in the web interface)
 
 ```c
 
