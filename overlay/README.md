@@ -20,7 +20,7 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
 
 # Samples
 
-1) `add-logo`
+1. `add-logo`
 
 **Goal**: Load a static image (e.g., PNG) and place it as an overlay.
 
