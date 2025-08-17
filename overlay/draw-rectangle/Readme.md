@@ -1,11 +1,53 @@
-# Draw rectangle normalized coordinates
+# Draw rectangle
 
+This sample demonstrates how to render a centered rectangle overlay on the video using the Axis axoverlay API with the Cairo image backend and a 4-bit palette (index-based colors). It also shows how to use AXOVERLAY_CUSTOM_NORMALIZED positioning, the adjustment callback (to react to stream/rotation changes), and a clean render path with cairo.
 
-## Description
+## What this app does
 
-Draw a rectangle with normalized coordinated (initial setup) using cairo library.
+- Initializes **axoverlay** with the **Cairo image backend**.
+- Sets up a **4-bit palette** (indices → ARGB via axoverlay_set_palette_color).
+- Creates one overlay that covers the full stream (using **custom normalized positioning** and **anchor center**).
 
-## Initialize and setup an overlay_data struct with default values.
+- On every render:
+
+    - Clears the overlay buffer (palette index 0).
+    - raws a **yellow** rectangle centered in the overlay (¼ width × ¼ height).
+
+- Reacts to rotation / resolution changes via adjustment_cb, keeping the overlay’s drawing area aligned to the stream.
+
+## Key concepts in this sample
+
+- **Positioning & normalization**
+
+    - `data.postype = AXOVERLAY_CUSTOM_NORMALIZED`
+    - `data.anchor_point = AXOVERLAY_ANCHOR_CENTER`
+    - Normalized position lets the overlay stay consistent across resolutions and rotations.
+
+- **Palette colors**
+
+    - `AXOVERLAY_COLORSPACE_4BIT_PALETTE` (16 indices)
+    - Use `axoverlay_set_palette_color(index, {r,g,b,a})`, then convert index→cairo color in index2cairo.
+
+- **Cairo backend**
+
+    - Draw with Cairo (cairo_t*) in render_overlay_cb.
+    - Clear, stroke, fill using palette-derived RGBA.
+
+**Adjustment callback**
+
+    - adjustment_cb updates overlay width/height if stream resolution or rotation changes.
+
+## Lab
+
+Open Live View and check:
+
+- A centered rectangle appears on top of the video.
+- It remains centered and scales appropriately when you change resolution.
+- It remains correct when you rotate the video (orientation/rotation settings).
+
+## Code Flow
+
+### Initialize and setup an overlay_data struct with default values.
 
 ```c
     static void setup_axoverlay_data(struct axoverlay_overlay_data* data) {
@@ -18,7 +60,7 @@ Draw a rectangle with normalized coordinated (initial setup) using cairo library
 }
 ```
 
-## Color space settings for text: 4 bit pallette
+### Color space settings for text: 4 bit pallette
 
 ```c
 
@@ -31,7 +73,7 @@ Draw a rectangle with normalized coordinated (initial setup) using cairo library
     
 ```
 
-## Converts palette color index to cairo color value
+### Converts palette color index to cairo color value
 
 ```c
 #define PALETTE_VALUE_RANGE 255.0
@@ -41,7 +83,7 @@ static gdouble index2cairo(const gint color_index) {
 }
 ```
 
-## Setup palette color
+### Setup palette color
 
 ```c
 
@@ -65,7 +107,7 @@ static gboolean setup_palette_color(const int index, const gint r, const gint g,
 
 ```
 
-## Drawing rectangle using cairo and later called by render_cb
+### Drawing rectangle using cairo and later called by render_cb
 
 ```c
 static void draw_rectangle(cairo_t* context,
@@ -87,12 +129,12 @@ static void draw_rectangle(cairo_t* context,
 
 ```
 
-## Build
+### Build
 
 ```bash
-docker build --tag draw-rectangle-normal --build-arg ARCH=aarch64 .
+docker build --tag draw-rectangle --build-arg ARCH=aarch64 .
 ```
 
 ```bash
-docker cp $(docker create draw-rectangle-normal):/opt/app ./build
+docker cp $(docker create draw-rectangle):/opt/app ./build
 ```
