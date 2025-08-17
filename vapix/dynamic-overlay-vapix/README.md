@@ -1,19 +1,74 @@
-# Draw text with VAPIX Overlay API
+# Dynamic Overlay VAPIX API - Draw text with VAPIX Overlay API
 
+This sample shows how to create a dynamic text overlay on an Axis device using the VAPIX Dynamic Overlay API over HTTP. This library makes it able to add text overlay, images and boxes which can also be configured through the web interface of the camera. The sample demonstrates:
 
-## Description
+- Getting a service account credential from the device over D-Bus (com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials)
+- Building a JSON RPC request with jansson
+- Sending the request to /axis-cgi/dynamicoverlay/dynamicoverlay.cgi with libcurl
+- Parsing the JSON response and logging useful fields
 
-This application showcase the possibility to use VAPIX dynamic [Overlay API](https://developer.axis.com/vapix/network-video/overlay-api/) and use the existent functionalities that this library offers. 
-This library makes it able to add text overlay, images and boxes which can also be configured through the web interface of the camera.
+The code adds a text overlay (top-left), white text on black background, font size 60, with a formatted timestamp string ("AXIS TIP Paris workshop - Date: %c").
 
-This sample also uses: 
-- [VAPIX access for ACAP](https://developer.axis.com/acap/develop/VAPIX-access-for-ACAP-applications/), dbus access to dynamic user credentials 
-- [libcurl](https://developer.axis.com/acap/api/native-sdk-api/#curl)
-- [jansson](https://developer.axis.com/acap/api/native-sdk-api/#jansson)
+## Project layout
 
-# Application flow:
+- `main.c`
+Builds the addText JSON payload, posts it, and logs the response.
 
-## Retrive credentials with dbus
+- `curl-request.c/.h`
+Thin helper around libcurl (POST JSON, collect response into a GString).
+
+- `vapix-credentials.c/.h`
+Fetches the basic auth username:password for a dynamic user using GDBus.
+
+- `panic.h`
+Small helper for fatal logging + exit (used throughout).
+
+## Dependencies
+
+- GLib / GIO (for GString, GDBus, misc)
+- libcurl
+- jansson (JSON)
+- syslog
+
+On your build host (SDK container), make sure the dev packages are available (the ACAP SDK v3 container already ships what you need).
+
+## Lab
+
+1. Start the app from the Apps page (or run the binary if you’re developing).
+2. Open the Live View → you should see white text on black background at top-left.
+3. Check syslog for the JSON response and parsed fields:
+
+Full json response: ...
+
+Camera: <id>
+Identity: <overlay-identity> => 
+
+**Note**: this identifier is important if we want to update the overlay. Warning: update function  is not implemeted!
+
+Check:
+
+- App logs show Curl version and Jansson version.
+- D-Bus credential fetch succeeded (no “D-Bus” error in logs).
+- HTTP POST returned 200 (no panic about response code).
+- Overlay text appears at top-left on the stream.
+
+### Extra lab:
+
+Inside build_addtext_request():
+
+1. camera: integer camera index (usually 1 for single-sensor devices)
+2. position: "topLeft" | "topRight" | "bottomLeft" | "bottomRight" | "center" | ..."
+3. text: any string; note %c will be interpreted by the camera as a time format placeholder (depends on API behavior/firmware; adjust if you want raw text)
+
+4. textColor: "white", "black", "red", "green", etc.
+5. textBGColor: background color name or "transparent" if supported
+6. fontSize: integer pixels
+
+---
+
+## Application flow:
+
+### Retrive credentials with dbus
 
 ```c
 char* retrieve_vapix_credentials(const char* username) {
@@ -49,7 +104,7 @@ char* retrieve_vapix_credentials(const char* username) {
 }
 ```
 
-## cURL request
+### cURL request
 
 ```c
 static char*
@@ -143,6 +198,7 @@ or
     json_object_set_new(root, "method", json_string("addText"));
     json_object_set_new(root, "params", params);
 ```
+---
 ## Build
 
 ```bash
