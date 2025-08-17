@@ -1,4 +1,4 @@
-PROG1 = bbox_view
+PROG1 = bbox_multi_view_lab
 OBJS1 = $(PROG1).c
 PROGS = $(PROG1)
 

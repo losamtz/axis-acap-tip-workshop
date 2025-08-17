@@ -1,4 +1,4 @@
-PROG1 = bbox_multi_view_framen
+PROG1 = bbox_multi_view
 OBJS1 = $(PROG1).c
 PROGS = $(PROG1)
 

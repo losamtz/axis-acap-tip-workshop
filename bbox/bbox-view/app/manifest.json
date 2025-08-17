@@ -15,8 +15,8 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Bbox View frame normalized",
-            "appName": "bbox_view_framen",
+            "friendlyName": "Bbox View",
+            "appName": "bbox_view",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "runMode": "never",

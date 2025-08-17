@@ -15,8 +15,8 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "BBox Multi View",
-            "appName": "bbox_multi_view",
+            "friendlyName": "BBox Multi View Refactor Lab",
+            "appName": "bbox_multi_view_lab",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "runMode": "never",

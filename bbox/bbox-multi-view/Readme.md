@@ -1,15 +1,58 @@
-# Draw multi-view with frame normalized coordinates
+# Overla API - bbox-multi-view (moving rectangle)
 
+This sample demonstrates how to draw and animate a bounding box on multiple views of an Axis multi-sensor device using the bbox API. A yellow rectangle moves horizontally back and forth, and is rendered on channels 1, 2, 3, 4.
 
-## Description
+## What it does
 
-Draw a yellow box moving from axis [0.0,0.3]  to [1.0,0.3] and back in several view areas, simulating object tracking in the scene.
+- Creates a bbox handle that targets four views: bbox_new(4u, 1u, 2u, 3u, 4u).
+- Enables on-screen video output for the OSD overlay (bbox_video_output(bbox, true)).
+- Clears any previous graphics on each update.
+- Queues a yellow rectangle with medium thickness and corner style.
+- Moves the rectangle horizontally between x = 0.0 and x = 1.0 - width, bouncing at the edges.
+- Commits the frame with bbox_commit(bbox, 0u) so all drawing appears atomically.
+- Runs in a GLib main loop and stops cleanly on SIGINT/SIGTERM (clears overlays on exit).
 
-Note: Using object detection models, the coordenates are provided to be able to draw the the boxes. THis case just simulates that scenario.
+## Files overview
 
+- main.c (provided snippet)
 
-![multiview](./multiview_bbox.mp4)
+    - `update_bbox()` — animation tick: create handle, set style, compute new x-position, draw rect, commit, destroy handle.
+    - `clear()` — clears any remaining overlays on channel 1 before exit.
+    - `signal_handler()` — stops main loop and calls clear().
+    - `main()` — sets up syslog, GLib main loop, signal handlers, and the periodic timer via g_timeout_add(100, update_bbox, NULL).
 
+# Important notes
+
+- The sample calls `g_timeout_add(100, update_bbox, NULL)` (10 FPS), but `update_bbox()` also calls sleep(1). That effectively throttles updates to ~1 FPS and blocks the main loop during sleep.
+
+    - Recommendation: remove the sleep(1) and rely solely on the GLib timer interval to control the animation rate.
+
+- Creating/destroying a bbox handle every tick is simple but not optimal. For smoother animation:
+    - Create the handle once during init;
+    - Reuse it on each tick (clear → draw → commit);
+    - Destroy it on shutdown.
+
+## Lab
+
+1. You can tweak these constants near the top:
+
+```c
+static double xpos = 0.0;        // start x
+static const double box_width = 0.1;
+static const double y = 0.3;
+static const double height = 0.1;
+static int dir = -1;             // -1 left, +1 right
+```
+
+2 And change color/styling:
+
+```c
+const bbox_color_t yellow = bbox_color_from_rgb(0xff, 0xff, 0x00);
+bbox_style_corners(bbox);
+bbox_thickness_medium(bbox);
+bbox_color(bbox, yellow);
+
+```
 ## Create a bbox on channel 1, 2, 3 and 4
 
 ```c
