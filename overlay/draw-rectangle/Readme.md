@@ -33,7 +33,7 @@ This sample demonstrates how to render a centered rectangle overlay on the video
     - Draw with Cairo (cairo_t*) in render_overlay_cb.
     - Clear, stroke, fill using palette-derived RGBA.
 
-**Adjustment callback**
+- **Adjustment callback**
 
     - adjustment_cb updates overlay width/height if stream resolution or rotation changes.
 
