@@ -1,4 +1,4 @@
-# Draw rectangle
+# Overlay API - Draw rectangle
 
 This sample demonstrates how to render a centered rectangle overlay on the video using the Axis axoverlay API with the Cairo image backend and a 4-bit palette (index-based colors). It also shows how to use AXOVERLAY_CUSTOM_NORMALIZED positioning, the adjustment callback (to react to stream/rotation changes), and a clean render path with cairo.
 

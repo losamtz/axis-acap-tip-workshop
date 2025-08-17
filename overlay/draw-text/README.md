@@ -1,4 +1,4 @@
-# Draw rectangle normalized coordinates
+# Overlay API - Draw text
 
 
 ## Description
