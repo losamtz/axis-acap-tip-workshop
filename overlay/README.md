@@ -29,6 +29,7 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
     - How the image buffer is loaded and handed to the overlay
     - Positioning/pinning (top-left, bottom-right, fixed offsets)
     - Handling of alpha channel (transparency)
+---
 
 2) **`draw-rectangle`**
 
@@ -39,6 +40,7 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
     - Rectangle creation API
     - Coordinates and size (pixels vs normalized, depending on the snippet)
     - Updating the rectangle (e.g., move/resize)
+---
 
 3) **`draw-text`**
 
@@ -49,6 +51,7 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
     - Text style (font size, color), baseline positioning
     - Updating text dynamically (e.g., time tick, FPS, custom label)
     - Clarity/antialiasing considerations
+---
 
 4) **`draw-views`**
 
@@ -59,6 +62,7 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
     - Enumerating views/streams
     - Creating one overlay per view (e.g., a moving box across X axis on each view)
     - Coordinating updates across views
+---
 
 5) **`dynamic-overlay-vapix`**
 
@@ -69,3 +73,4 @@ This folder contains a small suite of Axis ACAP overlay examples that show diffe
     - The VAPIX endpoints and payloads used to create, update, get, delete
     - Parameter names (position, text, color) and required encodings
 
+---
