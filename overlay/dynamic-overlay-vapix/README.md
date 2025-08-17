@@ -18,7 +18,7 @@ Builds the addText JSON payload, posts it, and logs the response.
 Thin helper around libcurl (POST JSON, collect response into a GString).
 
 - `vapix-credentials.c/.h`
-Fetches the basic auth username:password for a given service account name using GDBus.
+Fetches the basic auth username:password for a dynamic user using GDBus.
 
 - `panic.h`
 Small helper for fatal logging + exit (used throughout).
