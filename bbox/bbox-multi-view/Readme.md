@@ -7,6 +7,9 @@ Draw a yellow box moving from axis [0.0,0.3]  to [1.0,0.3] and back in several v
 
 Note: Using object detection models, the coordenates are provided to be able to draw the the boxes. THis case just simulates that scenario.
 
+
+![multiview](./multiview_bbox.mp4)
+
 ## Create a bbox on channel 1, 2, 3 and 4
 
 ```c
@@ -78,8 +81,8 @@ bbox_destroy(bbox);
 ## Build
 
 ```bash
-docker build --tag bbox-multi-view-fn --build-arg ARCH=aarch64 .
+docker build --tag bbox-multi-view --build-arg ARCH=aarch64 .
 ```
 ```bash
-docker cp $(docker create bbox-multi-view-fn):/opt/app ./build
+docker cp $(docker create bbox-multi-view):/opt/app ./build
 ```
