@@ -63,7 +63,7 @@ Stored persistently using AXParameter.
 
 4. Test the api with curl:
 
-3. Test with curl (replace CAM_IP):
+3. Test with curl:
 
 ```bash
 curl --anyauth -u root:pass http://192.168.0.90/local/web_proxy/api/info
