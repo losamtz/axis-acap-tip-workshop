@@ -37,3 +37,8 @@ You can check default config in following sample ![web-server from acap-native-s
 | ----------------------------------------------------- | ---------------------------------------------------------- |
 | Workshop, minimal code, easy to reason about          | **`web_proxy`** (single-threaded)               |
 | Higher throughput, concurrent requests, future growth | **`web_thread`** (multi-threaded + mutex) |
+
+
+## API description
+
+![Civetweb & Jansson](./doc_jansson_civetweb_api.md)
