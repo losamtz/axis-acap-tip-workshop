@@ -86,9 +86,11 @@ On validation/parse errors you’ll get:
 ## How it works (under the hood)
 
 1. **Spawn-on-demand**
+
     With `runMode`: "never", the Axis web server launches the FastCGI app **only when a request hits info-acap.cgi or param-acap.cgi**.
 
 2. **Socket handoff**
+
     The web server sets `FCGI_SOCKET_NAME` to a Unix socket path. The app:
 
     ```c
