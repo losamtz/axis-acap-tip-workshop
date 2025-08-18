@@ -17,7 +17,7 @@
 #define ENDPOINT_GET "/local/web_parameter_thread/information-acap.cgi"
 
 static AXParameter* handle = NULL;
-static pthread_mutex_t g_param_mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t handle_mtx = PTHREAD_MUTEX_INITIALIZER;
 
 /* ---------- logging panic ---------- */
 __attribute__((noreturn)) __attribute__((format(printf,1,2)))
@@ -116,10 +116,10 @@ static json_t* read_json_body(FCGX_Request* req) {
 static void handle_info(FCGX_Request* req) {
     json_t* out = json_object();
 
-    pthread_mutex_lock(&g_param_mtx);
+    pthread_mutex_lock(&handle_mtx);
     char* addr = get_param_dup("IpAddress");
     char* port = get_param_dup("Port");
-    pthread_mutex_unlock(&g_param_mtx);
+    pthread_mutex_unlock(&handle_mtx);
 
     if (addr) {
         json_object_set_new(out, "IpAddress", json_string(addr));
@@ -172,11 +172,11 @@ static void handle_param(FCGX_Request* req) {
         return;
     }
 
-    pthread_mutex_lock(&g_param_mtx);
+    pthread_mutex_lock(&handle_mtx);
     gboolean ok = TRUE;
     if (addr) ok = ok && set_param("IpAddress", addr, FALSE);
     if (port) ok = ok && set_param("Port", port, FALSE);
-    pthread_mutex_unlock(&g_param_mtx);
+    pthread_mutex_unlock(&handle_mtx);
 
     json_t* out = json_object();
     json_object_set_new(out, "ok", json_boolean(ok));
@@ -224,12 +224,12 @@ int main(void) {
     if (!handle) panic("ax_parameter_new failed: %s", error ? error->message : "unknown");
 
     // Ensure parameters exist (string metadata)
-    pthread_mutex_lock(&g_param_mtx);
+    pthread_mutex_lock(&handle_mtx);
     if (!add_if_missing("IpAddress", "192.168.0.90", "string"))
         panic("Failed to add IpAddress");
     if (!add_if_missing("Port", "8080", "string"))
         panic("Failed to add Port");
-    pthread_mutex_unlock(&g_param_mtx);
+    pthread_mutex_unlock(&handle_mtx);
 
     
     socket_path = getenv(FCGI_SOCKET_NAME);
