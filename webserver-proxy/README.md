@@ -1,4 +1,4 @@
-## Reverse-Proxy Web Server (CivetWeb) – Comparison Guide
+# Reverse-Proxy Web Server (CivetWeb) – Comparison Guide
 
 This README summarizes two companion samples that expose a small JSON API over the camera’s built-in reverse proxy using **CivetWeb**, **AXParameter**, and **Jansson**:
 
