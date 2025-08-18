@@ -11,9 +11,9 @@ This pattern is needed when enabling **multiple request-handling threads**.
 
 ## Endpoints
 
-Base path: `/local/api_multicast_thread/`
+Base path: `/local/web_proxy_thread/api`
 
-- **GET** `/information-acap.cgi`
+- **GET** `/info`
     Returns current parameter values:
 
     ```json
@@ -23,7 +23,7 @@ Base path: `/local/api_multicast_thread/`
     "ok": true
     }
     ```
-- **POST** `/parameter-acap.cgi`
+- **POST** `/param`
     Accepts JSON body:
 
     ```json
@@ -51,7 +51,7 @@ Stored persistently using AXParameter.
 ## How it works
 
 - CivetWeb listens on port `2002` inside the app.
-- ACAP reverseProxy exposes `/local/api_multicast_thread/`.
+- ACAP reverseProxy exposes `/local/web_proxy_thread/api/`.
 - `index.html` uses fetch() calls to the endpoints or/and curl
 - Each HTTP request may be handled by a different worker thread.
 - AXParameter access is guarded by a global pthread_mutex_t.
@@ -67,23 +67,23 @@ Stored persistently using AXParameter.
 3. Test with curl:
 
 ```bash
-curl --anyauth -u root:pass http://192.168.0.90/local/web_proxy/api/info
+curl --anyauth -u root:pass http://192.168.0.90/local/web_proxy_thread/api/info
 ```
 
 ```bash
 curl --anyauth -u root:pass -H "Content-Type: application/json" \
   -d '{"MulticastAddress":"224.0.0.2","MulticastPort":"9000"}' \
-  http://192.168.0.90/local/web_proxy/api/param
+  http://192.168.0.90/local/web_proxy_thread/api/param
 
 ```
 
 ## Build
 
 ```bash
-docker build --tag web-proxy --build-arg ARCH=aarch64 .
+docker build --tag web-proxy-thread --build-arg ARCH=aarch64 .
 
 ```
 ```bash
-docker cp $(docker create web-proxy):/opt/app ./build
+docker cp $(docker create web-proxy-thread):/opt/app ./build
 
 ```
