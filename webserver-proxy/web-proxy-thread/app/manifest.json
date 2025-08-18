@@ -1,0 +1,46 @@
+{
+    "schemaVersion": "1.7.4",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Web Proxy Thread",
+            "appName": "web_proxy_thread",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "reverseProxy": [
+				{
+					"apiPath": "api_thread_multicast",
+					"target": "http://localhost:2002",
+					"access": "admin"
+				}
+			],
+            "paramConfig": [
+                {
+                    "name": "MulticastAddress",
+                    "default": "224.0.0.1",
+                    "type": "string"
+                },
+                {
+                    "name": "MulticastPort",
+                    "default": "1024",
+                    "type": "string"
+                }
+            ]
+            
+        }
+    }
+}
