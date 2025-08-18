@@ -1,17 +1,44 @@
-PROGS     = web_proxy
-SRCS      = $(wildcard *.c)
-OBJS      = $(SRCS:.c=.o)
+PROG1  = web_proxy
+SRCS1  = $(PROG1).c
+OBJS1  = $(SRCS1:.c=.o)
+PROGS  = $(PROG1)
 
-PKGS = glib-2.0 gio-2.0 axparameter jansson civetweb
+# SDK sysroot (set by environment-setup, but we default it here too)
+SYSROOT ?= /opt/axis/acapsdk/sysroots/aarch64
 
-CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PKGS))
-LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PKGS))
+# Only pkg-config packages that actually have .pc files in the SDK
+PKGS = glib-2.0 gio-2.0 jansson axparameter
 
-LDLIBS += -lcivetweb
-CFLAGS += -I/opt/build/civetweb/include
+# CivetWeb is provided without pkg-config; point these to where you staged it
+CIVETWEB_PREFIX ?= /opt/build/civetweb
 
+# Project-local lib dir (only used if present)
+LIBDIR ?= lib
+
+# ----- Flags from pkg-config (adds GLib/GIO include dirs so glib.h resolves) -----
+CFLAGS  += $(shell pkg-config --cflags $(PKGS))
+LDLIBS  += $(shell pkg-config --libs   $(PKGS))
+
+# ----- Axis SDK headers/libs that don’t need pkg-config -----
+# axparameter headers live under axsdk
+CFLAGS  += -I$(SYSROOT)/usr/include/axsdk
+LDLIBS  += -laxparameter
+
+# ----- CivetWeb: headers & libs -----
+CFLAGS  += -I$(CIVETWEB_PREFIX)/include
+LDFLAGS += -L$(CIVETWEB_PREFIX)/lib
+LDLIBS  += -lcivetweb -lpthread
+# If CivetWeb was built with HTTPS:
+# LDLIBS += -lssl -lcrypto
+# If static libcivetweb.a, you may also need:
+# LDLIBS += -ldl -lm -lz
+
+# ----- Only add project lib dir if it exists/is set -----
+ifneq ($(strip $(LIBDIR)),)
 LDFLAGS += -L$(LIBDIR) -Wl,--no-as-needed,-rpath,'$$ORIGIN/lib'
+endif
 
+# ----- Warnings / hardening -----
 CFLAGS += -Wall \
           -Wextra \
           -Wformat=2 \
@@ -23,12 +50,20 @@ CFLAGS += -Wall \
           -Wdisabled-optimization \
           -Wfloat-equal \
           -W \
-          -Werror
+          -Werror \
+          -MMD -MP
 
-all:	$(PROGS)
+all: $(PROGS)
+
+# Build objects first (clearer errors and proper dep handling)
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(PROG1): $(OBJS1)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 clean:
-	rm -rf $(PROGS) *.o *.eap* *_LICENSE.txt package.conf* param.conf tmp* $(LIBDIR)
+	rm -rf $(PROGS) *.o *.d *.eap* *_LICENSE.txt package.conf* param.conf tmp* $(LIBDIR)
+
+# Auto-rebuild on header changes
+-include $(OBJS1:.o=.d)

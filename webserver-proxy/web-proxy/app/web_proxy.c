@@ -4,6 +4,7 @@
 #include "civetweb.h"
 #include <axsdk/axparameter.h>
 #include <jansson.h>
+#include <glib-unix.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -27,10 +28,16 @@ static void panic(const char* fmt, ...) {
     exit(EXIT_FAILURE);
 }
 
-static void on_signal(int signo) { (void)signo; running = 0; }
+static void on_signal(int signo) { 
 
-static void send_json(struct mg_connection* c, int status, json_t* obj) {
+    (void)signo; 
+    running = 0; 
+}
+
+static void send_json(struct mg_connection* conn, int status, json_t* obj) {
+
     char* body = json_dumps(obj, JSON_COMPACT);
+
     mg_printf(c,
               "HTTP/1.1 %d OK\r\n"
               "Content-Type: application/json\r\n"
@@ -40,61 +47,86 @@ static void send_json(struct mg_connection* c, int status, json_t* obj) {
               "Connection: close\r\n\r\n"
               "%s",
               status, body ? body : "{}");
+
     free(body);
 }
 
-static char* read_body(struct mg_connection* c) {
-    const char* len_str = mg_get_header(c, "Content-Length");
+static char* read_body(struct mg_connection* conn) { 
+
+    const char* len_str = mg_get_header(conn, "Content-Length");
     long len = len_str ? strtol(len_str, NULL, 10) : 0;
-    if (len <= 0 || len > (1<<20)) return NULL;
+
+    if (len <= 0 || len > (1<<20)) 
+        return NULL;
+
     char* buf = (char*)malloc((size_t)len + 1);
-    if (!buf) return NULL;
-    long got = mg_read(c, buf, (size_t)len);
-    if (got < 0) got = 0;
+
+    if (!buf) 
+        return NULL;
+
+    long got = mg_read(conn, buf, (size_t)len);
+
+    if (got < 0) 
+        got = 0;
+
     buf[got] = '\0';
     return buf;
 }
 
 /* ── AXParameter helpers (no mutex needed: single-threaded) ──────────────── */
 
-static gboolean add_if_missing(const char* name, const char* def, const char* meta) {
-    GError* err = NULL;
-    if (!ax_parameter_add(g_param, name, def, meta, &err)) {
-        if (err && err->code == AX_PARAMETER_PARAM_ADDED_ERROR) {
-            g_error_free(err);
+static gboolean add_if_missing(const char* name, const char* initial_value, const char* meta) {
+
+    GError* error = NULL;
+
+    if (!ax_parameter_add(g_param, name, initial_value, meta, &err)) {
+
+        if (error && error->code == AX_PARAMETER_PARAM_ADDED_ERROR) {
+            g_error_free(error);
             return TRUE; // already exists
         }
-        if (err) { syslog(LOG_ERR, "add(%s) failed: %s", name, err->message); g_error_free(err); }
+        if (error) { 
+            syslog(LOG_ERR, "add(%s) failed: %s", name, error->message); 
+            g_error_free(error); 
+        }
         return FALSE;
     }
     return TRUE;
 }
 
 static char* get_param_dup(const char* name) {
-    GError* err = NULL;
-    char* val = NULL;
-    if (!ax_parameter_get(g_param, name, &val, &err)) {
-        if (err) { syslog(LOG_WARNING, "get(%s) failed: %s", name, err->message); g_error_free(err); }
+
+    GError* error = NULL;
+    char* value = NULL;
+
+    if (!ax_parameter_get(g_param, name, &value, &error)) {
+        if (err) { syslog(LOG_WARNING, "get(%s) failed: %s", name, error->message); g_error_free(error); }
         return NULL;
     }
-    return val; // must g_free
+    return value; // must g_free
 }
 
 static gboolean set_param(const char* name, const char* value) {
-    GError* err = NULL;
+
+    GError* error = NULL;
+
     gboolean ok = ax_parameter_set(g_param, name, value, FALSE, &err);
-    if (!ok && err) {
-        syslog(LOG_ERR, "set(%s=%s) failed: %s", name, value, err->message);
-        g_error_free(err);
+
+    if (!ok && error) {
+        syslog(LOG_ERR, "set(%s=%s) failed: %s", name, value, error->message);
+        g_error_free(error);
     }
+    
     return ok;
 }
 
 /* ── Handlers ────────────────────────────────────────────────────────────── */
 
-// GET /info-acap.cgi
-static int InfoHandler(struct mg_connection* c, void* ud __attribute__((unused))) {
-    if (strcmp(mg_get_request_info(c)->request_method, "GET") != 0) return 0;
+// GET /info
+static int InfoHandler(struct mg_connection* conn, void* ud __attribute__((unused))) {
+
+    if (strcmp(mg_get_request_info(conn)->request_method, "GET") != 0) 
+        return 0;
 
     json_t* out = json_object();
 
@@ -113,27 +145,35 @@ static int InfoHandler(struct mg_connection* c, void* ud __attribute__((unused))
     return 1;
 }
 
-// POST /param-acap.cgi
-static int ParamHandler(struct mg_connection* c, void* ud __attribute__((unused))) {
-    if (strcmp(mg_get_request_info(c)->request_method, "POST") != 0) return 0;
+// POST /param
+static int ParamHandler(struct mg_connection* conn, void* ud __attribute__((unused))) {
 
-    char* body = read_body(c);
+    if (strcmp(mg_get_request_info(conn)->request_method, "POST") != 0) 
+        return 0;
+
+    char* body = read_body(conn);
     if (!body) {
-        json_t* err = json_pack("{s:s}", "error", "Missing or empty body");
-        send_json(c, 400, err);
-        json_decref(err);
+
+        json_t* error = json_pack("{s:s}", "error", "Missing or empty body");
+
+        send_json(conn, 400, error);
+        json_decref(error);
         return 1;
     }
 
-    json_error_t jerr;
-    json_t* root = json_loads(body, 0, &jerr);
+    json_error_t jerror;
+    json_t* root = json_loads(body, 0, &jerror);
     free(body);
 
     if (!root || !json_is_object(root)) {
-        if (root) json_decref(root);
+        if (root) 
+            json_decref(root);
+
         json_t* err = json_pack("{s:s}", "error", "Invalid JSON");
         send_json(c, 400, err);
+
         json_decref(err);
+
         return 1;
     }
 
@@ -155,19 +195,40 @@ static int ParamHandler(struct mg_connection* c, void* ud __attribute__((unused)
 }
 
 // GET /
-static int RootHandler(struct mg_connection* c, void* ud __attribute__((unused))) {
-    FILE* f = fopen("html/index.html", "r");
-    if (!f) { mg_printf(c, "HTTP/1.1 500 Internal Server Error\r\n\r\n"); return 1; }
+static int RootHandler(struct mg_connection* conn, void* ud __attribute__((unused))) {
+
+    char buf[4096]; 
+    size_t n;
+
+    FILE* file = fopen("html/index.html", "r");
+    if (!file) { 
+        mg_printf(c, "HTTP/1.1 500 Internal Server Error\r\n\r\n"); 
+        return 1; 
+    }
+
     mg_printf(c, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n");
-    char buf[4096]; size_t n;
-    while ((n = fread(buf, 1, sizeof(buf), f)) > 0) mg_write(c, buf, n);
-    fclose(f);
+
+    while ((n = fread(buf, 1, sizeof(buf), file)) > 0) 
+        mg_write(conn, buf, n);
+
+    fclose(file);
     return 1;
 }
+// Function to troubleshoot URI
+static int cb_begin_request(struct mg_connection *conn) {
 
+    const struct mg_request_info *req_info = mg_get_request_info(conn);
+
+    syslog(LOG_INFO, "URI: %s  method: %s", 
+        req_info->request_uri ? req_info->request_uri : "", 
+        req_info->request_method ? req_info->request_method : "");
+
+    return 0; // 0 = continue with normal processing
+}
 /* ── main ────────────────────────────────────────────────────────────────── */
 
 int main(void) {
+
     openlog(APP_NAME, LOG_PID, LOG_USER);
     syslog(LOG_INFO, "Starting %s (CivetWeb single-threaded)", APP_NAME);
 
@@ -175,13 +236,16 @@ int main(void) {
     signal(SIGINT,  on_signal);
 
     // Init AXParameter
-    GError* gerr = NULL;
-    g_param = ax_parameter_new(APP_NAME, &gerr);
-    if (!g_param) panic("ax_parameter_new failed: %s", gerr ? gerr->message : "unknown");
+    GError* error = NULL;
+    g_param = ax_parameter_new(APP_NAME, &error);
+    if (!g_param) panic("ax_parameter_new failed: %s", gerr ? error->message : "unknown");
 
     // Ensure parameters exist
-    if (!add_if_missing("MulticastAddress", "224.0.0.1", "string")) panic("add MulticastAddress failed");
-    if (!add_if_missing("MulticastPort",   "1024",      "string")) panic("add MulticastPort failed");
+    if (!add_if_missing("MulticastAddress", "224.0.0.1", "string")) 
+        panic("add MulticastAddress failed");
+
+    if (!add_if_missing("MulticastPort",   "1024",      "string")) 
+        panic("add MulticastPort failed");
 
     // Start CivetWeb in single-threaded mode
     const char* opts[] = {
@@ -190,18 +254,27 @@ int main(void) {
         "num_threads", "1",                // <── single-threaded
         0
     };
+
     mg_init_library(0);
-    struct mg_callbacks cb; memset(&cb, 0, sizeof(cb));
+
+    struct mg_callbacks cb; 
+    memset(&cb, 0, sizeof(cb));
+    cb.begin_request = cb_begin_request; // Log requests
+
     struct mg_context* ctx = mg_start(&cb, NULL, opts);
-    if (!ctx) panic("Failed to start CivetWeb on %s", PORT);
+
+    if (!ctx) 
+        panic("Failed to start CivetWeb on %s", PORT);
+
     syslog(LOG_INFO, "CivetWeb listening on %s", PORT);
 
-    // Register handlers (reverse proxy strips /local/my_web_server)
-    mg_set_request_handler(ctx, "/",               RootHandler,  NULL);
-    mg_set_request_handler(ctx, "/info-acap.cgi",  InfoHandler,  NULL);
-    mg_set_request_handler(ctx, "/param-acap.cgi", ParamHandler, NULL);
+    // Register handlers (reverse proxy strips /local/web_proxy)
+    mg_set_request_handler(ctx, "/", RootHandler,  NULL);
+    mg_set_request_handler(ctx, "/local/web_proxy/api/info",  InfoHandler,  NULL);
+    mg_set_request_handler(ctx, "/local/web_proxy/api/param",  ParamHandler,  NULL);
 
-    while (running) sleep(1);
+    while (running) 
+        sleep(1);
 
     mg_stop(ctx);
     ax_parameter_free(g_param);
