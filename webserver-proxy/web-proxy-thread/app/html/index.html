@@ -26,9 +26,9 @@
     <pre id="out">{}</pre>
 
     <script>
-      const BASE = '/local/my_web_server';
+      const BASE = '/local/web_proxy_thread/api';
       async function loadInfo() {
-        const res = await fetch(`${BASE}/info-acap.cgi`, { cache: 'no-store' });
+        const res = await fetch(`${BASE}/info`, { cache: 'no-store' });
         const json = await res.json();
         document.getElementById('out').textContent = JSON.stringify(json, null, 2);
         if (json.MulticastAddress) document.getElementById('addr').value = json.MulticastAddress;
@@ -39,7 +39,7 @@
           MulticastAddress: document.getElementById('addr').value.trim(),
           MulticastPort: document.getElementById('port').value.trim()
         };
-        const res = await fetch(`${BASE}/param-acap.cgi`, {
+        const res = await fetch(`${BASE}/param`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)

@@ -11,9 +11,9 @@ This is the simplest possible architecture—no mutexes or threading required.
 
 ## Endpoints
 
-Base path: `/local/api_multicast/`
+Base path: `/local/web_proxy/api/`
 
-- **GET** `/info-acap.cgi`
+- **GET** `/info`
     Returns current parameter values:
 
     ```json
@@ -23,7 +23,7 @@ Base path: `/local/api_multicast/`
     "ok": true
     }
     ```
-- **POST** `/param-acap.cgi`
+- **POST** `/param`
     Accepts JSON body:
 
     ```json
@@ -51,6 +51,38 @@ Stored persistently using AXParameter.
 ## How it works
 
 - CivetWeb listens on port `2001` inside the app.
-- ACAP reverseProxy exposes `/local/api_multicast/`.
+- ACAP reverseProxy exposes `/local/web_proxy/api/`.
 - `index.html` uses fetch() calls to the endpoints or/and curl
 - All AXParameter access happens in a single thread, so no locking is required.
+
+## Lab:
+
+1. start & open under apps applicatiion web proxy
+2. Test changing values
+3. reload page
+
+4. Test the api with curl:
+
+3. Test with curl (replace CAM_IP):
+
+```bash
+curl --anyauth -u root:pass http://192.168.0.90/local/web_proxy/api/info
+```
+
+```bash
+curl --anyauth -u root:pass -H "Content-Type: application/json" \
+  -d '{"MulticastAddress":"224.0.0.2","MulticastPort":"9000"}' \
+  http://192.168.0.90/local/web_proxy/api/param
+
+```
+
+## Build
+
+```bash
+docker build --tag web-proxy --build-arg ARCH=aarch64 .
+
+```
+```bash
+docker cp $(docker create web-proxy):/opt/app ./build
+
+```

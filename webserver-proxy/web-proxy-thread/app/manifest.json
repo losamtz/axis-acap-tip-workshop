@@ -23,7 +23,7 @@
             "settingPage": "index.html",
             "reverseProxy": [
 				{
-					"apiPath": "api_thread_multicast",
+					"apiPath": "api",
 					"target": "http://localhost:2002",
 					"access": "admin"
 				}

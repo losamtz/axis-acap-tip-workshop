@@ -3,6 +3,7 @@
  */
 #include "civetweb.h"
 #include <axsdk/axparameter.h>
+#include <glib-unix.h>
 #include <jansson.h>
 #include <pthread.h>
 #include <signal.h>
@@ -220,8 +221,8 @@ int main(void) {
 
     // Route handlers (proxy strips /local/my_web_server)
     mg_set_request_handler(ctx, "/",               RootHandler,  NULL);
-    mg_set_request_handler(ctx, "/info-acap.cgi",  InfoHandler,  NULL);
-    mg_set_request_handler(ctx, "/param-acap.cgi", ParamHandler, NULL);
+    mg_set_request_handler(ctx, "/local/web_proxy_thread/api/info",  InfoHandler,  NULL);
+    mg_set_request_handler(ctx, "/local/web_proxy_thread/api/param", ParamHandler, NULL);
 
     while (running) sleep(1);
 

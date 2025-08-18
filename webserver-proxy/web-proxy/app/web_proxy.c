@@ -17,7 +17,7 @@
 #define PORT     "2001"
 
 static volatile sig_atomic_t running = 1;
-static AXParameter* g_param = NULL;
+static AXParameter* handle = NULL;
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -38,7 +38,7 @@ static void send_json(struct mg_connection* conn, int status, json_t* obj) {
 
     char* body = json_dumps(obj, JSON_COMPACT);
 
-    mg_printf(c,
+    mg_printf(conn,
               "HTTP/1.1 %d OK\r\n"
               "Content-Type: application/json\r\n"
               "Cache-Control: no-store\r\n"
@@ -79,7 +79,7 @@ static gboolean add_if_missing(const char* name, const char* initial_value, cons
 
     GError* error = NULL;
 
-    if (!ax_parameter_add(g_param, name, initial_value, meta, &err)) {
+    if (!ax_parameter_add(handle, name, initial_value, meta, &error)) {
 
         if (error && error->code == AX_PARAMETER_PARAM_ADDED_ERROR) {
             g_error_free(error);
@@ -99,8 +99,11 @@ static char* get_param_dup(const char* name) {
     GError* error = NULL;
     char* value = NULL;
 
-    if (!ax_parameter_get(g_param, name, &value, &error)) {
-        if (err) { syslog(LOG_WARNING, "get(%s) failed: %s", name, error->message); g_error_free(error); }
+    if (!ax_parameter_get(handle, name, &value, &error)) {
+        if (error) { 
+            syslog(LOG_WARNING, "get(%s) failed: %s", name, error->message); 
+            g_error_free(error); 
+        }
         return NULL;
     }
     return value; // must g_free
@@ -110,13 +113,13 @@ static gboolean set_param(const char* name, const char* value) {
 
     GError* error = NULL;
 
-    gboolean ok = ax_parameter_set(g_param, name, value, FALSE, &err);
+    gboolean ok = ax_parameter_set(handle, name, value, FALSE, &error);
 
     if (!ok && error) {
         syslog(LOG_ERR, "set(%s=%s) failed: %s", name, value, error->message);
         g_error_free(error);
     }
-    
+
     return ok;
 }
 
@@ -140,7 +143,7 @@ static int InfoHandler(struct mg_connection* conn, void* ud __attribute__((unuse
     if (addr) g_free(addr);
     if (port) g_free(port);
 
-    send_json(c, 200, out);
+    send_json(conn, 200, out);
     json_decref(out);
     return 1;
 }
@@ -169,10 +172,10 @@ static int ParamHandler(struct mg_connection* conn, void* ud __attribute__((unus
         if (root) 
             json_decref(root);
 
-        json_t* err = json_pack("{s:s}", "error", "Invalid JSON");
-        send_json(c, 400, err);
+        json_t* error = json_pack("{s:s}", "error", "Invalid JSON");
+        send_json(conn, 400, error);
 
-        json_decref(err);
+        json_decref(error);
 
         return 1;
     }
@@ -187,7 +190,7 @@ static int ParamHandler(struct mg_connection* conn, void* ud __attribute__((unus
     json_t* res = json_object();
     json_object_set_new(res, "ok", json_true());
     json_object_set_new(res, "changed", changed ? json_true() : json_false());
-    send_json(c, 200, res);
+    send_json(conn, 200, res);
 
     json_decref(res);
     json_decref(root);
@@ -202,11 +205,11 @@ static int RootHandler(struct mg_connection* conn, void* ud __attribute__((unuse
 
     FILE* file = fopen("html/index.html", "r");
     if (!file) { 
-        mg_printf(c, "HTTP/1.1 500 Internal Server Error\r\n\r\n"); 
+        mg_printf(conn, "HTTP/1.1 500 Internal Server Error\r\n\r\n"); 
         return 1; 
     }
 
-    mg_printf(c, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n");
+    mg_printf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n");
 
     while ((n = fread(buf, 1, sizeof(buf), file)) > 0) 
         mg_write(conn, buf, n);
@@ -237,8 +240,10 @@ int main(void) {
 
     // Init AXParameter
     GError* error = NULL;
-    g_param = ax_parameter_new(APP_NAME, &error);
-    if (!g_param) panic("ax_parameter_new failed: %s", gerr ? error->message : "unknown");
+    handle = ax_parameter_new(APP_NAME, &error);
+
+    if (!handle) 
+        panic("ax_parameter_new failed: %s", error ? error->message : "unknown");
 
     // Ensure parameters exist
     if (!add_if_missing("MulticastAddress", "224.0.0.1", "string")) 
@@ -268,7 +273,7 @@ int main(void) {
 
     syslog(LOG_INFO, "CivetWeb listening on %s", PORT);
 
-    // Register handlers (reverse proxy strips /local/web_proxy)
+    // Register handlers 
     mg_set_request_handler(ctx, "/", RootHandler,  NULL);
     mg_set_request_handler(ctx, "/local/web_proxy/api/info",  InfoHandler,  NULL);
     mg_set_request_handler(ctx, "/local/web_proxy/api/param",  ParamHandler,  NULL);
@@ -277,7 +282,7 @@ int main(void) {
         sleep(1);
 
     mg_stop(ctx);
-    ax_parameter_free(g_param);
+    ax_parameter_free(handle);
     closelog();
     return EXIT_SUCCESS;
 }

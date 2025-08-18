@@ -124,7 +124,7 @@ On validation/parse errors you’ll get:
 2. Open the app page
     Navigate to the app in the camera’s Apps page; it should open index.html.
 
-3. Test with curl (replace CAM_IP):
+3. Test with curl:
 
 ```bash
 curl --anyauth -u root:pass http://192.168.0.90/local/web_parameter/info-acap.cgi
