@@ -26,8 +26,10 @@ Browser  ──►  http://<camera>/local/api_multicast/…  ──►  Reverse 
 
 ### Notes
 
-CivetWeb is multi-threaded (default).
-AXParameter access is protected by a pthread_mutex_t to avoid concurrent access issues.
+CivetWeb is multi-threaded by default. No need to specify amound of threads.
+AXParameter access is protected by a pthread_mutex_t to avoid concurrent access issues, in case of use of register callbacks (which are not used in web-proxy-thread sample).
+
+You can check default config in following sample ![web-server from acap-native-sdk-sample](https://github.com/AxisCommunications/acap-native-sdk-examples/blob/3973f5da55e7e52f188bddeff4eaa1698beb651c/web-server/app/web_server_rev_proxy.c#L52)
 
 ## Comparison
 
