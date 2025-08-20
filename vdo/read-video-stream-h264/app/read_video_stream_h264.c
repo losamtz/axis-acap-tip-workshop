@@ -3,8 +3,7 @@
 #include "vdo-stream.h"
 #include "vdo-types.h"
 
-#include <glib.h>
-#include <glib/gstdio.h>
+#include <glib-unix.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <syslog.h>

@@ -2,9 +2,10 @@
   "name": "ACAP Native (aarch64)",
   "build": {
     "dockerfile": "Dockerfile",
-    "args": {
-      "ARCH": "aarch64"
-    }
+    "args": { "ARCH": "aarch64" }
+  },
+  "containerEnv": {
+    "SDKTARGETSYSROOT": "/opt/axis/acapsdk/sysroots/aarch64"
   },
   "customizations": {
     "vscode": {

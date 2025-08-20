@@ -26,34 +26,34 @@ This README explains **what each function, type, and call does** in the provided
 - `static volatile sig_atomic_t running = 1;` — gate for the main loop; set to `0` on SIGINT/SIGTERM.
 - `static AXParameter* handle = NULL;` — global AXParameter handle.
 
-### 1) `panic(fmt, ...)`
+### 1 `panic(fmt, ...)`
 **Purpose:** log an error and exit immediately.  
 **Key points:**
 - Uses `vsyslog()` to log; calls `exit(EXIT_FAILURE)`.
 - GCC attributes: `noreturn` and `format(printf,1,2)` enable better compile-time checks.
 
-### 2) `on_signal(int signo)`
+### 2 `on_signal(int signo)`
 **Purpose:** signal handler for graceful shutdown.
 - Sets `running = 0` so the main loop can terminate.
 
-### 3) `send_json(struct mg_connection* conn, int status, json_t* obj)`
+### 3 `send_json(struct mg_connection* conn, int status, json_t* obj)`
 **Purpose:** serialize a Jansson `json_t*` object and send an HTTP response.  
 **CivetWeb used:** `mg_printf()` to write headers/body.  
 **Jansson used:** `json_dumps(obj, JSON_COMPACT)` → `char*` that must be `free()`d.  
 **Headers:** JSON content-type, `no-store`, some permissive CORS headers (not strictly needed behind reverseProxy).
 
-> ⚠️ **Note:** The status line uses `"HTTP/1.1 %d OK"` for all codes. If you send `400`, the text will still say "OK". Consider mapping codes to reason phrases or (better) omit the reason phrase in HTTP/1.1.
+>  **Note:** The status line uses `"HTTP/1.1 %d OK"` for all codes. If you send `400`, the text will still say "OK". Consider mapping codes to reason phrases or (better) omit the reason phrase in HTTP/1.1.
 
 **Improvement (optional):** add `Content-Length` and compute a proper reason phrase.
 
-### 4) `read_body(struct mg_connection* conn)`
+### 4 `read_body(struct mg_connection* conn)`
 **Purpose:** read request body based on `Content-Length`.
 - CivetWeb: `mg_get_header(conn, "Content-Length")`, `mg_read()`.
 - Allocates a buffer, reads up to `len`, NUL-terminates, returns `char*` the caller must `free()`.
 
-> ✅ For robustness, loop until all bytes are read; the current code does one `mg_read()` call. See **Appendix A** for a looped version.
+>  For robustness, loop until all bytes are read; the current code does one `mg_read()` call. See **Appendix A** for a looped version.
 
-### 5) AXParameter helpers
+### 5 AXParameter helpers
 - `add_if_missing(name, initial_value, meta)`  
   Calls `ax_parameter_add()`. If the parameter already exists (error code `AX_PARAMETER_PARAM_ADDED_ERROR`), returns `TRUE`. Logs other errors.  
   **Memory:** `GError*` cleared with `g_error_free()` when used.
@@ -64,7 +64,7 @@ This README explains **what each function, type, and call does** in the provided
 - `set_param(name, value)`  
   Calls `ax_parameter_set()` (no callback/commit). Logs if it fails.
 
-### 6) HTTP handlers
+### 6 HTTP handlers
 
 - **`InfoHandler(conn, ud)`** — `GET /local/web_proxy/api/info`
   - Rejects non-GET by returning `0` (let other handlers try).
@@ -89,12 +89,12 @@ This README explains **what each function, type, and call does** in the provided
   - Streams `html/index.html` with `mg_write()` in 4 KiB chunks.
   - On fopen failure → `500`.
 
-### 7) `cb_begin_request(struct mg_connection *conn)`
+### 7 `cb_begin_request(struct mg_connection *conn)`
 **Purpose:** global CivetWeb callback to **log all requests**.
 - CivetWeb provides `mg_request_info` (method, URI, headers, etc.).
 - Return `0` → continue normal request processing; return `1` would short-circuit handling.
 
-### 8) `main()`
+### 8 `main()`
 1. Open syslog; log startup message.
 2. Install signal handlers.
 3. `ax_parameter_new(APP_NAME, &error)` → create handle (fatal on failure).

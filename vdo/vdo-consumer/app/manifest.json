@@ -1,0 +1,14 @@
+{
+    "$schema": "file:///opt/axis/acapsdk/axis-acap-manifest-tools/schema/schemas/v1/application-manifest-schema-v1.7.4.json",
+    "schemaVersion": "1.7.4",
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "vdo consumer",
+            "appName": "vdo_consumer",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "runMode": "never",
+            "version": "1.0.0"
+        }
+    }
+}

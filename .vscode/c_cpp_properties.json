@@ -1,9 +1,22 @@
 {
+  "version": 4,
   "configurations": [
     {
-      "name": "Linux",
-      "includePath": ["${workspaceFolder}/**", "${SDKTARGETSYSROOT}/**"]
+      "name": "ACAP (aarch64)",
+      "compilerPath": "/usr/bin/aarch64-linux-gnu-gcc",
+      "intelliSenseMode": "linux-gcc-arm64",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${env:SDKTARGETSYSROOT}/**"
+      ],
+      "browse": {
+        "path": [
+          "${workspaceFolder}",
+          "${env:SDKTARGETSYSROOT}/usr/include"
+        ]
+      }
     }
-  ],
-  "version": 4
+  ]
 }
