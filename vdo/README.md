@@ -15,8 +15,7 @@ Here’s a compact “map” of the three VDO samples in this repo, what each on
 **Good for**
 - Verifying your toolchain/SDK, sanity-checking resolutions/strides, quick raw dumps.
 
-**Typical PKGs**
-- `glib-2.0 gobject-2.0 vdostream`
+
 
 ---
 
