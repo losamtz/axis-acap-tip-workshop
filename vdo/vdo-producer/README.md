@@ -272,3 +272,17 @@ This shows how a real model pipeline would work without needing larod or a model
 
 
 ---
+
+
+
+
+## Build
+
+```bash
+docker build --tag vdo-producer --build-arg ARCH=aarch64 .
+```
+```bash
+docker cp $(docker create vdo-producer):/opt/app ./build
+```
+
+---
