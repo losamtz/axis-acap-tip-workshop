@@ -54,9 +54,6 @@ A small program that:
 - Calls `vdo_stream_get_info(image->vdo_stream, &error)`.
 - Reads `"rotation"` from the returned `VdoMap` with `vdo_map_get_uint32(...)`.
 
-#### Signal handling & main loop
-- Uses `g_unix_signal_add(SIGINT/SIGTERM, ...)` with a `GMainLoop` to allow clean shutdown.
-- On exit: `vdo_stream_stop()` and `g_object_unref()` the stream.
 
 ---
 
@@ -69,17 +66,15 @@ A small program that:
 2) **List resolutions by format**  
    - In `get_stream_resolutions()`, add:
      ```c
-     vdo_map_set_uint32(filt, "format", VDO_FORMAT_YUV);
-     vdo_map_set_string(filt, "subformat", "nv12");
+     vdo_map_set_uint32(settings, "format", VDO_FORMAT_YUV);
+     vdo_map_set_string(settings, "subformat", "nv12");
      ```
    - Compare the results with and without the filter.
 
 3) **Change stream size**  
-   - In `main()`, change `create_image(640, 360, ...)` to a supported size printed in step 2.
+   - In `main()`, change resolution to a supported size printed in step 2.
    - Rebuild & run; confirm the stream starts.
 
-4) **Read live stream info**  
-   - After starting the stream, call `vdo_stream_get_info()` again and print `"framerate"`, `"plane.0.stride"`, etc.
 
 5) **(Optional) Consume frames**  
    - Switch to a consumer: set `"format" = VDO_FORMAT_YUV`, start the stream, then:
@@ -110,10 +105,10 @@ A small program that:
 ## Build
 
 ```bash
-docker build --tag vdo-consumer --build-arg ARCH=aarch64 .
+docker build --tag vdo-utilities --build-arg ARCH=aarch64 .
 ```
 ```bash
-docker cp $(docker create vdo-consumer):/opt/app ./build
+docker cp $(docker create vdo-utilities):/opt/app ./build
 ```
 
 

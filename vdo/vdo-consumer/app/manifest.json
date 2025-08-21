@@ -3,7 +3,7 @@
     "schemaVersion": "1.7.4",
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "vdo consumer",
+            "friendlyName": "VDO consumer",
             "appName": "vdo_consumer",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
