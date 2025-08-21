@@ -1,5 +1,5 @@
-PROG1	= draw_rectanglen
-OBJS1	= draw_rectanglen.c
+PROG1	= draw_rectangle
+OBJS1	= draw_rectangle.c
 
 PROGS	= $(PROG1)
 

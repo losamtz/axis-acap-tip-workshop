@@ -1,5 +1,5 @@
 {
-    "schemaVersion": "1.7.3",
+    "schemaVersion": "1.7.4",
     "resources": {
         "dbus": {
             "requiredMethods": [
@@ -10,8 +10,8 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Draw Text Normalized",
-            "appName": "draw_textn",
+            "friendlyName": "Draw Text",
+            "appName": "draw_text",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com",

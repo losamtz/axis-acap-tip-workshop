@@ -1,5 +1,5 @@
-PROG1	= draw_textn
-OBJS1	= draw_textn.c
+PROG1	= draw_text
+OBJS1	= draw_text.c
 
 PROGS	= $(PROG1)
 

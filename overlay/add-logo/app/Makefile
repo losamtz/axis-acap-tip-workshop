@@ -1,5 +1,5 @@
-PROG1	= add_logon
-OBJS1	= add_logon.c
+PROG1	= add_logo
+OBJS1	= add_logo.c
 
 PROGS	= $(PROG1)
 

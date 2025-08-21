@@ -96,10 +96,10 @@ int main(void) {
 ## Build
 
 ```bash
-docker build --tag bbox-multi-view-lab --build-arg ARCH=aarch64 .
+docker build --tag bbox-view --build-arg ARCH=aarch64 .
 ```
 ```bash
-docker cp $(docker create bbox-multi-view-lab):/opt/app ./build
+docker cp $(docker create bbox-view):/opt/app ./build
 ```
 ---
 

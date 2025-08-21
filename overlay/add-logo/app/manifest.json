@@ -10,8 +10,8 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Add Logo Normalized",
-            "appName": "add_logon",
+            "friendlyName": "Add Logo",
+            "appName": "add_logo",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com",
