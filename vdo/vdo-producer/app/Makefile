@@ -1,11 +1,12 @@
 PROG1	= vdo_producer
-OBJS1	= $(PROG1).c
+OBJS1	= $(wildcard *.c)
 PROGS	= $(PROG1)
 
 PKGS = gio-2.0 gio-unix-2.0 vdostream bbox
 
 CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PKGS))
 LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PKGS))
+LDLIBS += -lm
 
 CFLAGS += -Wall \
           -Wextra \

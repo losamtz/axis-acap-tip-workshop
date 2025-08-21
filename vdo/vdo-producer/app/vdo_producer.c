@@ -102,28 +102,47 @@ static void find_corners(float x,
             break;
     }
 }
-
+ 
 static int simulate_detections(unsigned long frame_idx, sim_det_t* out, int max_out) {
-    if (!out || max_out <= 0) return 0;
+
+    if (!out || max_out <= 0) 
+      return 0;
+
     int n = (max_out < 3) ? max_out : 3;
+
     for (int i = 0; i < n; ++i) {
+
         float phase = fmodf((float)frame_idx * (0.01f + 0.02f*i), 1.0f);
+
         out[i].x = 0.15f + 0.70f * phase;
         out[i].y = 0.30f + 0.25f * sinf(6.2831853f * phase + i);
         out[i].w = 0.20f - 0.04f * i;
         out[i].h = 0.28f - 0.05f * i;
         out[i].score = 0.85f - 0.10f * i;
         out[i].label = i;
-        if (out[i].w < 0.02f) out[i].w = 0.02f;
-        if (out[i].h < 0.02f) out[i].h = 0.02f;
-        if (out[i].x < 0) out[i].x = 0; if (out[i].x > 1) out[i].x = 1;
-        if (out[i].y < 0) out[i].y = 0; if (out[i].y > 1) out[i].y = 1;
+
+        if (out[i].w < 0.02f) 
+          out[i].w = 0.02f;
+
+        if (out[i].h < 0.02f) 
+          out[i].h = 0.02f;
+
+        if (out[i].x < 0) 
+          out[i].x = 0; 
+        if (out[i].x > 1) 
+          out[i].x = 1;
+
+        if (out[i].y < 0) 
+          out[i].y = 0; 
+        if (out[i].y > 1) 
+          out[i].y = 1;
     }
     return n;
 }
 
 
 int main(int argc, char** argv) {
+    (void)argc;
     openlog(APP_NAME, LOG_PID | LOG_CONS, LOG_USER);
 
     // Stop main loop at signal
@@ -171,9 +190,11 @@ int main(int argc, char** argv) {
             int rotation = (int)get_stream_rotation(image_provider);
             find_corners(dets[i].x, dets[i].y, dets[i].w, dets[i].h, rotation, &x1, &y1, &x2, &y2);
 
+            valid_detection_count++;
+
             // Log info about object
-            syslog(LOG_INFO, "Object detected!, "
-                  "Bounding Box: [%.2f, %.2f, %.2f, %.2f]", x1, y1, x2, y2);
+            syslog(LOG_INFO, "Object detected!, Toall object detected: %d"
+                  "Bounding Box: [%.2f, %.2f, %.2f, %.2f]", valid_detection_count, x1, y1, x2, y2);
 
             bbox_rectangle(bbox, x1, y1, x2, y2);
         }
