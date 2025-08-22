@@ -1,12 +1,12 @@
 # AXIS ACAP TIP Workshop
 
-Hands-on samples and labs for several ACAP SDK libraries and platform features. Each folder is a bite-size, buildable example focused on one topic (parameters, events, VDO frames, overlays, bbox utils, FastCGI web UI, VAPIX, debugging, etc.). 
+Hands-on samples and labs for several ACAP SDK libraries and platform features. Each folder contains progressive samples to describe the libraries functionalities, buildable focused on one topic (parameters, events, VDO frames, overlays, bbox utils, FastCGI web UI, Civetweb web UI, VAPIX, etc.). 
 GitHub
 
 ## Repo map
 
 - bbox/ — Bounding-box helpers and demos
-    Learn about frame-normalized vs scene-normalized coordinates, conversions, drawing, and common operations (e.g., IoU).
+    Learn about drawing, and common operations.
 
 - event/ — AXEvent publisher/subscriber patterns
     Stateless vs property events, marking source vs data fields, and dropdown (source) declarations + timed sends.
@@ -32,7 +32,7 @@ Serve a Bootstrap UI, read/write ACAP parameters via endpoints, and wire simple 
 
 Tip: some folders contain multiple labs that build on each other. Open each folder’s own README for exact build/run steps.
 
-## What you’ll learn (high level)
+## What you’ll learn 
 
 - **Parameters**: declare (manifest), add at runtime, list/remove, and subscribe to callbacks; wire a custom HTML UI (FastCGI) that round-trips to param.cgi/axparameter.
 - **Events**: differences between stateless & property events; declaring source (dropdown) vs data (free text), and subscribing with filters.
@@ -98,28 +98,14 @@ Render bounding boxes/text on live video.
 convert/draw boxes.
 
 - vdo/
-Capture frames, examine NV12 planes safely
+Capture frames, read them (consumer) or use them as input for larod api and push them back to the pipeline adding bounding boxes (producer).
 
-
-
-## Notes & gotchas
-
-- **GMainLoop**: Event, parameter callbacks, and some libs expect a running GLib main loop. Keep callbacks short.
-
-- **Source vs Data** (events):
-Source values are fixed at declare-time (become dropdowns in the UI); Data values are “free text”/variable at send-time.
-
-- **NV12 plane safety**: Always compute strides/offsets correctly; never assume contiguous chroma with the same stride as luma.
-
-- **VAPIX**: Handle auth and URL encoding; parse line-based param.cgi responses defensively.
-
-- **FastCGI**: Keep handlers minimal; validate inputs before writing to parameters.
 
 ## Where to look first
 
 - parameter/ → see the three samples (manifest, runtime, custom UI).
-- webserver-fastcgi/ → Bootstrap modal UI + FastCGI handlers hooked to parameters.
-- vapix/ → tiny scripts/snippets for param.cgi and friends.
+- webserver-fastcgi/ → Bootstrap modal UI + FastCGI or civetweb handlers hooked to parameters.
+- vapix/ → tiny scripts/snippets for VAPIX api.
 - event/ → drop-down source declarations & timed sends; matching subscriber.
 - vdo/ → minimal capture loop; NV12 example; timestamps/metadata.
 - overlay/ → drawing and dynamic updates.
