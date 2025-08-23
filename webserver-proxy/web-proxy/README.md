@@ -70,12 +70,7 @@ flowchart LR
   C -- handlers --> D
   C -- JSON --> E
 
-  subgraph Process
-    direction TB
-    C
-    D
-    E
-  end
+  
 
 ```
 
