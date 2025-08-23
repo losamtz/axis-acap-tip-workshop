@@ -73,28 +73,9 @@ static char* read_body(struct mg_connection* conn) {
     return buf;
 }
 
-/* ── AXParameter helpers (no mutex needed: single-threaded) ──────────────── */
 
-static gboolean add_if_missing(const char* name, const char* initial_value, const char* meta) {
 
-    GError* error = NULL;
-
-    if (!ax_parameter_add(handle, name, initial_value, meta, &error)) {
-
-        if (error && error->code == AX_PARAMETER_PARAM_ADDED_ERROR) {
-            g_error_free(error);
-            return TRUE; // already exists
-        }
-        if (error) { 
-            syslog(LOG_ERR, "add(%s) failed: %s", name, error->message); 
-            g_error_free(error); 
-        }
-        return FALSE;
-    }
-    return TRUE;
-}
-
-static char* get_param_dup(const char* name) {
+static char* get_param(const char* name) {
 
     GError* error = NULL;
     char* value = NULL;
@@ -133,8 +114,8 @@ static int InfoHandler(struct mg_connection* conn, void* ud __attribute__((unuse
 
     json_t* out = json_object();
 
-    char* addr = get_param_dup("MulticastAddress");
-    char* port = get_param_dup("MulticastPort");
+    char* addr = get_param("MulticastAddress");
+    char* port = get_param("MulticastPort");
 
     json_object_set_new(out, "MulticastAddress", addr ? json_string(addr) : json_null());
     json_object_set_new(out, "MulticastPort",   port ? json_string(port) : json_null());
@@ -245,20 +226,9 @@ int main(void) {
     if (!handle) 
         panic("ax_parameter_new failed: %s", error ? error->message : "unknown");
 
-    // Ensure parameters exist
-    if (!add_if_missing("MulticastAddress", "224.0.0.1", "string")) 
-        panic("add MulticastAddress failed");
-
-    if (!add_if_missing("MulticastPort",   "1024",      "string")) 
-        panic("add MulticastPort failed");
 
     // Start CivetWeb in single-threaded mode
-    const char* opts[] = {
-        "listening_ports", PORT,
-        "request_timeout_ms", "10000",
-        "num_threads", "1",                // <── single-threaded
-        0
-    };
+    const char* opts[] = {"listening_ports", PORT, "request_timeout_ms", "10000", "error_log_file", "error.log", 0};
 
     mg_init_library(0);
 
