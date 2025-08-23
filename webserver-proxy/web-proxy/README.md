@@ -2,10 +2,10 @@
 
 This sample demonstrates how to build a reverse-proxied web server inside an ACAP application using CivetWeb + AXParameter + Jansson.
 
-- CivetWeb runs a single-threaded HTTP server (num_threads=1).
+- CivetWeb runs a multithreaded-threaded HTTP server.
 - AXParameter is used to persist configuration parameters.
 - JSON endpoints allow get/set of parameters.
-- Reverse proxy forwards requests from /local/api_multicast/ → http://localhost:2001.
+- Reverse proxy forwards requests from /local/api/ → http://localhost:2001.
 
 This is the simplest possible architecture—no mutexes or threading required.
 
@@ -54,6 +54,46 @@ Stored persistently using AXParameter.
 - ACAP reverseProxy exposes `/local/web_proxy/api/`.
 - `index.html` uses fetch() calls to the endpoints or/and curl
 - All AXParameter access happens in a single thread, so no locking is required.
+
+## 2) Architecture & request flow
+
+```mermaid
+flowchart LR
+  A[Browser UI] -- HTTPS --> B[/local/web_proxy/... on device web server/]
+  B -- reverse proxy --> C[http://127.0.0.1:2001 (CivetWeb)]
+  C -- handlers --> D[AXParameter]
+  C -- JSON --> E[Jansson]
+  subgraph Process
+    C
+    D
+    E
+  end
+```
+
+1. The device web server exposes `/local/web_proxy/...` (reverse proxy).
+2. Requests are forwarded to **CivetWeb** bound on a local port.
+3. Handlers parse/emit JSON (Jansson) and read/set values via **AXParameter**.
+4. A `begin_request` callback logs each request URI/method to syslog.
+
+---
+
+## 3) Main building blocks in the code
+
+- **Signal handling:** `SIGINT`/`SIGTERM` flips a `running` flag and exits cleanly.
+- **CivetWeb setup:** `mg_start` with options:
+  - `listening_ports = "2001"` (recommend binding to loopback: `"127.0.0.1:2001"` in production)
+  - `request_timeout_ms = "10000"`
+  - `error_log_file = "error.log"`
+- **Handlers registered:**
+  - `/` → `RootHandler` (streams `html/index.html`)
+  - `/local/web_proxy/api/info` → `InfoHandler` (GET)
+  - `/local/web_proxy/api/param` → `ParamHandler` (POST)
+- **AXParameter session:** `ax_parameter_new(APP_NAME, &error)` stored in global `handle`.
+- **Helpers:**
+  - `get_param(name)` → returns newly allocated string (caller frees with `g_free`), or `NULL` on failure.
+  - `set_param(name, value)` → updates a single parameter; returns `TRUE` on success.
+
+---
 
 ## Lab:
 
