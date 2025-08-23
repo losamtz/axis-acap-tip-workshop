@@ -59,15 +59,24 @@ Stored persistently using AXParameter.
 
 ```mermaid
 flowchart LR
-  A[Browser UI] -- HTTPS --> B[/local/web_proxy/... on device web server/]
-  B -- reverse proxy --> C[http://127.0.0.1:2001 (CivetWeb)]
-  C -- handlers --> D[AXParameter]
-  C -- JSON --> E[Jansson]
+  A[Browser UI]
+  B["/local/web_proxy/... (device web server)"]
+  C["127.0.0.1:2001<br/>(CivetWeb)"]
+  D[AXParameter]
+  E[Jansson]
+
+  A -- HTTPS --> B
+  B -- reverse proxy --> C
+  C -- handlers --> D
+  C -- JSON --> E
+
   subgraph Process
+    direction TB
     C
     D
     E
   end
+
 ```
 
 1. The device web server exposes `/local/web_proxy/...` (reverse proxy).
