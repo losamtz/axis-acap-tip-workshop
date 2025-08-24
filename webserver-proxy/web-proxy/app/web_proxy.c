@@ -1,5 +1,5 @@
 /**
- * Single-threaded CivetWeb reverse-proxy backend with AXParameter + Jansson
+ * CivetWeb reverse-proxy backend with AXParameter + Jansson
  */
 #include "civetweb.h"
 #include <axsdk/axparameter.h>
