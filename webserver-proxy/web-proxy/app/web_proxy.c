@@ -104,7 +104,7 @@ static gboolean set_param(const char* name, const char* value) {
     return ok;
 }
 
-/* ── Handlers ────────────────────────────────────────────────────────────── */
+/* --- Handlers --- */
 
 // GET /info
 static int InfoHandler(struct mg_connection* conn, void* ud __attribute__((unused))) {
@@ -178,7 +178,7 @@ static int ParamHandler(struct mg_connection* conn, void* ud __attribute__((unus
     return 1;
 }
 
-// GET /
+// GET / - serves html/index.html
 static int RootHandler(struct mg_connection* conn, void* ud __attribute__((unused))) {
 
     char buf[4096]; 
@@ -198,7 +198,7 @@ static int RootHandler(struct mg_connection* conn, void* ud __attribute__((unuse
     fclose(file);
     return 1;
 }
-// Function to troubleshoot URI
+// Function to troubleshoot URI - helper function for logging
 static int cb_begin_request(struct mg_connection *conn) {
 
     const struct mg_request_info *req_info = mg_get_request_info(conn);
@@ -209,7 +209,7 @@ static int cb_begin_request(struct mg_connection *conn) {
 
     return 0; // 0 = continue with normal processing
 }
-/* ── main ────────────────────────────────────────────────────────────────── */
+
 
 int main(void) {
 

@@ -82,13 +82,14 @@ flowchart LR
 1. The device web server exposes `/local/web_proxy/...` (reverse proxy).
 2. Requests are forwarded to **CivetWeb** bound on a local port.
 3. Handlers parse/emit JSON (Jansson) and read/set values via **AXParameter**.
-4. A `begin_request` callback logs each request URI/method to syslog.
+
 
 ---
 
 ## 3) Main building blocks in the code
 
 - **Signal handling:** `SIGINT`/`SIGTERM` flips a `running` flag and exits cleanly.
+- **CivetWeb Intializes:** `mg_init_library(0);`
 - **CivetWeb setup:** `mg_start` with options:
   - `listening_ports = "2001"` (recommend binding to loopback: `"127.0.0.1:2001"` in production)
   - `request_timeout_ms = "10000"`
