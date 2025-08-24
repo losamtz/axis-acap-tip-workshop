@@ -52,7 +52,7 @@ Stored persistently using AXParameter.
 
 - CivetWeb listens on port `2001` inside the app.
 - ACAP reverseProxy exposes `/local/web_proxy/api/`.
-- `index.html` uses fetch() calls to the endpoints or/and curl
+- `index.html` uses fetch() calls (js) to the endpoints or/and curl
 - All AXParameter access happens in a single thread, so no locking is required.
 
 ## 2) Architecture & request flow
@@ -94,7 +94,7 @@ flowchart LR
   - `listening_ports = "2001"` (recommend binding to loopback: `"127.0.0.1:2001"` in production)
   - `request_timeout_ms = "10000"`
   - `error_log_file = "error.log"`
-- **Handlers registered:**
+- **Handlers registered:** `mg_set_request_handler`
   - `/` → `RootHandler` (streams `html/index.html`)
   - `/local/web_proxy/api/info` → `InfoHandler` (GET)
   - `/local/web_proxy/api/param` → `ParamHandler` (POST)
