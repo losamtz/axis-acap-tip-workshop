@@ -57,7 +57,7 @@ Stored persistently using AXParameter.
 
 ## 2) Architecture & request flow
 
-```mermaid
+
 flowchart LR
   A[Browser UI]
   B["/local/web_proxy/... (device web server)"]
@@ -77,7 +77,7 @@ flowchart LR
     E
   end
 
-```
+
 
 1. The device web server exposes `/local/web_proxy/...` (reverse proxy).
 2. Requests are forwarded to **CivetWeb** bound on a local port.
