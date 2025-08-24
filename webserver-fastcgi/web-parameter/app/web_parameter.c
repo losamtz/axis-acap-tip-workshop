@@ -24,14 +24,24 @@ panic(const char* fmt, ...) {
 }
 
 static char* read_request_body(FCGX_Request* req) {
+
     const char* content_length = FCGX_GetParam("CONTENT_LENGTH", req->envp);
-    if (!content_length) return NULL;
+    if (!content_length) 
+        return NULL;
+
     long len = strtol(content_length, NULL, 10);
-    if (len <= 0 || len > 1<<20) return NULL; // guard (<=1MB)
+
+    if (len <= 0 || len > 1<<20) 
+        return NULL; // guard (<=1MB)
+
     char* buf = (char*)malloc(len + 1);
-    if (!buf) return NULL;
+    if (!buf) 
+        return NULL;
+
     int nread = FCGX_GetStr(buf, len, req->in);
+
     buf[(nread < len) ? nread : len] = '\0';
+
     return buf;
 }
 
@@ -52,27 +62,34 @@ static void write_json_object(FCGX_Request* req, json_t* obj) {
 // ─── AXParameter helpers ──────────────────────────────────────────────────────
 
 static AXParameter* init_axparameter(void) {
+
     GError* error = NULL;
-    AXParameter* h = ax_parameter_new(APP_NAME, &error);
-    if (!h) panic("ax_parameter_new: %s", error->message);
+    AXParameter* handle = ax_parameter_new(APP_NAME, &error);
+
+    if (!handle) 
+        panic("ax_parameter_new: %s", error->message);
+
     syslog(LOG_INFO, "AXParameter handler has been instanciated");
-    return h;
+
+    return handle;
 }
 
-static bool param_get_string(AXParameter* h, const char* name, char** out) {
+static bool param_get_string(AXParameter* handle, const char* name, char** out) {
     GError* error = NULL;
-    char* val = NULL;
-    if (!ax_parameter_get(h, name, &val, &error)) {
+    char* value = NULL;
+
+    if (!ax_parameter_get(handle, name, &value, &error)) {
         if (error) { syslog(LOG_WARNING, "get(%s): %s", name, error->message); g_error_free(error); }
         return false;
     }
-    *out = val;             // caller must g_free
+    *out = value;             // caller must g_free
     return true;
 }
 
-static bool param_set_string(AXParameter* h, const char* name, const char* value) {
+static bool param_set_string(AXParameter* handle, const char* name, const char* value) {
     GError* error = NULL;
-    if (!ax_parameter_set(h, name, value, FALSE, &error)) { // FALSE = don't invoke callbacks
+
+    if (!ax_parameter_set(handle, name, value, FALSE, &error)) { // FALSE = don't invoke callbacks
         if (error) { syslog(LOG_WARNING, "set(%s): %s", name, error->message); g_error_free(error); }
         return false;
     }
@@ -81,12 +98,12 @@ static bool param_set_string(AXParameter* h, const char* name, const char* value
 
 // ─── Endpoint handlers ────────────────────────────────────────────────────────
 
-static void handle_info(FCGX_Request* req, AXParameter* h) {
+static void handle_info(FCGX_Request* req, AXParameter* handle) {
     // GET current values
     char* addr = NULL;
     char* port = NULL;
-    (void)param_get_string(h, "MulticastAddress", &addr);
-    (void)param_get_string(h, "MulticastPort", &port);
+    (void)param_get_string(handle, "MulticastAddress", &addr);
+    (void)param_get_string(handle, "MulticastPort", &port);
 
     json_t* root = json_object();
     json_object_set_new(root, "ok", json_true());

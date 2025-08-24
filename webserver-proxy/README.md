@@ -2,7 +2,7 @@
 
 This README summarizes two companion samples that expose a small JSON API over the camera’s built-in reverse proxy using **CivetWeb**, **AXParameter**, and **Jansson**:
 
-- `web_proxy` – single-threaded CivetWeb (simplest; no mutexes)
+- `web_proxy` – CivetWeb (simplest; no mutexes) 
 - `web_proxy_thread` – multi-threaded CivetWeb (thread-safe AXParameter via pthread_mutex)
 
 Both samples serve a simple HTML UI and offer JSON endpoints to get/set persistent parameters via AXParameter.
@@ -13,7 +13,6 @@ Both samples serve a simple HTML UI and offer JSON endpoints to get/set persiste
 - How to publish it externally through the ACAP reverseProxy (manifest).
 - How to persist configuration with AXParameter.
 - How to build JSON endpoints using Jansson.
-- What changes when moving from single-threaded to multi-threaded HTTP handling.
 
 ## High-level Architecture
 ```

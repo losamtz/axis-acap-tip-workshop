@@ -1,6 +1,7 @@
 
 # macOS cruft
 .DS_Store
+**/.DS_Store
 
 # Ignore everything in any build/ dir…
 **/build/**
