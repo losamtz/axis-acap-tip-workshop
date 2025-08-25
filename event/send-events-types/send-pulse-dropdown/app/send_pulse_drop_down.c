@@ -100,7 +100,6 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *value) {
     // Declare value as SOURCE (will appear as dropdown in Axis UI)
     ax_event_key_value_set_add_key_value(key_value_set, "value", NULL, value, AX_VALUE_TYPE_INT, NULL);
     ax_event_key_value_set_mark_as_source(key_value_set, "value", NULL, NULL);
-    //ax_event_key_value_set_mark_as_data(key_value_set, "value", NULL, NULL);
 
     if (!ax_event_handler_declare(event_handler,
                                       key_value_set,
