@@ -158,7 +158,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     // Shouldn't show isPropertyState
     ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "", AX_VALUE_TYPE_STRING, NULL);
     ax_event_key_value_set_mark_as_data(key_value_set, "triggerTime", NULL, NULL);
-    //ax_event_key_value_set_mark_as_user_defined(key_value_set, "triggerTime", NULL, "isApplicationData", NULL);
+    //ax_event_key_value_set_mark_as_user_defined(key_value_set, "triggerTime", NULL, NULL, NULL);
 
     ax_event_key_value_set_add_key_value(key_value_set, "classTypes", NULL, "", AX_VALUE_TYPE_STRING, NULL);
     ax_event_key_value_set_mark_as_data(key_value_set, "classTypes", NULL, NULL);
