@@ -8,7 +8,7 @@
 #define LOG(fmt, args...)    { syslog(LOG_INFO, fmt, ## args); printf(fmt, ## args); }
 #define LOG_ERROR(fmt, args...)    { syslog(LOG_CRIT, fmt, ## args); printf(fmt, ## args); }
 
-#define SERVICE_ID   "send-pulse-drop-down"
+#define SERVICE_ID   "send_pulse_drop_down"
 
 #define TOPIC0_TAG  "CameraApplicationPlatform"
 #define TOPIC0_NAME "ACAP"

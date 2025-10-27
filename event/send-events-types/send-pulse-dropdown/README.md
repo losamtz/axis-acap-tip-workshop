@@ -151,10 +151,10 @@ You’ll see the rule trigger only when the app’s cycle reaches that value.
 ## Build
 
 ```bash
-docker build --build-arg ARCH=aarch64 --tag pulse-pulse-dropdown .
+docker build --build-arg ARCH=aarch64 --tag send-pulse-dropdown .
 ```
 
 ```bash
-docker cp $(docker create pulse-pulse-dropdown):/opt/app ./build
+docker cp $(docker create send-pulse-dropdown):/opt/app ./build
 ```
 
