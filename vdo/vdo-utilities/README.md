@@ -138,24 +138,15 @@ Uses VDO Channel API to list resolutions:
 - Logs `rotation = vdo_map_get_uint32(info, "rotation", 0)`
 - Unrefs `info`, handles `err`
 
-**Heads‑up:** If you reconfigure video in the web UI while running, `vdo_stream_get_info` can briefly fail (e.g., *“Interface down 'FIDO'”*). For a utility app you might `panic()`, but in production treat it as transient and retry.
-
----
-
-## Notes on NV12
-
-- NV12 is YUV 4:2:0 (Y plane + interleaved UV plane). Here we **don’t** fetch frames or touch bytes — the app only creates/starts streams and queries info. If you later fetch frames, remember to respect **strides** (`plane.0.stride` and `plane.1.stride` from `vdo_stream_get_info`).
-
----
 
 ## Build 
 
 
 ```bash
-docker build --tag vdo-consumer --build-arg ARCH=aarch64 .
+docker build --tag vdo-utilities --build-arg ARCH=aarch64 .
 ```
 ```bash
-docker cp $(docker create vdo-consumer):/opt/app ./build
+docker cp $(docker create vdo-utilities):/opt/app ./build
 ```
 
 
