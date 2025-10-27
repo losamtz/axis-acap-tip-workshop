@@ -170,7 +170,7 @@ static void render_overlay_cb(gpointer rendering_context,
 
     // Draw logo in top right (0.9, 0.1) with normalized size 0.2 x 0.1
     draw_logo(rendering_context,
-                "/usr/local/packages/add_logon/axis_tip_logo.png",
+                "/usr/local/packages/add_logo/axis_tip_logo.png",
                 0.02f, 0.02f,   // Padding from right/top in normalized units
                 0.1f,           // Desired normalized width
                 overlay_width,
@@ -202,7 +202,7 @@ static gboolean signal_handler(gpointer loop) {
  */
 int main(void) {
     // Set XDG cache home to application's localdata directory for fontconfig
-    setenv("XDG_CACHE_HOME", "/usr/local/packages/axoverlay/localdata", 1);
+    setenv("XDG_CACHE_HOME", "/usr/local/packages/add_logo/localdata", 1);
     GMainLoop* loop    = NULL;
     GError* error      = NULL;
     GError* error_text = NULL;
