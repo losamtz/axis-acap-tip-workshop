@@ -9,14 +9,15 @@ Before starting this tutorial, we would need to configure camera developer mode 
 In this example we will work with the larod client tool accessing it through ssh. 
 
 We will:
-1 - Build and install a dummy app to be able to enable later ssh acap user
-2 - Configure camera developer mode 
-3 - Create an environment for python locally, so we avoid installing the needed libraries globally
-4 - Download a model from Coral 
-5 - Download a picture from unsplash with resolution 300x300
-6 - Run a python script to convert the jpg into RGB or binary
-7 - Export binary and model to the /tmp camera folder through ssh
-8 - Run inference with larod tool selecting backend, the model and input file (binary dog picture) for the model
+
+1. Build and install a dummy app to be able to enable later ssh acap user
+2. Configure camera developer mode 
+3. Create an environment for python locally, so we avoid installing the needed libraries globally
+4. Download a model from Coral 
+5. Download a picture from unsplash with resolution 300x300
+6. Run a python script to convert the jpg into RGB or binary
+7. Export binary and model to the /tmp camera folder through ssh
+8. Run inference with larod tool selecting backend, the model and input file (binary dog picture) for the model
 
 ## Steps
 
