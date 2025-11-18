@@ -88,7 +88,7 @@ scp ssd_mobilenet_v1_coco_quant_postprocess.tflite test.bin acap-larod_client@ca
 
 ```
 
-### 8 - Export model and binary recently created to /tmp in the camera
+### 8 - Run inference with larod tool selecting backend, the model and input file (binary dog picture) for the model
 
 * Create output files before running inference of your model due to a permission issues since FW 12. It will be fix soon. For now this step is needed.
 
