@@ -13,7 +13,7 @@ def convert_image(input_path, width, height):
             resized_img = img.resize((width, height))
 
         image_array = np.array(resized_img, dtype=np.uint8)
-        image_array.tofile("test.bin")
+        image_array.tofile("dog.bin")
     except PIL.UnidentifiedImageError as err:
         click.echo(f"Error: {err}", err=True)
 

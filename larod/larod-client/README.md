@@ -84,7 +84,7 @@ python img-converter.py -i dog.jpg -w 300 -h 300
 
 ```
 
-You should get a `test.bin` file.
+You should get a `dog.bin` file.
 
 
 ### 7 - Export model and binary recently created to /tmp in the camera
