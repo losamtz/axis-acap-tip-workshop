@@ -65,7 +65,7 @@ Model: ["Coral - SSD MobileNet V1"](https://raw.githubusercontent.com/google-cor
 
 ### 5 - Download image
 
-Image jpg: ["dog"](http://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300)
+Image jpg: ["dog"](https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300)
 
 ### 6 - Run python script 
 
@@ -94,7 +94,28 @@ scp ssd_mobilenet_v1_coco_quant_postprocess.tflite test.bin acap-larod_client@ca
 * Create output files before running inference of your model due to a permission issues since FW 12. It will be fix soon. For now this step is needed.
 
 ```bash
+touch test_out0.bin
+touch test_out1.bin
+touch test_out2.bin
+touch test_out3.bin
+```
+
+```bash
 # 7. Run inference
 larod-client -d -c axis-a8-dlpu-tflite -g ssd_mobilenet_v1_coco_quant_postprocess.tflite -R 1 -i test.bin -o test_out0.bin -o test_out1.bin -o test_out2.bin -o test_out3.bin
+
+```
+
+## Extra steps
+
+We will check the files output data
+
+### 9 - Copy outputs + model back to your PC 
+
+```bash
+# 8. Get back to you folder
+cd ~/python-playground
+
+# 9. Copy outputs and model to your
 
 ```
