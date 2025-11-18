@@ -1,0 +1,14 @@
+{
+    "schemaVersion": "1.8.0",
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Larod Client Tool",
+            "appName": "larod_client_tool",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        }
+    }
+}
