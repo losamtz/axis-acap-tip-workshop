@@ -65,7 +65,13 @@ Model: ["Coral - SSD MobileNet V1"](https://raw.githubusercontent.com/google-cor
 
 ### 5 - Download image
 
-Image jpg: ["dog"](https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300)
+Image jpg (Save it as dog.jpg): ["dog"](https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300)
+
+or use curl:
+
+```bash
+curl -o dog.jpg "https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300"
+```
 
 ### 6 - Run python script 
 
@@ -74,7 +80,7 @@ If you are in under `~/python-playground` copy the script `img-converter.py` in 
 ```bash
 
 # 5. Run the script
-python img-converter.py -i test.jpg -w 300 -h 300
+python img-converter.py -i dog.jpg -w 300 -h 300
 
 ```
 
