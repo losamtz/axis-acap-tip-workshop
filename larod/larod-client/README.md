@@ -53,7 +53,7 @@ pip install click Pillow numpy
 
 ```
 
-When done:
+When done (with the project):
 
 ```bash
 deactivate
