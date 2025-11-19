@@ -70,7 +70,7 @@ Image jpg (Save it as dog.jpg): ["dog"](https://unsplash.com/photos/FFwNGYZK-2o/
 or use curl:
 
 ```bash
-curl -o dog.jpg "https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300"
+curl -L -o dog.jpg "https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300"
 ```
 
 ### 6 - Run python script 
@@ -112,9 +112,17 @@ larod-client -d -c axis-a8-dlpu-tflite -g ssd_mobilenet_v1_coco_quant_postproces
 
 ```
 
-## Extra steps
+## Extra steps - What are those 4 outputs?
 
-We will check the files output data
+
+For SSD MobileNet V1 COCO with postprocess (the Coral-style model you have), the outputs are almost always:
+
+1. detection_boxes → [1, N, 4] (ymin, xmin, ymax, xmax), normalized 0–1
+2. detection_classes → [1, N] (float, class index)
+3. detection_scores → [1, N] (float confidence 0–1)
+4. num_detections → [1] (float, how many of the N are valid)
+
+…but to be 100% sure, we’ll ask the .tflite model itself for the exact shapes, order, and dtypes.
 
 ### 9 - Copy outputs + model back to your PC 
 
