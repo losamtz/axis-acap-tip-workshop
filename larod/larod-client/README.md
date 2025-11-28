@@ -27,6 +27,10 @@ We will:
 docker build --build-arg ARCH=aarch64 --tag larod-client .
 ```
 
+```bash
+docker cp $(docker create --platform=linux/amd64 larod-client):/opt/app ./build
+```
+
 ### 2 - Configure developer mode and assign a password to your ssh user
 
 Instructions: ["Developer mode instructions"](https://developer.axis.com/acap/get-started/set-up-developer-environment/set-up-device-advanced/)
@@ -91,7 +95,7 @@ You should get a `dog.bin` file.
 
 ```bash
 # 6. Send files to /tmp
-scp ssd_mobilenet_v1_coco_quant_postprocess.tflite test.bin acap-larod_client@cam_ip:/tmp/
+scp ssd_mobilenet_v1_coco_quant_postprocess.tflite dog.bin acap-larod_client_tool@cam_ip:/tmp/
 
 ```
 
