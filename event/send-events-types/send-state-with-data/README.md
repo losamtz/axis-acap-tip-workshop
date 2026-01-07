@@ -149,6 +149,7 @@ get_eventlist.py getlist -u onvif -p onvif i- 192.168.0.90
                                     <aev:SimpleItemInstance Type="xsd:string" Name="scenarioType"></aev:SimpleItemInstance>
                                     <aev:SimpleItemInstance Type="xsd:string" Name="classTypes"></aev:SimpleItemInstance>
                                     <aev:SimpleItemInstance Type="xsd:string" Name="objectId"></aev:SimpleItemInstance>
+                                    <aev:SimpleItemInstance isPropertyState="true" Type="xsd:boolean" Name="active"></aev:SimpleItemInstance>
                                 </aev:DataInstance>
                             </aev:MessageInstance>
                         </SendStateDataEvent>
