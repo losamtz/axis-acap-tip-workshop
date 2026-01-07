@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-/**
- * - send_event.c -
- *
- * This example illustrates how to send a stateful ONVIF event, which is
- * changing the value every 10th second.
- *
- * Error handling has been omitted for the sake of brevity.
- */
+
 #include <stdio.h>
 #include <syslog.h>
 #include <time.h>
@@ -40,6 +33,7 @@ typedef struct {
 } AppData;
 
 static AppData* app_data = NULL;
+gchar *active = "active";
 
 /**
  * brief Send event.
@@ -56,7 +50,7 @@ static gboolean send_event(AppData* send_data) {
     
     key_value_set = ax_event_key_value_set_new();
 
-    ax_event_key_value_set_add_key_value( key_value_set, "active", NULL, &send_data->value, AX_VALUE_TYPE_BOOL, NULL);
+    ax_event_key_value_set_add_key_value( key_value_set, active, NULL, &send_data->value, AX_VALUE_TYPE_BOOL, NULL);
     ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "", AX_VALUE_TYPE_STRING, NULL);
     ax_event_key_value_set_add_key_value(key_value_set, "classTypes", NULL, "", AX_VALUE_TYPE_STRING, NULL);
     ax_event_key_value_set_add_key_value(key_value_set, "scenarioType",NULL, "", AX_VALUE_TYPE_STRING, NULL);
@@ -84,16 +78,7 @@ static gboolean send_event(AppData* send_data) {
     return TRUE;
 }
 
-/**
- * brief Callback function which is called when event declaration is completed.
- *
- * This callback will be called when the declaration has been registered
- * with the event system. The event declaration can now be used to send
- * events.
- *
- * param declaration Event declaration id.
- * param value Start value of the event.
- */
+
 static void declaration_complete(guint declaration, int *value) {
   syslog(LOG_INFO, "Declaration complete for: %d", declaration);
 
@@ -103,27 +88,7 @@ static void declaration_complete(guint declaration, int *value) {
     app_data->timer = g_timeout_add_seconds(5, (GSourceFunc)send_event, app_data);
 }
 
-/**
- * brief Setup a declaration of an event.
- *
- * Declare a stateful ONVIF event that looks like this,
- * which is using ONVIF namespace "tns1".
- *
- * Topic: tns1:Monitoring/ProcessorUsage
- * <tt:MessageDescription IsProperty="true">
- *  <tt:Source>
- *   <tt:SimpleItemDescription Name=”Token” Type=”tt:ReferenceToken”/>
- *  </tt:Source>
- *  <tt:Data>
- *   <tt:SimpleItemDescription Name="Value" Type="xs:float"/>
- *  </tt:Data>
- * </tt:MessageDescription>
- *
- * Value = 0 <-- The initial value will be set to 0.0
- *
- * param event_handler Event handler.
- * return declaration id as integer.
- */
+
 static guint setup_declaration(AXEventHandler* event_handler, guint *start_value) {
     AXEventKeyValueSet* key_value_set = NULL;
     guint declaration                 = 0;
@@ -152,13 +117,13 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     // marked as data
     //ax_event_key_value_set_mark_as_user_defined( key_value_set, "topic2", "tnsaxis", "isApplicationData", NULL);
 
-    ax_event_key_value_set_add_key_value( key_value_set,"active", NULL, &start_value, AX_VALUE_TYPE_BOOL, NULL);    
-    ax_event_key_value_set_mark_as_data(key_value_set, "active", NULL, NULL);
+    ax_event_key_value_set_add_key_value( key_value_set, active, NULL, &start_value, AX_VALUE_TYPE_BOOL, NULL);    
+    ax_event_key_value_set_mark_as_data(key_value_set, active, "tnsaxis", NULL);
 
     // Shouldn't show isPropertyState
     ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "", AX_VALUE_TYPE_STRING, NULL);
     ax_event_key_value_set_mark_as_data(key_value_set, "triggerTime", NULL, NULL);
-    //ax_event_key_value_set_mark_as_user_defined(key_value_set, "triggerTime", NULL, NULL, NULL);
+    //ax_event_key_value_set_mark_as_user_defined(key_value_set, "triggerTime", NULL, "isApplicationData", NULL);
 
     ax_event_key_value_set_add_key_value(key_value_set, "classTypes", NULL, "", AX_VALUE_TYPE_STRING, NULL);
     ax_event_key_value_set_mark_as_data(key_value_set, "classTypes", NULL, NULL);
@@ -176,7 +141,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     if (!ax_event_handler_declare2(event_handler,
                                   key_value_set,
                                   FALSE,  // Indicate a property state event
-                                  "active",
+                                  active,
                                   &declaration,
                                   (AXDeclarationCompleteCallback)declaration_complete,
                                   start_value,
