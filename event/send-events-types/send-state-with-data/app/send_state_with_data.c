@@ -33,7 +33,7 @@ typedef struct {
 } AppData;
 
 static AppData* app_data = NULL;
-gchar *active = "active";
+
 
 /**
  * brief Send event.
@@ -50,11 +50,11 @@ static gboolean send_event(AppData* send_data) {
     
     key_value_set = ax_event_key_value_set_new();
 
-    ax_event_key_value_set_add_key_value( key_value_set, active, NULL, &send_data->value, AX_VALUE_TYPE_BOOL, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "", AX_VALUE_TYPE_STRING, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "classTypes", NULL, "", AX_VALUE_TYPE_STRING, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "scenarioType",NULL, "", AX_VALUE_TYPE_STRING, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "objectId", NULL, "", AX_VALUE_TYPE_STRING, NULL);
+    ax_event_key_value_set_add_key_value( key_value_set, "active", NULL, &send_data->value, AX_VALUE_TYPE_BOOL, NULL);
+    ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "today", AX_VALUE_TYPE_STRING, NULL);
+    ax_event_key_value_set_add_key_value(key_value_set, "classTypes", NULL, "car", AX_VALUE_TYPE_STRING, NULL);
+    ax_event_key_value_set_add_key_value(key_value_set, "scenarioType",NULL, "scenario1", AX_VALUE_TYPE_STRING, NULL);
+    ax_event_key_value_set_add_key_value(key_value_set, "objectId", NULL, "1", AX_VALUE_TYPE_STRING, NULL);
 
 
     //time_stamp = g_date_time_new_now_local();
@@ -117,8 +117,8 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     // marked as data
     //ax_event_key_value_set_mark_as_user_defined( key_value_set, "topic2", "tnsaxis", "isApplicationData", NULL);
 
-    ax_event_key_value_set_add_key_value( key_value_set, active, NULL, &start_value, AX_VALUE_TYPE_BOOL, NULL);    
-    ax_event_key_value_set_mark_as_data(key_value_set, active, "tnsaxis", NULL);
+    ax_event_key_value_set_add_key_value( key_value_set, "active", NULL, &start_value, AX_VALUE_TYPE_BOOL, NULL);    
+    ax_event_key_value_set_mark_as_data(key_value_set, "active", NULL, NULL);
 
     // Shouldn't show isPropertyState
     ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "", AX_VALUE_TYPE_STRING, NULL);
@@ -141,7 +141,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     if (!ax_event_handler_declare2(event_handler,
                                   key_value_set,
                                   FALSE,  // Indicate a property state event
-                                  active,
+                                  "active",
                                   &declaration,
                                   (AXDeclarationCompleteCallback)declaration_complete,
                                   start_value,

@@ -235,18 +235,6 @@
               </tt:MessageDescription>
             </Status>
           </tnsaxis:Light>
-          <tnsaxis:Microphone>
-            <Switch wstop:topic="true">
-              <tt:MessageDescription IsProperty="true">
-                <tt:Source>
-                  <tt:SimpleItemDescription Name="switch" Type="xsd:int"/>
-                </tt:Source>
-                <tt:Data>
-                  <tt:SimpleItemDescription Name="state" Type="xsd:boolean"/>
-                </tt:Data>
-              </tt:MessageDescription>
-            </Switch>
-          </tnsaxis:Microphone>
           <tnsaxis:Status>
             <SystemReady wstop:topic="true">
               <tt:MessageDescription IsProperty="true">
@@ -286,6 +274,20 @@
               </Above>
             </Temperature>
           </tnsaxis:Status>
+          <HardwareFailure>
+            <PowerSupplyFailure>
+              <tnsaxis:PTZPowerFailure wstop:topic="true">
+                <tt:MessageDescription IsProperty="true">
+                  <tt:Source>
+                    <tt:SimpleItemDescription Name="Token" Type="tt:ReferenceToken"/>
+                  </tt:Source>
+                  <tt:Data>
+                    <tt:SimpleItemDescription Name="Failed" Type="xsd:boolean"/>
+                  </tt:Data>
+                </tt:MessageDescription>
+              </tnsaxis:PTZPowerFailure>
+            </PowerSupplyFailure>
+          </HardwareFailure>
           <Trigger>
             <DigitalInput wstop:topic="true">
               <tt:MessageDescription IsProperty="true">
@@ -308,30 +310,6 @@
               </tt:MessageDescription>
             </Relay>
           </Trigger>
-          <tnsaxis:Log>
-            <Audit wstop:topic="true">
-              <tt:MessageDescription IsProperty="false">
-                <tt:Data>
-                  <tt:SimpleItemDescription Name="class" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="message" Type="xsd:string"/>
-                </tt:Data>
-              </tt:MessageDescription>
-            </Audit>
-          </tnsaxis:Log>
-          <HardwareFailure>
-            <PowerSupplyFailure>
-              <tnsaxis:PTZPowerFailure wstop:topic="true">
-                <tt:MessageDescription IsProperty="true">
-                  <tt:Source>
-                    <tt:SimpleItemDescription Name="Token" Type="tt:ReferenceToken"/>
-                  </tt:Source>
-                  <tt:Data>
-                    <tt:SimpleItemDescription Name="Failed" Type="xsd:boolean"/>
-                  </tt:Data>
-                </tt:MessageDescription>
-              </tnsaxis:PTZPowerFailure>
-            </PowerSupplyFailure>
-          </HardwareFailure>
           <tnsaxis:MQTT>
             <ClientStatus wstop:topic="true">
               <tt:MessageDescription IsProperty="true">
@@ -343,11 +321,6 @@
             </ClientStatus>
           </tnsaxis:MQTT>
         </tns1:Device>
-        <tnsaxis:NetworkPairing>
-          <RemoteDevice wstop:topic="true">
-            <tt:MessageDescription IsProperty="false"/>
-          </RemoteDevice>
-        </tnsaxis:NetworkPairing>
         <tns1:LightControl>
           <tnsaxis:LightStatusChanged>
             <Status wstop:topic="true">
@@ -387,6 +360,26 @@
               </tt:Data>
             </tt:MessageDescription>
           </tnsaxis:Autofocus>
+          <MotionAlarm wstop:topic="true">
+            <tt:MessageDescription IsProperty="true">
+              <tt:Source>
+                <tt:SimpleItemDescription Name="Source" Type="tt:ReferenceToken"/>
+              </tt:Source>
+              <tt:Data>
+                <tt:SimpleItemDescription Name="State" Type="xsd:boolean"/>
+              </tt:Data>
+            </tt:MessageDescription>
+          </MotionAlarm>
+          <tnsaxis:Tampering wstop:topic="true">
+            <tt:MessageDescription IsProperty="false">
+              <tt:Source>
+                <tt:SimpleItemDescription Name="channel" Type="xsd:int"/>
+              </tt:Source>
+              <tt:Data>
+                <tt:SimpleItemDescription Name="tampering" Type="xsd:int"/>
+              </tt:Data>
+            </tt:MessageDescription>
+          </tnsaxis:Tampering>
           <GlobalSceneChange>
             <ImagingService wstop:topic="true">
               <tt:MessageDescription IsProperty="true">
@@ -399,16 +392,6 @@
               </tt:MessageDescription>
             </ImagingService>
           </GlobalSceneChange>
-          <tnsaxis:Tampering wstop:topic="true">
-            <tt:MessageDescription IsProperty="false">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="channel" Type="xsd:int"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="tampering" Type="xsd:int"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </tnsaxis:Tampering>
           <tnsaxis:ABR wstop:topic="true">
             <tt:MessageDescription IsProperty="true">
               <tt:Source>
@@ -419,16 +402,6 @@
               </tt:Data>
             </tt:MessageDescription>
           </tnsaxis:ABR>
-          <MotionAlarm wstop:topic="true">
-            <tt:MessageDescription IsProperty="true">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="Source" Type="tt:ReferenceToken"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="State" Type="xsd:boolean"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </MotionAlarm>
         </tns1:VideoSource>
         <tns1:PTZController>
           <tnsaxis:PTZError wstop:topic="true">
@@ -575,6 +548,106 @@
             </tt:MessageDescription>
           </ProfileChanged>
         </tns1:Media>
+        <tnsaxis:CameraApplicationPlatform>
+          <SendStateData>
+            <SendStateDataEvent wstop:topic="true">
+              <tt:MessageDescription IsProperty="true">
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
+                  <tt:SimpleItemDescription Name="classTypes" Type="xsd:string"/>
+                  <tt:SimpleItemDescription Name="objectId" Type="xsd:string"/>
+                  <tt:SimpleItemDescription Name="scenarioType" Type="xsd:string"/>
+                  <tt:SimpleItemDescription Name="triggerTime" Type="xsd:string"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </SendStateDataEvent>
+          </SendStateData>
+          <ObjectAnalytics>
+            <Device1Scenario1 wstop:topic="true">
+              <tt:MessageDescription IsProperty="true">
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
+                  <tt:SimpleItemDescription Name="classTypes" Type="xsd:string"/>
+                  <tt:SimpleItemDescription Name="objectId" Type="xsd:string"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </Device1Scenario1>
+            <Device1ScenarioANY wstop:topic="true">
+              <tt:MessageDescription IsProperty="true">
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
+                  <tt:SimpleItemDescription Name="classTypes" Type="xsd:string"/>
+                  <tt:SimpleItemDescription Name="objectId" Type="xsd:string"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </Device1ScenarioANY>
+            <xinternal_data wstop:topic="true">
+              <tt:MessageDescription IsProperty="false">
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="svgframe" Type="xsd:string"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </xinternal_data>
+          </ObjectAnalytics>
+          <VMD>
+            <Camera1Profile2 wstop:topic="true">
+              <tt:MessageDescription IsProperty="true">
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </Camera1Profile2>
+            <Camera1ProfileANY wstop:topic="true">
+              <tt:MessageDescription IsProperty="true">
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </Camera1ProfileANY>
+          </VMD>
+        </tnsaxis:CameraApplicationPlatform>
+        <tnsaxis:MQTT>
+          <Message>
+            <Stateless wstop:topic="true">
+              <tt:MessageDescription IsProperty="false">
+                <tt:Source>
+                  <tt:SimpleItemDescription Name="device-prefix" Type="xsd:boolean"/>
+                  <tt:SimpleItemDescription Name="mqtt-topic" Type="xsd:string"/>
+                </tt:Source>
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="mqtt-payload" Type="xsd:string"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </Stateless>
+          </Message>
+        </tnsaxis:MQTT>
+        <tns1:RuleEngine>
+          <MotionRegionDetector>
+            <Motion wstop:topic="true">
+              <tt:MessageDescription IsProperty="true">
+                <tt:Source>
+                  <tt:SimpleItemDescription Name="RuleName" Type="xsd:string"/>
+                  <tt:SimpleItemDescription Name="VideoSource" Type="tt:ReferenceToken"/>
+                </tt:Source>
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="State" Type="xsd:boolean"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </Motion>
+          </MotionRegionDetector>
+          <tnsaxis:VMD3>
+            <vmd3_video_1 wstop:topic="true">
+              <tt:MessageDescription IsProperty="true">
+                <tt:Source>
+                  <tt:SimpleItemDescription Name="areaid" Type="xsd:int"/>
+                </tt:Source>
+                <tt:Data>
+                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
+                </tt:Data>
+              </tt:MessageDescription>
+            </vmd3_video_1>
+          </tnsaxis:VMD3>
+        </tns1:RuleEngine>
         <tns1:UserAlarm>
           <tnsaxis:Recurring>
             <Interval wstop:topic="true">
@@ -589,132 +662,6 @@
             </Interval>
           </tnsaxis:Recurring>
         </tns1:UserAlarm>
-        <tnsaxis:SoundPressureLevel>
-          <AboveThresholdUpper wstop:topic="true">
-            <tt:MessageDescription IsProperty="true">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="AudioSource" Type="xsd:string"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="Detected" Type="xsd:boolean"/>
-                <tt:SimpleItemDescription Name="MaxSPL" Type="xsd:double"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </AboveThresholdUpper>
-          <BelowThresholdLower wstop:topic="true">
-            <tt:MessageDescription IsProperty="true">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="AudioSource" Type="xsd:string"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="Detected" Type="xsd:boolean"/>
-                <tt:SimpleItemDescription Name="MinSPL" Type="xsd:double"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </BelowThresholdLower>
-          <Metrics wstop:topic="true">
-            <tt:MessageDescription IsProperty="false">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="AudioSource" Type="xsd:string"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="SPL" Type="xsd:double"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </Metrics>
-          <Summary wstop:topic="true">
-            <tt:MessageDescription IsProperty="false">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="AudioSource" Type="xsd:string"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="LEQ" Type="xsd:double"/>
-                <tt:SimpleItemDescription Name="MaxSPL" Type="xsd:double"/>
-                <tt:SimpleItemDescription Name="MinSPL" Type="xsd:double"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </Summary>
-        </tnsaxis:SoundPressureLevel>
-        <tnsaxis:AdaptiveAudioDetection>
-          <Detected wstop:topic="true">
-            <tt:MessageDescription IsProperty="true">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="AudioSource" Type="xsd:string"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="Detected" Type="xsd:boolean"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </Detected>
-          <LevelData wstop:topic="true">
-            <tt:MessageDescription IsProperty="false">
-              <tt:Source>
-                <tt:SimpleItemDescription Name="AudioSource" Type="xsd:string"/>
-              </tt:Source>
-              <tt:Data>
-                <tt:SimpleItemDescription Name="EffectiveThreshold" Type="xsd:double"/>
-                <tt:SimpleItemDescription Name="Level" Type="xsd:double"/>
-                <tt:SimpleItemDescription Name="OffsetSPL" Type="xsd:double"/>
-              </tt:Data>
-            </tt:MessageDescription>
-          </LevelData>
-        </tnsaxis:AdaptiveAudioDetection>
-        <tnsaxis:CameraApplicationPlatform>
-          <ObjectAnalytics>
-            <Device1Scenario-1119631251 wstop:topic="true">
-              <tt:MessageDescription IsProperty="true">
-                <tt:Data>
-                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
-                  <tt:SimpleItemDescription Name="classTypes" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="objectId" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="scenarioType" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="triggerTime" Type="xsd:string"/>
-                </tt:Data>
-              </tt:MessageDescription>
-            </Device1Scenario-1119631251>
-            <Device1Scenario1 wstop:topic="true">
-              <tt:MessageDescription IsProperty="true">
-                <tt:Data>
-                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
-                  <tt:SimpleItemDescription Name="classTypes" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="objectId" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="scenarioType" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="triggerTime" Type="xsd:string"/>
-                </tt:Data>
-              </tt:MessageDescription>
-            </Device1Scenario1>
-            <Device1ScenarioANY wstop:topic="true">
-              <tt:MessageDescription IsProperty="true">
-                <tt:Data>
-                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
-                  <tt:SimpleItemDescription Name="classTypes" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="objectId" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="triggerTime" Type="xsd:string"/>
-                </tt:Data>
-              </tt:MessageDescription>
-            </Device1ScenarioANY>
-            <xinternal_data wstop:topic="true">
-              <tt:MessageDescription IsProperty="false">
-                <tt:Data>
-                  <tt:SimpleItemDescription Name="svgframe" Type="xsd:string"/>
-                </tt:Data>
-              </tt:MessageDescription>
-            </xinternal_data>
-          </ObjectAnalytics>
-          <SendStateData>
-            <SendStateDataEvent wstop:topic="true">
-              <tt:MessageDescription IsProperty="true">
-                <tt:Data>
-                  <tt:SimpleItemDescription Name="active" Type="xsd:boolean"/>
-                  <tt:SimpleItemDescription Name="classTypes" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="objectId" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="scenarioType" Type="xsd:string"/>
-                  <tt:SimpleItemDescription Name="triggerTime" Type="xsd:string"/>
-                </tt:Data>
-              </tt:MessageDescription>
-            </SendStateDataEvent>
-          </SendStateData>
-        </tnsaxis:CameraApplicationPlatform>
       </wstop:TopicSet>
       <wsnt:TopicExpressionDialect>http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet</wsnt:TopicExpressionDialect>
       <wsnt:TopicExpressionDialect>http://docs.oasis-open.org/wsn/t-1/TopicExpression/Concrete</wsnt:TopicExpressionDialect>
