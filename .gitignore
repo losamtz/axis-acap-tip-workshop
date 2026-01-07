@@ -10,4 +10,5 @@
 # …and keep .eap files in build/ (top-level and nested)
 !**/build/*.eap
 
+# Ignore Python virtual environments
 **/.venv
