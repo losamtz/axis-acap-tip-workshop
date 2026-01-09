@@ -1,6 +1,6 @@
-# Event API – Send State (statefull)
+# Event API – Send State (statefull) with data (stateless)
 
-**Property-state (stateful) event generator for ACAP**
+**Property-state (stateful) event generator for ACAP but sending data/metadata through the event**
 
 This sample declares and periodically toggles a stateful event (a property state), where the boolean key active represents the current state (0/1). Because the event is stateful (declare with stateful=0), the system keeps track of the last value and subscribers receive the current state immediately upon subscription, then on each change.
 
@@ -33,6 +33,9 @@ Note:
     <img src="without_objectanalytics_keyname.png" width="300" alt="State with data example">
 </div>
 
+### Important
+3. In this case, if as we need to send state and data not statefull in the same event, function `ax_event_handler_declare2()` needs to be used.
+
 ## Code walkthrough
 
 **Types & globals**
@@ -51,6 +54,20 @@ static AppData* app_data = NULL;
 **Declaration (stateful)**
 
 ```c
+ax_event_key_value_set_add_key_value(key_value_set,
+                                         "topic0",
+                                         "tnsaxis",
+                                         "CameraApplicationPlatform",
+                                         AX_VALUE_TYPE_STRING,
+                                         NULL);
+
+ax_event_key_value_set_add_key_value(key_value_set,
+                                         "topic1",
+                                         "tnsaxis",
+                                         "ObjectAnalytics", /*  If key value is = ObjectAnalytics then the declared key_value_set won't be visible in UI / same as AOA . If SendStateWithData then key_value_set will appear in UI*/
+                                         AX_VALUE_TYPE_STRING,
+                                         NULL);
+
 ax_event_key_value_set_add_key_value(kv, "active", NULL, &start_value, AX_VALUE_TYPE_BOOL, NULL);
 ax_event_key_value_set_mark_as_data(kv, "active", NULL, NULL);
 
@@ -124,7 +141,7 @@ static gboolean send_event(AppData* send_data) {
 3. Start the app from the camera Apps page.
 4. Check parameters declared with the GetEventInstances
 
-    - create a python env folder:
+- create a python env folder:
 
 ```bash
     # 1. Make a project folder (if you haven't already)
@@ -190,6 +207,10 @@ deactivate
 ```bash
 gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:SendStateWithData/axis:SendStateWithDataEvent" ! fdsink
 
+// or with ObjectAnalytics
+
+gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:ObjectAnalytics/axis:SendStateWithDataEvent" ! fdsink
+
 ```
 
 It should look like this:
@@ -249,5 +270,3 @@ docker build --build-arg ARCH=aarch64 --tag send-state-with-data .
 docker cp $(docker create send-state-with-data):/opt/app ./build
 ```
 
-
-[def]: with

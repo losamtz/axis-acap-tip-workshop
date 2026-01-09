@@ -106,13 +106,13 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     ax_event_key_value_set_add_key_value(key_value_set,
                                          "topic1",
                                          "tnsaxis",
-                                         "ObjectAnalytics", /*  If key value is = ObjectAnalytics then the declared key_value_set won't be visible in UI / same as AOA . If SendStateData then key_value_set will appear in UI*/
+                                         "ObjectAnalytics", /*  If key value is = ObjectAnalytics then the declared key_value_set won't be visible in UI / same as AOA . If SendStateWithData then key_value_set will appear in UI*/
                                          AX_VALUE_TYPE_STRING,
                                          NULL);
     
     //TOPIC LEVEL 2
-    ax_event_key_value_set_add_key_value(  key_value_set, "topic2", "tnsaxis", "SendStateDataEvent" , AX_VALUE_TYPE_STRING,NULL);
-    ax_event_key_value_set_add_nice_names( key_value_set, "topic2", "tnsaxis", "SendStateDataEvent", "Send State Data Event", NULL);
+    ax_event_key_value_set_add_key_value(  key_value_set, "topic2", "tnsaxis", "SendStateWithDataEvent" , AX_VALUE_TYPE_STRING,NULL);
+    ax_event_key_value_set_add_nice_names( key_value_set, "topic2", "tnsaxis", "SendStateWithDataEvent", "Send State With Data Event", NULL);
 
     // marked as data
     //ax_event_key_value_set_mark_as_user_defined( key_value_set, "topic2", "tnsaxis", "isApplicationData", NULL);
