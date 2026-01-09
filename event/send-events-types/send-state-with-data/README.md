@@ -27,7 +27,7 @@ Note:
 
 If topic1=ObjectAnalytics (not recommended) the data (key_value_pair) declared won't appear in the UI as same behavior as AOA
 
-!["Without key value pair in UI"](with_objectanalytics_keyname.png)
+<img src="with_objectanalytics_keyname.png" width="200" alt="State with data example">
 
 ## Code walkthrough
 
