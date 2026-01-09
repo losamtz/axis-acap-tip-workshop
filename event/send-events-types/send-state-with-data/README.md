@@ -30,7 +30,7 @@ Note:
 
 <div>
     <img src="with_objectanalytics_keyname.png" width="300" alt="State with data example">
-    <img src="with_objectanalytics_keyname.png" width="300" alt="State with data example">
+    <img src="without_objectanalytics_keyname.png" width="300" alt="State with data example">
 </div>
 
 ## Code walkthrough
