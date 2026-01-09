@@ -26,7 +26,7 @@ topic2 = tnsaxis:SendStateWithDataEvent
 Note:
 
 1. If topic1=ObjectAnalytics (not recommended) the data (key_value_pair) declared won't appear in the UI as same behavior as AOA.
-2. If topic1=SendStateWithData then all properties declared with key_value_pai will show up
+2. If topic1=SendStateWithData then all properties declared with key_value_pair will show up in UI.
 
 <div>
     <img src="with_objectanalytics_keyname.png" width="300" alt="State with data example">
