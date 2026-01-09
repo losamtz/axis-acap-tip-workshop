@@ -21,7 +21,13 @@ topic2 = tnsaxis:SendStateWithDataEvent
 
 - After declaration completes, starts a GLib timer that every 5 seconds toggles active (0→1→0→…)
 
-- Sends the event with the updated active value on each tick and the rest of data through metadata
+- Sends the event with the updated active value on each tick and the rest of data (not statefull) through metadata
+
+Note:
+
+If topic1=ObjectAnalytics (not recommended) the data (key_value_pair) declared won't appear in the UI as same behavior as AOA
+
+["Without key value pair in UI"](with_objectanalytics_keyname.png)
 
 ## Code walkthrough
 
@@ -232,9 +238,12 @@ Pick **stateful** for things like “while rule is active”.
 ## Build
 
 ```bash
-docker build --build-arg ARCH=aarch64 --tag send-state-data .
+docker build --build-arg ARCH=aarch64 --tag send-state-with-data .
 ```
 
 ```bash
-docker cp $(docker create send-state-data):/opt/app ./build
+docker cp $(docker create send-state-with-data):/opt/app ./build
 ```
+
+
+[def]: with

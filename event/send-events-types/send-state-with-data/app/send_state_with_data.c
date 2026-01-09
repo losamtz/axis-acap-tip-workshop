@@ -106,7 +106,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     ax_event_key_value_set_add_key_value(key_value_set,
                                          "topic1",
                                          "tnsaxis",
-                                         "SendStateData",
+                                         "ObjectAnalytics", /*  If key value is = ObjectAnalytics then the declared key_value_set won't be visible in UI / same as AOA . If SendStateData then key_value_set will appear in UI*/
                                          AX_VALUE_TYPE_STRING,
                                          NULL);
     
