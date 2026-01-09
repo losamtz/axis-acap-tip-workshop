@@ -21,7 +21,7 @@ topic2 = tnsaxis:SendStateWithDataEvent
 
 - After declaration completes, starts a GLib timer that every 5 seconds toggles active (0→1→0→…)
 
-- Sends the event with the updated active value on each tick and the rest of data (not statefull) through metadata
+- Sends the event with the updated active value on each tick and the rest of data (not statefull) through metadata (triggerTime, classTypes, scenarioType, objectId).
 
 Note:
 
