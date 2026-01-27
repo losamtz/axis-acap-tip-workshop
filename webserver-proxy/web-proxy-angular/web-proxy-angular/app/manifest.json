@@ -1,0 +1,46 @@
+{
+    "schemaVersion": "1.9.0",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Web Proxy Angular",
+            "appName": "web_proxy_angular",
+            "vendor": "Axis Communications",
+            "embeddedSdkVersion": "3.0",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0"
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "reverseProxy": [
+				{
+					"apiPath": "api",
+					"target": "http://localhost:2001",
+					"access": "admin"
+				}
+			],
+            "paramConfig": [
+                {
+                    "name": "MulticastAddress",
+                    "default": "224.0.0.1",
+                    "type": "string"
+                },
+                {
+                    "name": "MulticastPort",
+                    "default": "1024",
+                    "type": "string"
+                }
+            ]
+            
+        }
+    }
+}

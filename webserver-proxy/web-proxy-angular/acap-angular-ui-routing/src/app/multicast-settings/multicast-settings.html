@@ -1,0 +1,19 @@
+<h1>Multicast Settings (Reverse Proxy + AXParameter)</h1>
+
+<div>
+  <label>Multicast Address</label>
+  <input [(ngModel)]="addr" placeholder="224.0.0.1" />
+
+  <label>Multicast Port</label>
+  <input [(ngModel)]="port" placeholder="1024" />
+
+  <button (click)="save()" [disabled]="saving || loading">Save</button>
+
+  <p *ngIf="loading">Loading…</p>
+  <p *ngIf="saving">Saving…</p>
+  <p *ngIf="error" style="color:#b00020">{{ error }}</p>
+</div>
+
+<h2>Response</h2>
+<pre>{{ jsonText() }}</pre>
+
