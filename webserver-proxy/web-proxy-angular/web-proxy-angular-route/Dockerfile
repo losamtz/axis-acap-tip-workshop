@@ -9,7 +9,7 @@ FROM ${REPO}/${SDK}:${VERSION}-${ARCH}-ubuntu${UBUNTU_VERSION}
 # Set general arguments
 ARG ARCH
 ARG SDK_LIB_PATH_BASE=/opt/axis/acapsdk/sysroots/${ARCH}/usr
-ARG APP_RPATH=/usr/local/packages/web_proxy
+ARG APP_RPATH=/usr/local/packages/web_proxy_angular_route
 ARG BUILD_DIR=/opt/build
 
 #-------------------------------------------------------------------------------

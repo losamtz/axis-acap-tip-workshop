@@ -129,10 +129,10 @@ curl --anyauth -u root:pass -H "Content-Type: application/json" \
 ## Build
 
 ```bash
-docker build --tag web--angular --build-arg ARCH=aarch64 .
+docker build --tag web-proxy-angular-route --build-arg ARCH=aarch64 .
 
 ```
 ```bash
-docker cp $(docker create web-proxy-angular):/opt/app ./build
+docker cp $(docker create web-proxy-angular-route):/opt/app ./build
 
 ```

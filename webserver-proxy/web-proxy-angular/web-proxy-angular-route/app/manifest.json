@@ -11,8 +11,8 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Web Proxy",
-            "appName": "web_proxy",
+            "friendlyName": "Web Proxy Angular Route",
+            "appName": "web_proxy_angular_route",
             "vendor": "Axis Communications",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com",

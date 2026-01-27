@@ -13,7 +13,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#define APP_NAME "web_proxy_angular"
+#define APP_NAME "web_proxy_angular_route"
 #define PORT     "2001"
 
 static volatile sig_atomic_t running = 1;
