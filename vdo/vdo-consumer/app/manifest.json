@@ -11,8 +11,9 @@
         "setup": {
             "friendlyName": "VDO consumer",
             "appName": "vdo_consumer",
+            "appId": "415706",
             "vendor": "Axis Communications",
-            "vendorId": "1234567890",
+            "vendorId": "6f16357ced",
             "architecture": "aarch64",
             "runMode": "never",
             "version": "1.0.0",
