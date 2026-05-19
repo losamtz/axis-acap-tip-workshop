@@ -1,14 +1,21 @@
 {
-    "$schema": "file:///opt/axis/acapsdk/axis-acap-manifest-tools/schema/schemas/v1/application-manifest-schema-v1.7.4.json",
-    "schemaVersion": "1.7.4",
+    "$schema": "file:///opt/axis/acapsdk/axis-acap-manifest-tools/schema/schemas/v1/application-manifest-schema-v2.0.0.json",
+    "schemaVersion": "2.0.0",
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "VDO Utilities",
+            "friendlyName": "vdo utilities",
             "appName": "vdo_utilities",
+            "appId": "415718",
             "vendor": "Axis Communications",
-            "embeddedSdkVersion": "3.0",
+            "vendorId": "6f16357ced",
             "runMode": "never",
-            "version": "1.0.0"
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13",
+                    "min": "12.10"
+                }
+            ]
         }
     }
 }
