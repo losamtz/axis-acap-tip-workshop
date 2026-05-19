@@ -1,5 +1,5 @@
 {
-    "schemaVersion": "1.7.4",
+    "schemaVersion": "2.0.0",
     "resources": {
         "linux": {
             "user": {
@@ -13,11 +13,16 @@
         "setup": {
             "friendlyName": "parameter manifest",
             "appName": "parameter_manifest",
+            "appId": "415709",
             "vendor": "Andrés",
-            "embeddedSdkVersion": "3.0",
-            "vendorUrl": "https://www.axis.com",
+            "vendorId": "6f16357ced",
             "runMode": "never",
-            "version": "1.0.0"
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
         },
         "configuration": {
             "paramConfig": [
