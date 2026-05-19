@@ -1,5 +1,5 @@
 {
-    "schemaVersion": "1.7.4",
+    "schemaVersion": "2.0.0",
     "resources": {
         "linux": {
             "user": {
@@ -14,10 +14,15 @@
             "friendlyName": "Parameter custom interface",
             "appName": "parameter_custom_interface",
             "vendor": "Axis Communications",
-            "embeddedSdkVersion": "3.0",
-            "vendorUrl": "https://www.axis.com",
+            "vendorId": "6f16357ced",
+            "appId": "415712",
             "runMode": "never",
-            "version": "1.0.0"
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
         },
         "configuration": {
             "settingPage": "index.html",

@@ -1,5 +1,5 @@
 {
-    "schemaVersion": "1.7.4",
+    "schemaVersion": "2.0.0",
     "resources": {
         "linux": {
             "user": {
@@ -13,11 +13,17 @@
         "setup": {
             "friendlyName": "parameter runtime",
             "appName": "parameter_runtime",
-            "vendor": "Axis Communications AB",
-            "embeddedSdkVersion": "3.0",
+            "vendor": "Andrés",
+            "vendorId": "6f16357ced",
+            "appId": "415715",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
-            "version": "1.0.0"
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
         }
     }
 }
