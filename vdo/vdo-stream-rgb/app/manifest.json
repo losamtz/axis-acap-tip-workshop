@@ -1,0 +1,27 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": ["video"]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "vdo stream rgb",
+            "appName": "vdo_stream_rgb",
+            "appId": "415706",
+            "vendor": "Axis Communications",
+            "vendorId": "6f16357ced",
+            "architecture": "aarch64",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        }
+    }
+}
