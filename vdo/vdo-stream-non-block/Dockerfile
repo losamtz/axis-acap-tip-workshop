@@ -5,6 +5,7 @@ ARG REPO=axisecp
 ARG SDK=acap-native-sdk
 
 FROM ${REPO}/${SDK}:${VERSION}-${ARCH}-ubuntu${UBUNTU_VERSION}
+ARG VDO_FORMAT
 
 # Building the ACAP application
 COPY ./app /opt/app/

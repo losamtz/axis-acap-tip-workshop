@@ -1,24 +1,24 @@
 {
     "schemaVersion": "2.0.0",
     "resources": {
-        "dbus": {
-            "requiredMethods": ["com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"]
+        "linux": {
+            "user": {
+                "groups": ["video"]
+            }
         }
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Dynamic Overlay Vapix",
-            "appName": "dynamic_overlay_vapix",
-            "appId": "415727",
+            "friendlyName": "vdo dma buffers",
+            "appName": "vdo_dma_bufs",
+            "appId": "415733",
             "vendor": "Axis Communications",
             "vendorId": "6f16357ced",
-            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
             "compatibleOsVersions": [
                 {
-                    "max": "13",
-                    "min": "12.10"
+                    "max": "13"
                 }
             ]
         }

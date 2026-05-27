@@ -9,8 +9,8 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "VDO consumer",
-            "appName": "vdo_consumer",
+            "friendlyName": "VDO stream non-block",
+            "appName": "vdo_stream_non_block",
             "appId": "415706",
             "vendor": "Axis Communications",
             "vendorId": "6f16357ced",
@@ -19,8 +19,7 @@
             "version": "1.0.0",
             "compatibleOsVersions": [
                 {
-                    "max": "13",
-                    "min": "12.10"
+                    "max": "13"
                 }
             ]
         }

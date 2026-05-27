@@ -1,6 +1,6 @@
-PROG1	= vdo_consumer
-OBJS1	= $(PROG1).c
-PROGS	= $(PROG1)
+PROG1 = $(shell jq -r '.acapPackageConf.setup.appName' manifest.json)
+OBJS1 = $(PROG1).c panic.c
+PROGS = $(PROG1)
 
 PKGS = gio-2.0 gio-unix-2.0 vdostream
 

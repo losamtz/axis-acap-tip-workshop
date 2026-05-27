@@ -24,10 +24,10 @@ int main(void) {
         get_video_channels();
         get_stream_resolutions();
         
-        // 2 -create a stream (NV12) 
+        // 2 - create an image settings (NV12) 
         image_t *img = create_image(WITH, HEIGHT, VDO_FORMAT_YUV);
         
-        // 3 - create stream
+        // 3 - create stream without starting it to show how to retrieve stream information such as rotation. No need to start stream for that.
         create_stream(img);
 
         // 4 - get rotation

@@ -1,5 +1,5 @@
 {
-    "schemaVersion": "1.7.4",
+    "schemaVersion": "2.0.0",
     "resources": {
         "dbus": {
             "requiredMethods": ["com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"]
@@ -9,11 +9,17 @@
         "setup": {
             "friendlyName": "onvif request",
             "appName": "onvif_request",
+            "appId": "415730",
             "vendor": "Axis Communications",
-            "embeddedSdkVersion": "3.0",
+            "vendorId": "6f16357ced",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
-            "version": "1.0.0"
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
         }
     }
 }

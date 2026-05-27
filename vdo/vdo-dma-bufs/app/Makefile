@@ -1,11 +1,14 @@
-PROGS     = onvif_request
-SRCS      = $(wildcard *.c)
-OBJS      = $(SRCS:.c=.o)
+PROG1 = $(shell jq -r '.acapPackageConf.setup.appName' manifest.json)
+OBJS1 = $(wildcard *.c)
+PROGS = $(PROG1)
+DEBUG_DIR = debug
 
-PKGS = glib-2.0 gio-2.0 libcurl
+PKGS = gio-2.0 gio-unix-2.0 vdostream
 
 CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags $(PKGS))
 LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PKGS))
+
+LDLIBS += -lm
 
 CFLAGS += -Wall \
           -Wextra \
@@ -22,8 +25,11 @@ CFLAGS += -Wall \
 
 all: $(PROGS)
 
-$(PROGS): $(OBJS)
-	$(CC) $(LDFLAGS) $^ $(LIBS) $(LDLIBS) -o $@
+$(PROG1): $(OBJS1)
+	install -d $(DEBUG_DIR)
+	$(CC) $^ $(CFLAGS) $(LIBS) $(LDFLAGS) -lm $(LDLIBS) -o $(DEBUG_DIR)/$@
+	cp $(DEBUG_DIR)/$@ .
+	$(STRIP) $@
 
 clean:
-	rm -f $(PROGS) *.o *.eap* *_LICENSE.txt package.conf* param.conf tmp*
+	rm -f $(PROGS) *.o *.eap* *_LICENSE.txt package.conf* param.conf tmp* manifest.json
