@@ -15,31 +15,45 @@
 #define WITH 640
 #define HEIGHT 360
 
+static int handle_vdo_failed(GError* error) {
+    // Maintenance/Installation in progress (e.g. Global-Rotation)
+    if (vdo_error_is_expected(&error)) {
+        syslog(LOG_INFO, "Expected vdo error %s", error->message);
+        return EXIT_SUCCESS;
+    } else {
+        panic("Unexpected vdo error %s", error->message);
+    }
+    return EXIT_FAILURE;
+}
 
 int main(void) {
+    g_autoptr(GError) error = NULL;
+    g_autoptr(VdoStream) vdo_stream = NULL;
 
-        openlog(NULL, LOG_PID, LOG_USER);
+    openlog(NULL, LOG_PID, LOG_USER);
 
-        // 1- List channels & resolutions 
-        get_video_channels();
-        get_stream_resolutions();
-        
-        // 2 - create an image settings (NV12) 
-        image_t *img = create_image(WITH, HEIGHT, VDO_FORMAT_YUV);
-        
-        // 3 - create stream without starting it to show how to retrieve stream information such as rotation. No need to start stream for that.
-        create_stream(img);
+    // 1- List channels & resolutions 
+    get_video_channels();
+    get_filtered_channels();
+    get_stream_resolutions();
+          
+    // 3 - create stream without starting it to show how to retrieve stream information such as rotation. No need to start stream for that.
+    vdo_stream = vdo_stream_rgb_new(NULL, 1u, (VdoResolution){ .width = WITH, .height = HEIGHT }, &error);
 
-        // 4 - get rotation
-        get_stream_rotation(img);
+    if (!vdo_stream) {
+        return handle_vdo_failed(error);
+    }   
 
-        if (img && img->vdo_stream) {
-            g_object_unref(img->vdo_stream);
-        }
-        g_free(img);
+    // 4 - get rotation
+    get_stream_rotation(vdo_stream);
 
-        syslog(LOG_INFO, "Exiting cleanly.");
-        closelog();
-        return EXIT_SUCCESS;
+    if (vdo_stream) {
+        g_object_unref(vdo_stream);
+    }
+    
+
+    syslog(LOG_INFO, "Exiting cleanly.");
+    closelog();
+    return EXIT_SUCCESS;
 }
 

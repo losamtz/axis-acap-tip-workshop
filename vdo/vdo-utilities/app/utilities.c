@@ -15,78 +15,13 @@
 
 
 
-#define VDO_CHANNEL 1u
-
-
-void create_stream(image_t *image) {
-
-    VdoMap* settings = vdo_map_new();
-    GError* error   = NULL;
-
-    // set format to NV12
-    vdo_map_set_uint32(settings, "format", image->vdo_format);
-    vdo_map_set_string(settings, "subformat", "nv12");
-
-    // Set default arguments
-    vdo_map_set_uint32(settings, "width", image->width);
-    vdo_map_set_uint32(settings, "height", image->height);
-
-    VdoStream* vdo_stream = vdo_stream_new(settings, NULL, &error);
-    if (!vdo_stream) {
-        panic("%s: Failed creating vdo stream: %s",
-              __func__,
-              (error != NULL) ? error->message : "N/A");
-    }
-
-    image->vdo_stream = vdo_stream;
-    syslog(LOG_INFO, "Stream  created ...");
-
-    // Always do this
-    g_object_unref(settings);
-    g_clear_error(&error);
-
-
-}
-
-
-image_t* create_image(unsigned int w, unsigned int h,  VdoFormat format){
-
-    image_t* image = calloc(1, sizeof(image_t));
-    if (!image) {
-        panic("%s: Unable to allocate Image structure: %s", __func__, strerror(errno));
-    }
-
-    image->vdo_format     = format;
-    image->width          = w;
-    image->height         = h;
-
-    syslog(LOG_INFO, "Image format= %s", ((unsigned)format == 3) ? "yuv" : "");
-
-    
-    return image;
-}
-
-// start the video stream
-gboolean start_stream(image_t *image) {
-    GError *err = NULL;
-
-    if (!vdo_stream_start(image->vdo_stream, &err)) { 
-        syslog(LOG_ERR, "Failed to start video stream: %s", err->message);
-        g_clear_error(&err); 
-        return FALSE; 
-    }
-    syslog(LOG_INFO, "Video stream started successfully.");
-    return TRUE;
-    
-}
-
 void get_stream_resolutions(void) {
 
     VdoResolutionSet* set = NULL;
     VdoChannel* channel   = NULL;
     GError* error         = NULL;
 
-    channel = vdo_channel_get(VDO_CHANNEL, &error);
+    channel = vdo_channel_get(1u, &error);
 
     if (!channel) {
         panic("%s: Failed vdo_channel_get(): %s",
@@ -119,10 +54,10 @@ void get_stream_resolutions(void) {
     g_clear_error(&error);
 }
 
-void get_stream_rotation(image_t *image) {
+void get_stream_rotation(VdoStream *stream) {
     GError* error = NULL;
 
-    g_autoptr(VdoMap) info = vdo_stream_get_info(image->vdo_stream, &error);
+    g_autoptr(VdoMap) info = vdo_stream_get_info(stream, &error);
     if (error) {
         panic("%s: vdo_stream_get_info failed: %s", __func__, error->message);
     }
@@ -146,4 +81,33 @@ void get_video_channels(void) {
         syslog(LOG_INFO, "Channel id: %u => Camera number: %u", id, id + 1);
     }
     g_list_free_full(channels, (GDestroyNotify)g_object_unref);
+}
+int get_filtered_channels(void) {
+    GError *error = NULL;
+
+    // 2) List channels with specific filter (e.g. only video channels)
+    VdoMap *filter = vdo_map_new();
+    vdo_map_set_string(filter, "key", "input");
+
+    GList *filtered_channels = vdo_channel_get_filtered(filter, &error);
+    if (!filtered_channels)
+        panic("%s: Failed finding channels: %s", __func__, (error != NULL) ? error->message : "N/A");
+
+    syslog(LOG_INFO, "Getting filtered video channels...");
+
+    for (GList *list = filtered_channels; list; list = list->next) {
+        VdoChannel *channel = list->data;
+
+        g_autoptr(VdoMap) info = vdo_channel_get_info(channel, &error);
+        if (!info) {
+            syslog(LOG_ERR, "Failed to get channel info: %s", error->message);
+            return EXIT_FAILURE;
+        }
+        guint id = vdo_channel_get_id(channel);
+        guint input_id = vdo_map_get_uint32(info, "type.id", 0);
+        syslog(LOG_INFO, "Channel id: %u => Input id: %u", id, input_id);
+    }
+    g_list_free_full(filtered_channels, (GDestroyNotify)g_object_unref);
+    g_object_unref(filter);
+    return EXIT_SUCCESS;
 }
