@@ -1,5 +1,49 @@
-# Minimal VDO stream and Larod based ACAP application running inference on an edge device
+# Simple VDO-Larod Example
 
+A minimal but production-realistic example of running ML inference on an
+Axis camera using the **VDO** (Video Data Output) and **larod** (ML runtime) APIs.
+
+## What Does It Do?
+
+Captures live video frames from the camera sensor, preprocesses them
+(resize + color convert), runs a person/car classification model, and
+prints the confidence percentages to syslog.
+
+Camera Sensor → VDO Frame → Preprocessing → Inference → "Person: 82% — Car: 3%"
+
+## Who Is This For?
+
+Developers new to ACAP Native SDK who want to understand the **VDO → larod
+pipeline** without getting lost in production error handling, dynamic
+configuration, and multi-platform support code.
+
+---
+
+## Architecture
+
+
+
+## Flow
+```
+1.  larodConnect()                                 Connect to larod daemon
+2.  larodGetDevice() + larodLoadModel()            Load .tflite on the DLPU
+3.  larodAllocModelInputs()                        Read model's expected input size
+4.  larodAllocModelOutputs() + mmap                Create output buffers we can read
+5.  vdo_stream_new()                               Open camera stream (NV12)
+6.  If VDO size ≠ model size:
+       larodCreateMap() → larodLoadModel(fd=-1)    Create resize pipeline
+       larodAllocModelOutputs()                    PP output = inference input
+7.  larodCreateTensors()                           One input tensor per VDO buffer + set data type, layout, dims, pitches, fd props
+8.  Loop:
+       poll()                                      Wait for frame
+       vdo_stream_get_buffer()                     Get frame
+       dup(fd) + larodTrackTensor()                First-time: register buffer with larod
+       larodRunJob(pp)                             Preprocess (if needed)
+       larodRunJob(inf)                            Inference
+       Read mmap'd output                          Person: X% — Car: Y%
+       vdo_stream_buffer_unref()                   Return buffer to VDO
+ 9.  Cleanup: destroy jobs, tensors, models, disconnect
+```
 ## Flow
 
 
@@ -56,7 +100,7 @@ larodTensor** output_tensors = larodAllocModelOutputs(conn,
 ### GET INPUT MODEL RESOLUTION 
 ```c
 const larodTensorDims* input_dims = larodGetTensorDims(input_tensors[0], &error);
-VdoFormat model_img_format = VDO_FORMAT_RGB;; // for artpec 8 & 9
+VdoFormat model_img_format = VDO_FORMAT_RGB; // for artpec 8 & 9
 unsigned int model_input_img_width = input_dims->dims[2]
 unsigned int model_input_img_heoght = input_dims->dims[1]
 ```
@@ -103,6 +147,7 @@ for (size_t i = 0; i < num_outputs; i++) {
 
     datatype = larodGetTensorDataType(output_tensors[i], &error);
     model_output_tensors[i].datatype = datatype;
+    syslog(LOG_INFO, "Created mmaped model output %zu with size %zu", i, output_size);
 
 }
 larodDestroyTensors(conn, &input_tensors, num_inputs, &error);

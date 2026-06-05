@@ -33,10 +33,8 @@ COPY ./app .
 # Build the ACAP application
 RUN cp /opt/app/manifest.json.${CHIP} /opt/app/manifest.json && \
     . /opt/axis/acapsdk/environment-setup* && \
-    if [ "$CHIP" = artpec8 ] || [ "$CHIP" = artpec9 ] || [ "$CHIP" = cpu ] || [ "$CHIP" = edgetpu ]; then \
+    if [ "$CHIP" = artpec8 ] || [ "$CHIP" = artpec9 ] || [ "$CHIP" = cpu ]; then \
         acap-build . -a 'model/model.tflite'; \
-    elif [ "$CHIP" = cv25 ]; then \
-        acap-build . -a 'model/model.bin'; \
     else \
         printf "Error: '%s' is not a valid value for the CHIP variable\n", "$CHIP"; \
         exit 1; \
