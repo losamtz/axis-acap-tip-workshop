@@ -1,22 +1,18 @@
 /**
  * simple_vdo_larod.c
  *
- * Minimal but real-world example of the VDO → larod pipeline on Axis cameras.
+ * Minimal but production-realistic VDO → larod pipeline on Axis cameras.
+ *
+ * Supports two paths:
+ *   - a9-dlpu-tflite: VDO delivers RGB directly, preprocessing only if resize needed
+ *   - a8-dlpu-tflite (and others): VDO delivers NV12, preprocessing converts + resizes
  *
  * What it does:
  *   1. Connects to larod, loads a person/car classification model
- *   2. Opens a VDO stream from the camera sensor
- *   3. If VDO format/resolution ≠ model input → sets up larod preprocessing
- *   4. Grabs frames via poll() → runs preprocessing → runs inference
+ *   2. Opens a VDO stream (RGB or NV12 depending on backend)
+ *   3. If needed → sets up larod preprocessing
+ *   4. Grabs frames via poll() → preprocesses → infers
  *   5. Prints "Person: X% — Car: Y%"
- *
- * What was removed vs. the full example:
- *   - Adaptive framerate (img_util.c)
- *   - Channel auto-discovery (channel_util.c)
- *   - CV25/ambarella support (only artpec8/9 + cpu path)
- *   - Power-retry loops
- *   - Dynamic device enumeration
- *   - model_preprocessing.c / model.c split (all inline here)
  *
  * Build: see Dockerfile / Makefile
  * Run:   ./simple_vdo_larod
@@ -45,13 +41,13 @@
 #include <glib.h>
 
 /* ══════════════════════════════════════════════
- *  Configuration — hardcoded for clarity
+ *  Configuration — change DEVICE_NAME for your hardware
  * ══════════════════════════════════════════════ */
 
 /* Inference backend — change to match your device */
-#define DEVICE_NAME     "a9-dlpu-tflite"     /* artpec9 DLPU                  */
+#define DEVICE_NAME     "a9-dlpu-tflite"     /* or "axis-a8-dlpu-tflite"      */
 #define PP_DEVICE_NAME  "cpu-proc"           /* preprocessing always on CPU   */
-#define MODEL_PATH      "/usr/local/packages/simple_vdo_larod/model/model.tflite"
+#define MODEL_PATH      "/usr/local/packages/vdo_larod_min/model/model.tflite"
 
 /* VDO stream settings */
 #define VDO_CHANNEL     1
@@ -61,6 +57,18 @@
 /* We'll read these from the model at runtime */
 static unsigned int MODEL_WIDTH  = 0;
 static unsigned int MODEL_HEIGHT = 0;
+
+/* ══════════════════════════════════════════════
+ *  Backend capability detection
+ *
+ *  a9-dlpu-tflite:        accepts RGB directly from VDO
+ *  axis-a8-dlpu-tflite:   needs NV12 → RGB preprocessing
+ *  everything else:       needs NV12 → RGB preprocessing
+ * ══════════════════════════════════════════════ */
+
+ static bool backend_supports_rgb(const char* device_name) {
+    return (strcmp(device_name, "a9-dlpu-tflite") == 0);
+ }
 
 /* ══════════════════════════════════════════════
  *  Signal handling
@@ -108,12 +116,12 @@ typedef struct {
 
 static larodConnection* larod_connect(void) {
     larodConnection* conn = NULL;
-    larodError* error      = NULL;
+    larodError* error = NULL;
 
-    if (!larodConnect(&conn, &error)) {
+    if(!larodConnecrt(&conn, &error)) {
         PANIC("larodConnect: %s", error->msg);
     }
-    syslog(LOG_INFO, "Connected to larod");
+    syslog(LOG_INFO, "Connected to larod successfully");
     return conn;
 }
 
@@ -503,10 +511,10 @@ int main(void) {
     bool              vdo_is_dmabuf;
 
     /* ── Init ── */
-    openlog("simple_vdo_larod", LOG_PID | LOG_CONS, LOG_USER);
+    openlog("vdo_larod_min", LOG_PID | LOG_CONS, LOG_USER);
     signal(SIGTERM, on_signal);
     signal(SIGINT,  on_signal);
-    syslog(LOG_INFO, "========== Starting simple_vdo_larod ==========");
+    syslog(LOG_INFO, "========== Starting vdo_larod_min ==========");
 
     /* ── Step 1: Connect to larod ── */
     conn = larod_connect();
@@ -673,7 +681,7 @@ int main(void) {
     /* Close model file */
     if (model_fd >= 0) close(model_fd);
 
-    syslog(LOG_INFO, "========== simple_vdo_larod exited ==========");
+    syslog(LOG_INFO, "========== vdo_larod_min exited ==========");
     closelog();
     return EXIT_SUCCESS;
 }

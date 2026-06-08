@@ -13,8 +13,8 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "vdo_larod_artpec8",
-            "appName": "vdo_larod",
+            "friendlyName": "vdo_larod_min_artpec8",
+            "appName": "vdo_larod_min",
             "vendor": "Axis Communications",
             "vendorId": "1234567890",
             "runOptions": "axis-a8-dlpu-tflite /usr/local/packages/vdo_larod/model/model.tflite scale",
