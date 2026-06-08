@@ -119,7 +119,7 @@ static larodConnection* larod_connect(void) {
     larodConnection* conn = NULL;
     larodError* error = NULL;
 
-    if(!larodConnecrt(&conn, &error)) {
+    if(!larodConnect(&conn, &error)) {
         PANIC("larodConnect: %s", error->msg);
     }
     syslog(LOG_INFO, "Connected to larod successfully");
@@ -298,8 +298,8 @@ static VdoStream* create_vdo_stream(bool rgb_backend,
         * This is the simplest path since we can feed VDO buffers directly to the model with no preprocessing needed.
         * No format conversion needed -> may skip preprocessing entirely
         */
-        vdo_map_set_uint32(settings, "format", VDO_FRORMAT_RGB );
-        vdoPair32u resolution = { .w = MODEL_WIDTH, .h = MODEL_HEIGHT };
+        vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB );
+        VdoPair32u resolution = { .w = MODEL_WIDTH, .h = MODEL_HEIGHT };
         vdo_map_set_pair32u(settings, "resolution", resolution);
         syslog(LOG_INFO, "Requesting RGB output from VDO (backend supports RGB) %ux%u", MODEL_WIDTH, MODEL_HEIGHT);
 
