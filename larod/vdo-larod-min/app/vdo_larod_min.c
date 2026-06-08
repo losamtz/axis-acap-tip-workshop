@@ -308,7 +308,7 @@ static VdoStream* create_vdo_stream(bool rgb_backend,
         * Non-A9 path: request NV12 format.
         * We'll do RGB conversion + resizing in larod preprocessing since the model expects RGB and VDO gives us NV12.
         */
-        vdo_map_set_string(settings, "format", VDO_FORMAT_YUV);  /* NV12 is the most common YUV format and widely supported by VDO */
+        vdo_map_set_uint32(settings, "format", VDO_FORMAT_YUV);  /* NV12 is the most common YUV format and widely supported by VDO */
         VdoPair32u resolution = { .w = MODEL_WIDTH, .h = MODEL_HEIGHT };
         vdo_map_set_pair32u(settings, "resolution", resolution);
         syslog(LOG_INFO, "Requesting NV12 output from VDO (backend does not support RGB) %ux%u", MODEL_WIDTH, MODEL_HEIGHT);
@@ -326,7 +326,7 @@ static VdoStream* create_vdo_stream(bool rgb_backend,
     if (!info) {
         PANIC("vdo_stream_get_info: %s", error->message);
     }
-    *out_format    = vdo_map_get_string(info, "format", 0);
+    *out_format    = vdo_map_get_uint32(info, "format", 0);
     *out_w         = vdo_map_get_uint32(info, "width", 0);
     *out_h         = vdo_map_get_uint32(info, "height", 0);
     *out_pitch     = vdo_map_get_uint32(info, "pitch", 0);
