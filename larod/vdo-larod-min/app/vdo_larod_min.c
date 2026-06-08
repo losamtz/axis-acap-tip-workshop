@@ -381,7 +381,7 @@ static larodModel* setup_preprocessing(larodConnection* conn,
             input_format_str = "rgb-planar";
             break;
         default:
-            PANIC("Unsupported VDO format: %s", vdo_format);
+            PANIC("Unsupported VDO format: %s", error->msg);
     }
 
     // Output is always what the model needs: RGB interleaved
@@ -449,15 +449,15 @@ static void create_input_tensors(tracked_input_t* tracked,
     larodTensorLayout layout;
     switch (vdo_format) {
         case VDO_FORMAT_YUV:            layout = LAROD_TENSOR_LAYOUT_420SP; break;
-        case VDO_FORMAT_RGB:            layout = LAROD_TENSOR_LAYOUT_RGB_INTERLEAVED; break;
-        case VDO_FORMAT_PLANAR_RGB:     layout = LAROD_TENSOR_LAYOUT_RGB_PLANAR; break;
-        default:  PANIC("Unsupported VDO format: %s", vdo_format);
+        case VDO_FORMAT_RGB:            layout = LAROD_TENSOR_LAYOUT_NHWC; break;
+        case VDO_FORMAT_PLANAR_RGB:     layout = LAROD_TENSOR_LAYOUT_NCHW; break;
+        default:  PANIC("Unsupported VDO format: %s", error->msg);
     }
     const char* layout_str;
     switch (layout) {
         case LAROD_TENSOR_LAYOUT_420SP:             layout_str = "420SP (NV12)"; break;
-        case LAROD_TENSOR_LAYOUT_RGB_INTERLEAVED:   layout_str = "NHWC (RGB)"; break;
-        case LAROD_TENSOR_LAYOUT_RGB_PLANAR:        layout_str = "NCHW (planar)"; break;
+        case LAROD_TENSOR_LAYOUT_NHWC:              layout_str = "NHWC (RGB)"; break;
+        case LAROD_TENSOR_LAYOUT_NCHW:              layout_str = "NCHW (planar)"; break;
         default: PANIC("Unsupported tensor layout: %d", layout);
     }
 
