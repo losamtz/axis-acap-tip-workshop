@@ -458,7 +458,7 @@ static void create_input_tensors(tracked_input_t* tracked,
         case LAROD_TENSOR_LAYOUT_420SP:             layout_str = "420SP (NV12)"; break;
         case LAROD_TENSOR_LAYOUT_NHWC:              layout_str = "NHWC (RGB)"; break;
         case LAROD_TENSOR_LAYOUT_NCHW:              layout_str = "NCHW (planar)"; break;
-        default: PANIC("Unsupported tensor layout: %d", layout);
+        default: PANIC("Unsupported tensor layout: %s", layout_str);
     }
 
     for (unsigned int i = 0; i < nbr_bufs; i++) {
