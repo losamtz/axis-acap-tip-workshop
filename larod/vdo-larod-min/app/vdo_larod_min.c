@@ -281,7 +281,7 @@ static VdoStream* create_vdo_stream(bool rgb_backend,
                                     unsigned int* out_pitch,
                                     unsigned int* out_nbr_bufs,
                                     bool* out_is_dmabuf,
-                                    VdoFormat out_format) {
+                                    VdoFormat* out_format) {
     GError* error = NULL;
 
     VdoMap* settings = vdo_map_new();
