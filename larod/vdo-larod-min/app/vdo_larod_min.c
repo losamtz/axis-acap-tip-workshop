@@ -628,7 +628,7 @@ int main(void) {
     }
 
     /* ── Step 8: Create input tensors (one per VDO buffer) ── */
-    create_input_tensors(tracked, vdo_nbr_bufs, vdo_w, vdo_h, vdo_pitch);
+    create_input_tensors(tracked, vdo_nbr_bufs, vdo_w, vdo_h, vdo_pitch, vdo_format);
 
     /* ── Step 9: Start VDO stream and enter main loop ── */
     GError* vdo_error = NULL;
