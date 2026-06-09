@@ -166,9 +166,12 @@ The preprocessing output tensors become the inference input tensors — zero-cop
 
 ### Step 7 — Create input tensors for VDO buffers
 
-Two strategies depending on whether preprocessing is used:
+Input tensors describe the VDO frame layout so larod knows how to read the image data. They are **always created manually** with
+`larodCreateTensors`, regardless of format or whether preprocessing is used. These same tensors serve as input to either the preprocessing model or the inference model directly.
 
-**With preprocessing (NV12 backend):** Manual tensors describing the VDO NV12 frame layout:
+The tensor layout must match what VDO delivers:
+
+**NV12 (YUV) input — e.g. `axis-a8-dlpu-tflite`:**
 
 ```c
 larodTensor** t = larodCreateTensors(1, &error);
@@ -179,17 +182,8 @@ larodBuildTensorPitches(t[0], LAROD_TENSOR_LAYOUT_420SP, pitch, h, 3, &error);
 larodSetTensorFdProps(t[0], LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
 ```
 
-**Without preprocessing:** (A9 direct RGB path) — use model-allocated tensors:
+**RGB interleaved input — e.g. a9-dlpu-tflite:**
 
-```c
-larodTensor** t = larodAllocModelInputs(conn, inf_model, 0, &n, NULL, &error);
-larodSetTensorFdProps(t[0], LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
-```
-
-
-**With preprocessing but RGB input (Path A — RGB backend, VDO size differs):**
-
-If VDO delivers RGB but at a different resolution than the model expects, preprocessing resizes RGB→RGB. The input tensor uses NHWC layout:
 
 ```c
 larodTensor** t = larodCreateTensors(1, &error);
@@ -199,7 +193,16 @@ larodBuildTensorDims(t[0], LAROD_TENSOR_LAYOUT_NHWC, w, h, 3, &error);
 larodBuildTensorPitches(t[0], LAROD_TENSOR_LAYOUT_NHWC, pitch, h, 3, &error);
 larodSetTensorFdProps(t[0], LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
 ```
+**Planar RGB input — e.g. ambarella-cvflow:**
 
+```c
+larodTensor** t = larodCreateTensors(1, &error);
+larodSetTensorDataType(t[0], LAROD_TENSOR_DATA_TYPE_UINT8, &error);
+larodSetTensorLayout(t[0], LAROD_TENSOR_LAYOUT_NCHW, &error);
+larodBuildTensorDims(t[0], LAROD_TENSOR_LAYOUT_NCHW, w, h, 3, &error);
+larodBuildTensorPitches(t[0], LAROD_TENSOR_LAYOUT_NCHW, pitch, h, 3, &error);
+larodSetTensorFdProps(t[0], LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
+```
 The layout must match what VDO delivers, otherwise larod will misinterpret the pixel data. The code handles this automatically
 via a switch on vdo_format:
 
@@ -211,10 +214,9 @@ switch (vdo_format) {
 }
 ```
 
-Why two strategies? When frames go directly to the inference model (no preprocessing), the tensor dimensions must match exactly what the
-model expects (e.g. [1,256,256,3]). Manually building dims with larodBuildTensorDims can produce [3,256,256] instead — causing a
-mismatch error. Using larodAllocModelInputs guarantees correct dims. When preprocessing sits in between, the preprocessing model accepts
-flexible input dimensions, so manual tensor creation works fine.
+Why always manual? These tensors describe VDO frame memory, not model expectations. The same tensor is used as input to either the
+preprocessing model or the inference model. When preprocessing is skipped, it works because VDO already delivers frames matching the
+model's expected format, size, and pitch exactly.
 
 ### Step 8 — Track VDO buffers (DMA-buf zero-copy)
 
