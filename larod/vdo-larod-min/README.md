@@ -101,7 +101,7 @@ const larodTensorDim* dims = larodGetTensorDims(tmp_input_tensors[0], &error);
 // dims = [1, 256, 256, 3] -> batch=1, H=256, W=256, channels=3
 ```
 ```c
-const larodTensorPitches* pitches = larodGetTensorPitches(tmp_inputs[0], &error);
+const larodTensorPitches* pitches = larodGetTensorPitches(tmp_input_tensors[0], &error);
 *pitch_out = pitches->pitches[2];  // pitch for W dimension
 ```
 
