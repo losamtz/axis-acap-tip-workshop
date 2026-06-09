@@ -159,6 +159,7 @@ larodMapSetIntArr2(map, "image.output.size", MODEL_WIDTH, MODEL_HEIGHT, &error);
 larodMapSetInt(map, "image.output.row-pitch", model_pitch, &error);
 
 // Load on cpu-proc (libyuv-based image processing)
+const larodDevice* pp_device = larodGetDevice(provider->conn, "cpu-proc", 0, &error);
 larodModel* pp = larodLoadModel(conn, -1, pp_device, LAROD_ACCESS_PRIVATE, "", map, &error);
 ```
 
@@ -317,9 +318,9 @@ PP tensors → inference tensors → models → connection → file descriptors
     │ Path B (A8): │   │  at model resolution — no        │
     │ NV12 → RGB   │   │  conversion needed.              │
     │ + resize     │   │                                  │
-    │              │   │  Input tensors created via       │
-    │ Path A (A9): │   │  larodAllocModelInputs to match  │
-    │ RGB → RGB    │   │  model dims exactly [1,256,256,3]│
+    │              │   │                                  │
+    │ Path A (A9): │   │                                  │
+    │ RGB → RGB    │   │                                  │
     │ resize only  │   │                                  │
     └──────┬───────┘   └───────────────┬──────────────────┘
            │                           │
