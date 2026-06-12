@@ -397,3 +397,26 @@
   └──────────────┴──────────────────────┴─────────────────────────────┘
 
   ```less
+
+### memfd vs vmem
+
+  ```less
+┌─────────────────────────────────────────────────────────────────┐
+│  "memfd" / DMA-buf (dmabuf = true)                              │
+│                                                                 │
+│  • Modern Linux shared memory                                   │
+│  • File descriptor directly points to the frame data            │
+│  • Larod can access it directly via the fd                      │
+│  • Used on: ARTPEC-9 and newer SoCs                             │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  "vmem" (dmabuf = false)                                        │
+│                                                                 │
+│  • Axis proprietary video memory allocator                      │
+│  • The fd points to a vmem region — NOT directly usable         │
+│    by larod as-is                                               │
+│  • Must be converted to DMA-buf first                           │
+│  • Used on: older SoCs (ARTPEC-7, some ARTPEC-8 configs)        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+  ```

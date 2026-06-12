@@ -34,7 +34,7 @@
 
 /* ── Configuration ── */
 #define DEVICE_NAME  "a9-dlpu-tflite"
-#define MODEL_PATH   "/usr/local/packages/minimal_larod_pp/model/model.tflite"
+#define MODEL_PATH   "/usr/local/packages/larod_preprocessing/model/model.tflite"
 #define VDO_WIDTH    1280
 #define VDO_HEIGHT   720
 #define VDO_FMT      VDO_FORMAT_RGB    /* or VDO_FORMAT_YUV for NV12 */
