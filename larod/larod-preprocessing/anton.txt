@@ -1,0 +1,95 @@
+TENSOR Team:
+
+A) Tasks team
+Mantaining deep learning platform (artpec 8,9, cv25, cv75)
+Larod service
+Bringing up Deep learning hardware on new platforms
+
+B) FT DL Tools
+
+Develop and mantain deep learning toolchains 
+benchmark - performance testing
+Investigate new-cases for deep learning
+
+Filip Moreau
+
+C) Deep Learning Concepts
+
+Model a collection of operations called layer
+- Open source
+- Architecture/backends (yolo)
+
+Training - Teaching a model to detect certain objects
+
+Formats - Different ways to describe a model
+- TF Lite
+- ONNX
+
+D) Deep Learning Accelaration
+
+- Computer vision mostly convolutions
+    - Not commun in other applications, leading to slow execution on CPU/groups
+
+- The DLPU in Axis Cameras is designed to execute convolutions fast and effeciently
+
+E) Transformers
+
+- New and exiting field for deep learning
+- The operations that power LLMs
+- Vision transformers allow images as input
+
+F) Overview
+ACAP    | AXIS OS                   | ASIC
+ACAP AOA > VOD > Larod > vendor SW > artpec8/9, cv25/75
+ACAP    | AXIS OS        | ASIC
+ACAP > Larod > vendor SW > artpec8/9, cv25/75
+
+- Deploy model to Cameras
+- connect to larod service
+- choose backend to user
+- setup model into backend
+...
+
+G) Support Models Formats 
+
+- .tflite
+    - Models should be pre-quantize in most cases (see platform slides)
+- Native DLPU format (.bin)
+- .larod
+
+H) Larod Software stack
+
+Acap > liblarod > larod service > tensorFlow lite > vendor delegate > vendor deep learning API > Vendor DLPU
+
+I) Model compilation
+
+- Offline compilation
+    - Model is compiled to natibe format on packages
+    - Requires vendor toolchains
+    - More customization 
+- Online compilation
+    - model is compiled in the camera
+- Compilation time
+    - DLPU is slow
+    - GPU is fast
+    - CPU almost instant
+
+J) Model Caching
+
+When a .tflite model is loaded we cache the compiled  subgraph (operation from dlpu)
+Instant model loading after the first time
+Saved to filesytem, cache is persistent
+
+K) Debugging and profiling
+
+- No standard for debugging/profiling
+- Vendor support is often limited
+- Disallow from distributing to partners
+- We are still looking at ways to get more profiling information out of tflite
+
+## Platform Specifics
+
+
+## Larod tool compilation
+
+## 
