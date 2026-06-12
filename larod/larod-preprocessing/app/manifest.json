@@ -1,0 +1,30 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": ["video"]
+            }
+        },
+        "deepLearningProcessor": {
+            "enabled": true,
+            "required": true
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "larod-preprocessing",
+            "appName": "larod_preprocessing",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        }
+    }
+}

@@ -50,7 +50,7 @@
 #define MODEL_PATH      "/usr/local/packages/vdo_larod_min/model/model.tflite"
 
 /* VDO stream settings */
-#define VDO_CHANNEL     1
+#define VDO_CHANNEL     2
 #define VDO_NUM_BUFFERS 2
 #define VDO_FRAMERATE   2.0
 #define IMAGE_FIT       "scale"     /* scale or crop */

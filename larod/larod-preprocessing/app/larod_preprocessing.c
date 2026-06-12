@@ -1,5 +1,5 @@
 /**
- * minimal_larod_pp.c
+ * larod_preprocessing.c
  *
  * Minimal VDO + larod with preprocessing.
  * VDO delivers 720p. Preprocessing resizes to model resolution.
@@ -48,7 +48,7 @@ int main(void) {
     larodConnection* conn  = NULL;
     larodError*      error = NULL;
 
-    openlog("minimal_larod_pp", LOG_PID | LOG_CONS, LOG_USER);
+    openlog("larod_preprocessing", LOG_PID | LOG_CONS, LOG_USER);
     signal(SIGTERM, on_signal);
     signal(SIGINT,  on_signal);
 
