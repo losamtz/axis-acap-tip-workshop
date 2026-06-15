@@ -184,7 +184,7 @@
        │
        ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  6. PP OUTPUT TENSORS (= inference input when PP is used)           ║
+║  6. PP OUTPUT TENSORS (= inference input when PP is used)            ║
 ╠══════════════════════════════════════════════════════════════════════╣
 ║                                                                      ║
 ║  larodAllocModelOutputs(conn, pp_model) ──▶ pp_out (larodTensor**)   ║
@@ -200,17 +200,17 @@
        │
        ▼
 ╔══════════════════════════════════════════════════════════════════════╗
-║  7. VDO INPUT TENSORS (always manual, one per VDO buffer)           ║
+║  7. VDO INPUT TENSORS (always manual, one per VDO buffer)            ║
 ╠══════════════════════════════════════════════════════════════════════╣
 ║                                                                      ║
 ║  For each VDO buffer (i = 0, 1):                                     ║
 ║                                                                      ║
-║  larodCreateTensors(1) ──▶ vdo_tensors[i] (larodTensor**)           ║
+║  larodCreateTensors(1) ──▶ vdo_tensors[i] (larodTensor**)            ║
 ║       │                                                              ║
 ║       ├── larodSetTensorDataType(UINT8)                              ║
 ║       ├── larodSetTensorLayout(420SP | NHWC | NCHW)                  ║
-║       ├── larodBuildTensorDims(layout, vdo_w, vdo_h, 3)             ║
-║       ├── larodBuildTensorPitches(layout, vdo_pitch, vdo_h, 3)      ║
+║       ├── larodBuildTensorDims(layout, vdo_w, vdo_h, 3)              ║
+║       ├── larodBuildTensorPitches(layout, vdo_pitch, vdo_h, 3)       ║
 ║       └── larodSetTensorFdProps(DMABUF | MAP)                        ║
 ║                                                                      ║
 ║  These tensors have NO fd yet — that happens during tracking.        ║
@@ -247,7 +247,7 @@
 ║  │    • WHAT FORMAT it is          (from step 7)           │         ║
 ║  │                                                         │         ║
 ║  │  This only happens ONCE per VDO buffer.                 │         ║
-║  │  VDO reuses the same 2 buffers — so 2 track calls max. │          ║
+║  │  VDO reuses the same 2 buffers — so 2 track calls max.  │         ║
 ║  └─────────────────────────────────────────────────────────┘         ║
 ║                                                                      ║
 ╚══════════════════════════════════════════════════════════════════════╝
