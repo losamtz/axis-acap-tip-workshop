@@ -130,7 +130,7 @@ int main(void) {
 
     /* ── 5. Create VDO stream (blocking, RGB, model resolution) ── */
     VdoMap* settings = vdo_map_new();
-    vdo_map_set_uint32(settings, "channel", 2u); // Using channel 2, a zoomed view area of the scene with more visible objects
+    vdo_map_set_uint32(settings, "channel", 1); // Using channel 1
     vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB);
     vdo_map_set_uint32(settings, "buffer.count", 2);
     vdo_map_set_double(settings, "framerate", 30.0);
@@ -142,8 +142,28 @@ int main(void) {
     GError* vdo_err = NULL;
     VdoStream* stream = vdo_stream_new(settings, NULL, &vdo_err);
     g_object_unref(settings);
+    if (!stream) {
+        PANIC("vdo_stream_new: %s", vdo_err->message);
+    }
+
+    VdoMap* info = vdo_stream_get_info(stream, &vdo_err);
+    if (!info) {
+        PANIC("vdo_stream_get_info: %s", vdo_err->message);
+    }
+    unsigned int vdo_w     = vdo_map_get_uint32(info, "width", 0);
+    unsigned int vdo_h     = vdo_map_get_uint32(info, "height", 0);
+    unsigned int vdo_pitch = vdo_map_get_uint32(info, "pitch", 0);
+    VdoFormat    vdo_fmt   = vdo_map_get_uint32(info, "format", 0);
+    g_object_unref(info);
+
+    if (vdo_fmt != VDO_FORMAT_RGB || vdo_w != w || vdo_h != h) {
+        PANIC("VDO stream does not match model input: got fmt=%u %ux%u, expected RGB %ux%u",
+              vdo_fmt, vdo_w, vdo_h, w, h);
+    }
+
     vdo_stream_start(stream, &vdo_err);
-    syslog(LOG_INFO, "VDO stream started (blocking, RGB %ux%u)", w, h);
+    syslog(LOG_INFO, "VDO stream started (blocking, RGB %ux%u pitch=%u)",
+           vdo_w, vdo_h, vdo_pitch);
 
     /* ── 6. Allocate input tensors (one per buffer) ── */
     larodTensor** in_tensors[2] = {NULL, NULL};
@@ -161,11 +181,11 @@ int main(void) {
         larodTensor* t = in_tensors[i][0];
         larodSetTensorDataType(t, LAROD_TENSOR_DATA_TYPE_UINT8, &error);
         larodSetTensorLayout(t, LAROD_TENSOR_LAYOUT_NHWC, &error);
-        larodBuildTensorDims(t, LAROD_TENSOR_LAYOUT_NHWC, w, h, 3, &error);
-        larodBuildTensorPitches(t, LAROD_TENSOR_LAYOUT_NHWC, model_pitch, h, 3, &error);
+        larodBuildTensorDims(t, LAROD_TENSOR_LAYOUT_NHWC, vdo_w, vdo_h, 3, &error);
+        larodBuildTensorPitches(t, LAROD_TENSOR_LAYOUT_NHWC, vdo_pitch, vdo_h, 3, &error);
         larodSetTensorFdProps(t, LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
     }
-    syslog(LOG_INFO, "Created %d input tensors (NHWC RGB %ux%u pitch=%u)", 2, w, h, model_pitch);
+    syslog(LOG_INFO, "Created %d input tensors (NHWC RGB %ux%u pitch=%u)", 2, vdo_w, vdo_h, vdo_pitch);
 
     /* ── 7. Inference job (created lazily) ── */
     larodJobRequest* job = NULL;
@@ -187,11 +207,17 @@ int main(void) {
             for (int i = 0; i < 2; i++) {
                 if (tracked_vdo_fds[i] == -1) { slot = i; break; }
             }
+            if (slot < 0) {
+                PANIC("No free tracking slots");
+            }
             
             /* Tensors already created in step 6 — just bind the VDO buffer fd */
             int64_t offset = vdo_buffer_get_offset(buf);
             size_t cap     = vdo_buffer_get_capacity(buf);
             int duped      = dup(vdo_fd);
+            if (duped < 0) {
+                PANIC("dup: %s", strerror(errno));
+            }
 
             larodTensor* t = in_tensors[slot][0];
             larodSetTensorFd(t, duped, &error);

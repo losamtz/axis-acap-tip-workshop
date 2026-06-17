@@ -35,11 +35,12 @@
 /* ── Configuration ── */
 #define DEVICE_NAME  "a9-dlpu-tflite"
 #define MODEL_PATH   "/usr/local/packages/larod_preprocessing/model/model.tflite"
-#define VDO_WIDTH    1280
-#define VDO_HEIGHT   720
+#define VDO_WIDTH    640
+#define VDO_HEIGHT   360
 #define VDO_FMT      VDO_FORMAT_RGB    /* or VDO_FORMAT_YUV for NV12 */
 #define IMAGE_FIT    "scale"
 #define NUM_BUFFERS  2
+#define VDO_CHANNEL  1
 
 static volatile sig_atomic_t running = 1;
 static void on_signal(int s) { (void)s; running = 0; }
@@ -107,6 +108,7 @@ int main(void) {
      *  4. CREATE VDO STREAM (blocking, 720p)
      * ════════════════════════════════════════════ */
     VdoMap* settings = vdo_map_new();
+    vdo_map_set_uint32(settings, "channel", VDO_CHANNEL);
     vdo_map_set_uint32(settings, "format", VDO_FMT);
     vdo_map_set_uint32(settings, "buffer.count", NUM_BUFFERS);
     vdo_map_set_double(settings, "framerate", 2.0);

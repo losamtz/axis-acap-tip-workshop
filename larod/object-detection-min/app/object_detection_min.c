@@ -56,10 +56,12 @@
 #define VDO_NUM_BUFFERS 2
 #define VDO_FRAMERATE   30.0
 #define IMAGE_FIT       "crop"     /* scale or crop */
+#define VDO_WIDTH       640
+#define VDO_HEIGHT      360
 
 /* We'll read these from the model at runtime */
-static unsigned int MODEL_WIDTH  = 0;
-static unsigned int MODEL_HEIGHT = 0;
+static unsigned int MODEL_WIDTH  = 0; // 300
+static unsigned int MODEL_HEIGHT = 0; // 300
 
 
 /* ══════════════════════════════════════════════
@@ -244,6 +246,87 @@ static void read_model_input_size(larodConnection* conn,
     }
     return tensors;
 }
+
+/* ══════════════════════════════════════════════
+ *
+ *  STEP 5 — CREATE VDO STREAM
+ *
+ *  Opens the camera video stream. We request
+ *  YUV (NV12) format since preprocessing will
+ *  handle the conversion. Non-blocking + poll.
+ *
+ * ══════════════════════════════════════════════ */
+
+static VdoStream* create_new_vdo_stream(bool rgb_backend,
+                                    unsigned int* out_w,
+                                    unsigned int* out_h,
+                                    unsigned int* out_pitch,
+                                    unsigned int* out_nbr_bufs,
+                                    bool* out_is_dmabuf,
+                                    VdoFormat* out_format) {
+
+    g_autoptr(GError) error        = NULL;
+
+
+    VdoMap* settings = vdo_map_new();
+    vdo_map_set_uint32(settings, "channel",         VDO_CHANNEL);
+    vdo_map_set_uint32(settings, "buffer.count",    VDO_NUM_BUFFERS);
+    vdo_map_set_double(settings, "framerate",       VDO_FRAMERATE);
+    vdo_map_set_boolean(settings, "socket.blocking", false);
+    vdo_map_set_string(settings, "image.fit", IMAGE_FIT);
+    VdoPair32u resolution = { .w = VDO_WIDTH, .h = VDO_HEIGHT };
+    vdo_map_set_pair32u(settings, "resolution", resolution);
+    
+    if(rgb_backend) {
+        vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB );
+    } else {
+        
+        vdo_map_set_uint32(settings, "format", VDO_FORMAT_YUV);  /* NV12 is the most common YUV format and widely supported by VDO */
+        vdo_map_set_pair32u(settings, "resolution", resolution);
+
+    }
+
+    // Create a vdo stream using the vdoMap filled in above
+    g_autoptr(VdoStream) vdo_stream = vdo_stream_new(vdo_settings, NULL, &error);
+    if (!vdo_stream) {
+        PANIC("vdo_stream_new: %s", error->message);    
+    }
+    /* Read back what VDO actually gave us */
+    VdoMap* info = vdo_stream_get_info(stream, &error);
+    if (!info) {
+        PANIC("vdo_stream_get_info: %s", error->message);
+    }
+    
+    *out_format    = vdo_map_get_uint32(info, "format", 0);
+    *out_w         = vdo_map_get_uint32(info, "width", 0);
+    *out_h         = vdo_map_get_uint32(info, "height", 0);
+    *out_pitch     = vdo_map_get_uint32(info, "pitch", 0);
+    *out_nbr_bufs  = vdo_map_get_uint32(info, "buffer.count", VDO_NUM_BUFFERS);
+
+    const char* buf_type = vdo_map_get_string(info, "buffer.type", NULL, "memfd");
+    *out_is_dmabuf = (g_strcmp0(buf_type, "vmem") != 0);
+
+    syslog(LOG_INFO, "Dump of vdo stream settings map =====");
+    vdo_map_dump(vdo_settings);
+
+    g_object_unref(info);
+
+    return g_steal_pointer(&vdo_stream);
+}
+/* ══════════════════════════════════════════════
+ *
+ *  STEP 6 — SET UP PREPROCESSING (if needed)
+ *  
+ *  Two scenarios:
+ *  A) Backends supports RGB (e.g. a9-dlpu-tflite) and delivers the expected resolution → no preprocessing needed, 
+ *  we can feed VDO buffers directly to the model.
+ * 
+ *  B) Backend delivers NV12 or delivers a different resolution → we need preprocessing to convert NV12→RGB and/or resize. 
+ *  We set up a larod "model" on the cpu-proc device with parameters describing the input (VDO) and output (model) formats, 
+ *  and let larod handle the conversion for us.
+ *
+ * ══════════════════════════════════════════════ */
+
 int main(argc, argv) {
     (void)argc;
     /* local variables */
