@@ -502,7 +502,7 @@ static int track_vdo_buffer(larodConnection* conn,
     larodError* error = NULL;
 
     int vdo_fd          = vdo_buffer_get_fd(vdo_buf);
-    int64_t vdo_offset  = vdo_buffer_get_offset(vdo_buf);
+    int64_t vdo_offset  = vdo_buffer_get_offset(vdo_buf); // tells larod where inside that buffer the real image data starts
     size_t vdo_capacity = vdo_buffer_get_capacity(vdo_buf);
 
     /* Check if we've already tracked this fd */
@@ -531,7 +531,7 @@ static int track_vdo_buffer(larodConnection* conn,
         if (buf_fd == LAROD_INVALID_FD) {
             PANIC("larodConvertVmemFdToDmabuf: %s", error->msg);
         }
-        vdo_offset = 0;   /* offset is baked into the new fd */
+        vdo_offset = 0;   /* offset is baked into the new fd, registers the tensor + fd info with larod */
     }
 
     /* Dup the fd so larod can own its own copy */
@@ -542,10 +542,10 @@ static int track_vdo_buffer(larodConnection* conn,
 
     /* Bind the fd to the tensor and register it with larod */
     larodTensor* t = tracked[slot].tensors[0];
-    larodSetTensorFd(t, duped, &error);
-    larodSetTensorFdOffset(t, vdo_offset, &error);
-    larodSetTensorFdSize(t, vdo_capacity, &error);
-    larodTrackTensor(conn, t, &error);
+    larodSetTensorFd(t, duped, &error); // attaches the file descriptor to the tensor
+    larodSetTensorFdOffset(t, vdo_offset, &error); // tells larod where inside that fd the real image data starts
+    larodSetTensorFdSize(t, vdo_capacity, &error); // tells larod how much data is valid
+    larodTrackTensor(conn, t, &error); // registers the tensor + fd info with larod
 
     tracked[slot].vdo_fd   = vdo_fd;
     tracked[slot].duped_fd = duped;
