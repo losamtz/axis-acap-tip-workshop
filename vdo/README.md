@@ -17,11 +17,13 @@ flowchart TD
     D[4. vdo-stream-rgb<br/>Request RGB frames]
     E[5. vdo-stream-nv12<br/>Request NV12/YUV frames]
     F[6. vdo-dma-bufs<br/>Inspect fd-backed frame memory]
+    G[7. vdo-stream-events<br/>Listen for stream lifecycle events]
 
     A --> B --> C --> D
     C --> E
     D --> F
     E --> F
+    F --> G
 ```
 
 ## Folder Summary
@@ -34,6 +36,7 @@ flowchart TD
 | `vdo-stream-rgb` | Request RGB frames | convenience stream API, RGB layout |
 | `vdo-stream-nv12` | Request NV12 frames | YUV/NV12 layout |
 | `vdo-dma-bufs` | Inspect frame fds and mmap DMA-BUFs | fd, offset, capacity, zero-copy concept |
+| `vdo-stream-events` | Listen for VDO stream lifecycle events | pseudo-stream 0, event fd, overlay stream filter |
 
 ## What VDO Does
 
@@ -162,6 +165,28 @@ be represented by:
 
 That is the base concept later used by larod examples.
 
+## Stream Events For Overlay2
+
+`axoverlay2` does not use the old `axoverlay` render callback model. It creates overlays for VDO streams, so an application needs to know when relevant streams exist, appear, and close.
+
+The `vdo-stream-events` example teaches that bridge without using any overlay API:
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant VDO
+    participant Loop as GLib main loop
+
+    App->>VDO: vdo_stream_get(0)
+    App->>VDO: Attach filter=overlay
+    App->>VDO: vdo_stream_get_event_fd()
+    App->>Loop: Watch fd
+    VDO-->>App: EXISTING, CREATED, CLOSED
+    App->>VDO: Read stream info
+```
+
+This prepares the student for `overlay2/`, where the next step is to call `axo_create_overlay()` for each relevant stream.
+
 ## Teaching Advice
 
 This content is good for newcomers if taught in order:
@@ -170,7 +195,8 @@ This content is good for newcomers if taught in order:
 2. Then fetch frames with blocking VDO.
 3. Then switch to non-blocking `poll`.
 4. Then compare RGB and NV12.
-5. Finally inspect DMA-BUF fds and discuss zero-copy memory.
+5. Inspect DMA-BUF fds and discuss zero-copy memory.
+6. Finish with VDO stream events before moving to `overlay2/`.
 
 Avoid starting with DMA-BUF. It is easier after students already understand
 buffer ownership and stream lifecycle.
@@ -183,3 +209,4 @@ buffer ownership and stream lifecycle.
 4. Change RGB to NV12 and compare frame sizes.
 5. Log `fd`, `offset`, `capacity`, and `frame_size` in `vdo-dma-bufs`.
 6. Capture NV12 to a file and inspect it with `ffplay`.
+7. Use `vdo-stream-events` to log stream creation and close events.

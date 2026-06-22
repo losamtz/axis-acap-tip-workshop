@@ -1,0 +1,25 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "overlay": {
+            "enabled": true,
+            "required": true
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Overlay2 Add Logo",
+            "appName": "overlay2_add_logo",
+            "vendor": "Axis Communications",
+            "vendorId": "6f16357ced",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        }
+    }
+}

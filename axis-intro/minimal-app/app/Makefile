@@ -1,0 +1,26 @@
+PROG1 = $(shell jq -r '.acapPackageConf.setup.appName' manifest.json)
+OBJS1 = $(PROG1).c
+PROGS = $(PROG1)
+
+CFLAGS += -Wall \
+          -Wextra \
+          -Wformat=2 \
+          -Wpointer-arith \
+          -Wbad-function-cast \
+          -Wstrict-prototypes \
+          -Wmissing-prototypes \
+          -Winline \
+          -Wdisabled-optimization \
+          -Wfloat-equal \
+          -W \
+          -Werror
+
+all: $(PROGS)
+
+$(PROG1): $(OBJS1)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(STRIP) $@
+
+.PHONY: clean
+clean:
+	rm -f $(PROGS) *.o *.eap* *_LICENSE.txt package.conf* param.conf tmp* manifest.json

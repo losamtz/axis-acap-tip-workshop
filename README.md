@@ -4,34 +4,39 @@ This repository is a progressive workshop for learning ACAP application developm
 
 The recommended teaching order is:
 
-1. Core/basic platform APIs: `parameter/`, `vapix/`, `event/`
-2. Visual basics: `bbox/`
-3. Intermediate web UI and APIs: `webserver-fastcgi/`, `webserver-proxy/`
-4. Advanced visual rendering: `overlay/`
-5. Advanced video frames and buffers: `vdo/`
-6. Most advanced machine learning flow: `larod/`
+1. Application structure and build basics: `axis-intro/`
+2. Core/basic platform APIs: `parameter/`, `vapix/`, `event/`
+3. Visual basics: `bbox/`
+4. Intermediate web UI and APIs: `webserver-fastcgi/`, `webserver-proxy/`
+5. Advanced visual rendering: `overlay/`, then `overlay2/`
+6. Advanced video frames and buffers: `vdo/`
+7. Most advanced machine learning flow: `larod/`
 
 ## Curriculum Map
 
 ```mermaid
 flowchart TD
-    Start[ACAP basics] --> Param[parameter]
+    Start[ACAP basics] --> Intro[axis-intro]
+    Intro --> Param[parameter]
     Param --> Vapix[vapix]
     Vapix --> Event[event]
     Event --> BBox[bbox]
     BBox --> FastCGI[webserver-fastcgi]
     FastCGI --> Proxy[webserver-proxy]
     Proxy --> Overlay[overlay]
-    Overlay --> VDO[vdo]
+    Overlay --> Overlay2[overlay2]
+    Overlay2 --> VDO[vdo]
     VDO --> LAROD[larod]
 
+    Intro --> I1[Dockerfile, Makefile, manifest, .eap]
     Param --> P1[Configuration model]
     Vapix --> V1[Camera HTTP APIs]
     Event --> E1[Publish and subscribe]
     BBox --> B1[Simple visual annotations]
     FastCGI --> W1[HTTP endpoints through camera web server]
     Proxy --> W2[Embedded web backend and Angular UI]
-    Overlay --> O1[Direct video overlay drawing]
+    Overlay --> O1[Callback-based video overlay drawing]
+    Overlay2 --> O2[Buffer-submission overlay API]
     VDO --> D1[Frame capture and dma-buf]
     LAROD --> L1[Inference, tensors, preprocessing, postprocessing]
 ```
@@ -40,6 +45,7 @@ flowchart TD
 
 | Folder | Level | What it teaches |
 | --- | --- | --- |
+| `axis-intro/` | Intro | ACAP folder structure, Docker SDK image, Makefile, manifest, and `.eap` build flow |
 | `parameter/` | Core/basic | Manifest parameters, runtime parameters, callbacks, and a custom parameter UI |
 | `vapix/` | Core/basic | Calling camera HTTP APIs from inside ACAP with service-account credentials |
 | `event/` | Core/basic | Declaring, sending, and subscribing to ACAP events |
@@ -47,6 +53,7 @@ flowchart TD
 | `webserver-fastcgi/` | Intermediate | FastCGI endpoints served through the camera web server |
 | `webserver-proxy/` | Intermediate | CivetWeb reverse-proxy backends and packaged Angular frontends |
 | `overlay/` | Advanced visual | Drawing text, shapes, logos, and per-view overlays on video |
+| `overlay2/` | Advanced visual | New `axoverlay2` API with VDO stream events and explicit buffer submission |
 | `vdo/` | Advanced video | Capturing frames, reading formats, and understanding dma-buf ownership |
 | `larod/` | Advanced ML | Running inference with LAROD, configuring tensors, and combining VDO plus postprocessing |
 
@@ -95,7 +102,9 @@ Always check the example README for any specific runtime requirements, such as a
 
 ### 1. Core/basic
 
-Start with `parameter/`. Parameters are the simplest persistent state mechanism for an ACAP app. Students learn the difference between manifest-defined configuration and runtime-created configuration.
+Start with `axis-intro/`. It explains the common ACAP application structure: Dockerfile, SDK environment setup, Makefile, manifest, and generated `.eap` package.
+
+Then use `parameter/`. Parameters are the simplest persistent state mechanism for an ACAP app. Students learn the difference between manifest-defined configuration and runtime-created configuration.
 
 Then use `vapix/`. VAPIX shows how an ACAP app can call local camera APIs through authenticated HTTP requests.
 
@@ -114,6 +123,8 @@ Then use `webserver-proxy/` to show an embedded CivetWeb backend, JSON APIs, and
 ### 4. Advanced visual
 
 Use `overlay/` after students understand parameters and web APIs. Overlay introduces callbacks, Cairo drawing, color spaces, stream resolution changes, rotation, and per-view rendering.
+
+Then use `overlay2/` to show the newer overlay API. This section changes the mental model from callback rendering to explicit buffer management: the app listens to VDO stream events, creates an overlay for each stream, gets an overlay buffer, draws pixels, and submits the buffer.
 
 ### 5. Advanced video
 
@@ -135,6 +146,7 @@ flowchart LR
     LAROD --> Post[Postprocess detections]
     Post --> BBox[BBox or Overlay]
     Overlay[axoverlay] --> Video[Video stream]
+    Overlay2[axoverlay2] --> Video
     BBox --> Video
 ```
 
@@ -150,4 +162,4 @@ This content is good for teaching newcomers because the examples are small and o
 
 ## Where To Start
 
-Open `parameter/README.md` first. After that, follow the curriculum map above or jump directly to a folder if you already know the prerequisite concepts.
+Open `axis-intro/README.md` first. After that, follow the curriculum map above or jump directly to a folder if you already know the prerequisite concepts.

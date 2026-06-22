@@ -1,0 +1,25 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "overlay": {
+            "enabled": true,
+            "required": true
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Overlay2 Draw Text",
+            "appName": "overlay2_draw_text",
+            "vendor": "Axis Communications",
+            "vendorId": "6f16357ced",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        }
+    }
+}

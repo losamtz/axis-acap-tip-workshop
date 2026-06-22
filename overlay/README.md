@@ -4,6 +4,23 @@ Overlay is the advanced visual track. These examples draw graphics on top of the
 
 Study `bbox/` before this section. Bounding boxes teach the simplest visual annotation model. Overlay adds lower-level drawing control, stream adjustment callbacks, color spaces, image assets, text, and per-view behavior.
 
+After this folder, study `../overlay2/` to see the newer `axoverlay2` API. The new API uses VDO stream events and explicit overlay buffer submission instead of the callback model shown here.
+
+## Difference From overlay2
+
+```mermaid
+flowchart LR
+    Old[This folder: axoverlay] --> Callback[render_overlay_cb]
+    Callback --> Context[Cairo context from API]
+    Context --> Redraw[axoverlay_redraw]
+
+    New[overlay2: axoverlay2] --> Events[VDO stream events]
+    Events --> Buffer[axo_get_buffer]
+    Buffer --> Submit[axo_submit_buffer]
+```
+
+Use this folder to teach overlay drawing concepts first. Use `../vdo/vdo-stream-events/` and then `../overlay2/` to teach the newer stream-event and buffer-submission model.
+
 ## Learning Order
 
 ```mermaid
