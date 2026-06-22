@@ -1,151 +1,145 @@
-# VDO Consumer — NV12 frames to `/dev/null` (Workshop)
+# vdo-stream-non-block
 
-This README explains how the **simple VDO consumer** works: it creates a VDO stream, fetches **NV12** frames, logs basic frame metadata, and writes the raw bytes to `/dev/null`. It also breaks down the functions, buffer lifecycle, error handling, and includes a short **mini‑lab** to experiment safely.
+This example adds the VDO stream fd and `poll`. It is the non-blocking version
+of `vdo-stream-blocking`.
 
-> This app is based on patterns from `acap-native-sdk-examples`. It is intentionally small and uses **no model** or overlays.
+The important idea is that frame availability becomes an event. The application
+waits on the stream fd, then calls `vdo_stream_get_buffer`.
 
----
+## Where This Fits
 
-## High‑level flow
-
-```
-setup_video_stream()         -> Prepare VDO settings (YUV/NV12, 640x360)
-create_stream()              -> vdo_stream_new() + log stream info
-start_stream(dest_f)         -> vdo_stream_start(); for N=10 frames:
-  ├─ vdo_stream_get_buffer() -> fetch VdoBuffer*
-  ├─ vdo_buffer_get_frame()  -> access VdoFrame* metadata
-  ├─ vdo_buffer_get_data()   -> pointer to NV12 bytes
-  ├─ fwrite(..., dest_f)     -> write bytes (here: /dev/null)
-  └─ vdo_stream_buffer_unref()-> return buffer to VDO
-main()                       -> installs SIGINT handler, calls above, teardown
+```mermaid
+flowchart LR
+    A[vdo-stream-blocking<br/>get_buffer waits] --> B[vdo-stream-non-block<br/>poll then get_buffer]
+    B --> C[vdo-stream-rgb<br/>RGB convenience stream]
+    B --> D[vdo-stream-nv12<br/>NV12 convenience stream]
+    C --> E[vdo-dma-bufs<br/>fd-backed frame memory]
+    D --> E
 ```
 
-**Key idea:** *For each frame* you **get** a buffer, **use** its content & metadata, then **return** it to VDO. Never access the buffer after you unref it.
+## Architecture
 
----
+```mermaid
+flowchart TD
+    Settings[VdoMap settings<br/>H264 + non-blocking] --> Stream[vdo_stream_new]
+    Stream --> FD[vdo_stream_get_fd]
+    Stream --> Start[vdo_stream_start]
+    FD --> Poll[poll fd]
+    Poll --> Get[vdo_stream_get_buffer]
+    Get --> NoData{NO_DATA?}
+    NoData -- yes --> Poll
+    NoData -- no --> Frame[vdo_buffer_get_frame]
+    Frame --> Return[vdo_stream_buffer_unref]
+    Return --> Poll
+```
 
-## Functions explained
+## Step 1: Make The Stream Non-Blocking
 
-### `setup_video_stream(void)`
-Creates a `VdoMap* settings` and populates essential keys:
-- `"format" = VDO_FORMAT_YUV` (we aim for NV12)
-- `"subformat" = "NV12"`
-- `"width" = 640`, `"height" = 360`
+```c
+vdo_map_set_uint32(settings, "channel", 1u);
+vdo_map_set_uint32(settings, "format", VDO_FORMAT_H264);
+vdo_map_set_boolean(settings, "socket.blocking", FALSE);
+```
 
-> You can tweak width/height here. NV12 is YUV 4:2:0 with *Y plane* followed by *interleaved UV*.
+With this setting, `vdo_stream_get_buffer` should not be used as the wait
+mechanism. It may return no data if no frame is ready.
 
-### `create_stream(void)`
-- Calls `vdo_stream_new(settings, NULL, &err)` to get `VdoStream* stream`.
-- Reads `VdoMap* info = vdo_stream_get_info(stream, &err)` and logs some fields:
-  - `format`, `width`, `height`, `framerate`
+## Step 2: Get The Stream fd
 
-> On success, it unrefs `settings` and later `info`. If it fails, it logs `err->message` and returns `FALSE`.
+```c
+int fd = vdo_stream_get_fd(stream, &error);
 
-### `print_frame(VdoFrame* frame)`
-- Uses `vdo_frame_get_is_last_buffer(frame)` to only log once per frame.
-- Logs sequence number, type (`VDO_FRAME_TYPE_YUV` → `"yuv"`), and size (`vdo_frame_get_size`).
+struct pollfd fds = {
+    .fd = fd,
+    .events = POLL_IN,
+};
+```
 
-### `start_stream(FILE* dest_f)`
-- Calls `vdo_stream_start(stream, &err)`
-- **Loop** `NFRAMES` (=10):
-  - `VdoBuffer* buffer = vdo_stream_get_buffer(stream, &err)`
-  - `VdoFrame* frame = vdo_buffer_get_frame(buffer)`
-  - Optionally abort early if `shutdown` flag was set by SIGINT.
-  - `print_frame(frame)`
-  - `void* data = vdo_buffer_get_data(buffer)` → NV12 bytes (Y then interleaved UV)
-  - `fwrite(data, vdo_frame_get_size(frame), 1, dest_f)` → here `/dev/null`
-  - `vdo_stream_buffer_unref(stream, &buffer, &err)` → **return buffer**
-- Returns `TRUE` on success, `FALSE` on any error.
+This fd becomes readable when VDO has data available.
 
-> **Note:** If `vdo_buffer_get_data` returns `NULL` on your platform, you can fall back to `vdo_frame_memmap((VdoFrame*)buffer)` to map a pointer temporarily. Do not use it after unref.
+## Step 3: Poll
 
-### `handle_sigint(int)`
-Sets `shutdown = TRUE` so the main loop can exit gracefully.
+```c
+int status = 0;
+do {
+    status = poll(&fds, 1, -1);
+} while (status == -1 && errno == EINTR);
+```
 
-### `main(void)`
-- Opens syslog, sets `SIGINT` handler.
-- Opens destination file (`/dev/null`) for writing.
-- Calls `setup_video_stream()` → `create_stream()` → `start_stream(dest_f)`.
-- On exit, handles `GError` cleanly and unrefs the stream.
+`EINTR` means a signal interrupted the wait. The sample retries.
 
----
+## Step 4: Fetch The Buffer
 
-## Buffer lifecycle & ownership
+```c
+VdoBuffer* vdo_buf = vdo_stream_get_buffer(stream, &error);
 
-1. **Obtain** a buffer: `vdo_stream_get_buffer(stream, &err)`
-2. **Inspect** metadata: `VdoFrame* f = vdo_buffer_get_frame(buffer)`
-3. **Read** bytes: `void* data = vdo_buffer_get_data(buffer)`
-   - Layout for NV12: `Y plane` (size `y_stride * height`) followed by `UV plane` (size `uv_stride * (height/2)`)
-4. **Use** the data (e.g., write to file or convert YUV→RGB)
-5. **Return** the buffer: `vdo_stream_buffer_unref(stream, &buffer, &err)`
-   - After this call, **do not** dereference `buffer`, `f`, or `data`
+if (!vdo_buf && g_error_matches(error, VDO_ERROR, VDO_ERROR_NO_DATA)) {
+    g_clear_error(&error);
+    continue;
+}
+```
 
-> This app uses `vdo_stream_buffer_unref(...)` (consumer pattern). In other contexts, `g_object_unref()` may be used; follow the pattern your SDK sample uses for your role (producer vs consumer).
+Even after `poll`, handle `VDO_ERROR_NO_DATA`. It can happen during transient
+stream changes or races.
 
----
+## Step 5: Inspect And Return
 
-## Error handling patterns
+```c
+VdoFrame* frame = vdo_buffer_get_frame(vdo_buf);
+gint64 pts = vdo_frame_get_timestamp(frame);
 
-- Always check `GError* err` after VDO calls. Log `err->message` and `g_clear_error(&err)` before continuing or returning.
-- Use `vdo_error_is_expected(&err)` during teardown (e.g., when shutting down early after a signal).
-- Log via `syslog(LOG_ERR, ...)` or `syslog(LOG_INFO, ...)` for consistent system logs on the camera.
+vdo_stream_buffer_unref(stream, &vdo_buf, &error);
+```
 
----
+The ownership rule stays the same as the blocking example:
 
-## NV12 reminder
+```text
+get buffer -> use buffer -> return buffer
+```
 
-- **Y plane** first (1 byte per pixel): `Y_SIZE = y_stride * height`
-- **UV plane** after Y (half resolution each axis, interleaved U,V): `UV_SIZE = uv_stride * (height/2)`
-- Total payload you typically write: `Y_SIZE + UV_SIZE`
+## Blocking vs Non-Blocking
 
-The exact strides are available from `vdo_stream_get_info()` with keys like `"plane.0.stride"` and `"plane.1.stride"` if you need them.
+```mermaid
+sequenceDiagram
+    participant App
+    participant VDO
+    rect rgb(235,235,235)
+    Note over App,VDO: Blocking
+    App->>VDO: vdo_stream_get_buffer
+    VDO-->>App: waits, then returns buffer
+    end
+    rect rgb(245,245,245)
+    Note over App,VDO: Non-blocking
+    App->>VDO: poll stream fd
+    VDO-->>App: fd readable
+    App->>VDO: vdo_stream_get_buffer
+    VDO-->>App: returns buffer or NO_DATA
+    end
+```
 
----
+## Why This Pattern Matters
 
-## Mini‑Lab
+Non-blocking VDO is the pattern used by more realistic applications because the
+same event loop can later wait on:
 
-1. **Change frame count**
-   - Set `#define NFRAMES 60` and rerun; observe log rate and behavior.
+- VDO stream fd
+- network sockets
+- timers
+- IPC
+- shutdown signals
+- multiple streams
 
-2. **Capture to file (host)**
-   - Replace `"/dev/null"` with a path like `"/tmp/out.nv12"`.
-   - `scp` the file to your host and view with ffplay:
-     ```bash
-     ffplay -f rawvideo -pixel_format nv12 -video_size 640x360 -framerate 30 /tmp/out.nv12
-     ```
+## What This Teaches
 
-3. **Inspect strides**
-   - Log `plane.0.stride` and `plane.1.stride` from `vdo_stream_get_info()` and assert that `frame->size >= Y_SIZE + UV_SIZE` before writing.
+- how to enable non-blocking VDO
+- how to retrieve the stream fd
+- how to use `poll`
+- why `NO_DATA` must still be handled
+- why buffer ownership is unchanged
 
-4. **Try another resolution**
-   - Change `width/height` in `setup_video_stream()` to a supported pair (e.g., 1280x720). If you pick an unsupported resolution, `vdo_stream_new()` may adjust or fail — check the info map.
-
-5. **Graceful interrupt**
-   - Hit Ctrl‑C while running. Verify the app exits without leaks and without “unexpected” errors in syslog.
-
-6. **Optional: memmap fallback**
-   - If `vdo_buffer_get_data()` returns `NULL`, swap to:
-     ```c
-     uint8_t* data = (uint8_t*)vdo_frame_memmap((VdoFrame*)buffer);
-     if (!data) { /* handle error */ }
-     ```
-   - Remember: do not use mapped data after unref.
-
----
-
-## Build & run
-
+## Build
 
 ```bash
-docker build --tag vdo-consumer --build-arg ARCH=aarch64 .
+docker build --tag vdo-stream-non-block --build-arg ARCH=aarch64 .
+docker cp $(docker create vdo-stream-non-block):/opt/app ./build
 ```
-```bash
-docker cp $(docker create vdo-consumer):/opt/app ./build
-```
-
-
-Deploy as an ACAP or run in the SDK environment; the app writes frames to `/dev/null` and logs metadata for each of the `NFRAMES` frames.
-
----
-
-

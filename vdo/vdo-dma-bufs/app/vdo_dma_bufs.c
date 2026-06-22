@@ -9,6 +9,8 @@
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <syslog.h>
@@ -70,9 +72,11 @@ static VdoStream* create_new_vdo_stream(unsigned int channel,
     // Then we need to poll instead when it is ok to get a buffer
     vdo_map_set_boolean(vdo_settings, "socket.blocking", false);
     vdo_map_set_string(vdo_settings, "image.fit", "scale");
-    vdo_map_set_uint32(vdo_settings,
-                   "buffer.access",
-                   2u);
+    /*
+     * This sample only reads camera frames. VDO owns the buffers and exposes
+     * them to the app as file descriptors. The default consumer access is
+     * enough for demonstrating DMA-BUF inspection.
+     */
 
     // Create a vdo stream using the vdoMap filled in above
     g_autoptr(VdoStream) vdo_stream = vdo_stream_new(vdo_settings, NULL, &error);
@@ -85,45 +89,77 @@ static VdoStream* create_new_vdo_stream(unsigned int channel,
     return g_steal_pointer(&vdo_stream);
 }
 
+static void log_stream_info(VdoStream* stream) {
+    g_autoptr(GError) error = NULL;
+    g_autoptr(VdoMap) info = vdo_stream_get_info(stream, &error);
 
-static void inspect_dma_buffer(VdoBuffer *buffer)
-{
+    if (!info) {
+        panic("%s: Failed to get vdo stream info: %s", __func__, error->message);
+    }
+
+    const char* buffer_type = vdo_map_get_string(info, "buffer.type", NULL, "unknown");
+    syslog(LOG_INFO,
+           "Stream info: %ux%u pitch=%u format=%u buffer.type=%s buffers=%u",
+           vdo_map_get_uint32(info, "width", 0),
+           vdo_map_get_uint32(info, "height", 0),
+           vdo_map_get_uint32(info, "pitch", 0),
+           vdo_map_get_uint32(info, "format", 0),
+           buffer_type,
+           vdo_map_get_uint32(info, "buffer.count", 0));
+}
+
+static void inspect_dma_buffer(VdoBuffer* buffer) {
     int fd = vdo_buffer_get_fd(buffer);
 
     if (fd < 0) {
-        g_warning("Could not get DMA fd");
+        syslog(LOG_WARNING, "VDO buffer has no fd");
         return;
     }
 
-    size_t size = vdo_buffer_get_capacity(buffer);
+    int64_t offset = vdo_buffer_get_offset(buffer);
+    size_t capacity = vdo_buffer_get_capacity(buffer);
+    VdoFrame* frame = vdo_buffer_get_frame(buffer);
+    size_t frame_size = frame ? vdo_frame_get_size(frame) : 0;
 
-    syslog(LOG_INFO, "DMA FD: %d", fd);
-    syslog(LOG_INFO, "Buffer size: %zu bytes", size);
+    syslog(LOG_INFO,
+           "DMA-BUF fd=%d offset=%" G_GINT64_FORMAT " capacity=%zu frame_size=%zu",
+           fd,
+           offset,
+           capacity,
+           frame_size);
 
-    void *mapped = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+    void* mapped = mmap(NULL, capacity, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mapped == MAP_FAILED) {
         syslog(LOG_ERR, "mmap failed: %s", strerror(errno));
         return;
     }
 
-    uint8_t *bytes = (uint8_t *)mapped;
+    uint8_t* bytes = (uint8_t*)mapped;
+    size_t start = offset >= 0 ? (size_t)offset : 0u;
+    size_t bytes_to_dump = 32u;
 
-    char dump[512] = {0};
-    char tmp[16];
-
-    for (int i = 99980; i < 100020; i++) {
-        snprintf(tmp, sizeof(tmp), "%02X ", bytes[i]);
-        strncat(dump,
-            tmp,
-            sizeof(dump) -
-            strlen(dump) - 1);
+    if (start >= capacity) {
+        syslog(LOG_WARNING, "Buffer offset is outside capacity");
+        munmap(mapped, capacity);
+        return;
+    }
+    if (start + bytes_to_dump > capacity) {
+        bytes_to_dump = capacity - start;
     }
 
-    syslog(LOG_INFO,
-       "Around 100000: %s",
-       dump);
-    munmap(mapped, size);
+    char dump[128] = {0};
+    char tmp[16];
+
+    for (size_t i = 0; i < bytes_to_dump; i++) {
+        snprintf(tmp, sizeof(tmp), "%02X ", bytes[start + i]);
+        strncat(dump,
+                tmp,
+                sizeof(dump) - strlen(dump) - 1);
+    }
+
+    syslog(LOG_INFO, "First %zu bytes at image offset: %s", bytes_to_dump, dump);
+    munmap(mapped, capacity);
 }
 
 
@@ -154,6 +190,8 @@ int main(int argc, char** argv) {
     if (fd < 0) {
         return handle_vdo_failed(vdo_error);
     }
+    log_stream_info(vdo_stream);
+
     struct pollfd fds = {
         .fd     = fd,
         .events = POLL_IN,
@@ -178,7 +216,7 @@ int main(int argc, char** argv) {
             panic("Failed to poll with status %d", status);
         }
 
-        g_autoptr(VdoBuffer) vdo_buf = vdo_stream_get_buffer(vdo_stream, &vdo_error);
+        VdoBuffer* vdo_buf = vdo_stream_get_buffer(vdo_stream, &vdo_error);
         if (!vdo_buf && g_error_matches(vdo_error, VDO_ERROR, VDO_ERROR_NO_DATA)) {
             g_clear_error(&vdo_error);
             continue;
@@ -190,9 +228,14 @@ int main(int argc, char** argv) {
         if (vdo_buf) {
 
             inspect_dma_buffer(vdo_buf);
-            // IMPORTANT:
-            // Release borrowed frame.
-            g_object_unref(vdo_buf);
+            /*
+             * Return the buffer to VDO. Do not read the mapped pointer or
+             * VdoBuffer after this point; VDO may reuse the buffer for a new
+             * frame immediately.
+             */
+            if (!vdo_stream_buffer_unref(vdo_stream, &vdo_buf, &vdo_error)) {
+                return handle_vdo_failed(vdo_error);
+            }
         }
     }
 

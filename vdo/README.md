@@ -1,53 +1,185 @@
-# VDO API 
+# VDO Examples
 
-Here’s a compact “map” of the three VDO samples in this repo, what each one does, the core APIs they exercise, and when you’d pick each.
+This folder is a progressive set of examples for learning VDO, the Axis Video
+Data Output API. VDO is the API an ACAP application uses to request frames from
+the camera video pipeline.
 
-## vdo-consumer
+The examples deliberately do not use larod. They focus only on camera streams,
+frame buffers, formats, ownership, polling, and DMA-BUF memory sharing.
 
-**Goal:** Smallest possible reader of NV12 frames. Creates a VDO stream, pulls N frames, logs metadata, writes raw bytes to `/dev/null`.
+## Recommended Learning Order
 
-**What it demonstrates**
-- Building a `VdoMap` with `format=YUV`, `subformat=NV12`, `width/height`.
-- `vdo_stream_new` → `vdo_stream_start` → `vdo_stream_get_buffer`.
-- Reading payload (`vdo_buffer_get_data`) and frame meta (`vdo_buffer_get_frame`); logging seq/size.
-- Returning buffers with `vdo_stream_buffer_unref`.
+```mermaid
+flowchart TD
+    A[1. vdo-utilities<br/>Discover channels and resolutions]
+    B[2. vdo-stream-blocking<br/>Simplest frame fetch loop]
+    C[3. vdo-stream-non-block<br/>Use stream fd and poll]
+    D[4. vdo-stream-rgb<br/>Request RGB frames]
+    E[5. vdo-stream-nv12<br/>Request NV12/YUV frames]
+    F[6. vdo-dma-bufs<br/>Inspect fd-backed frame memory]
 
-**Good for**
-- Verifying your toolchain/SDK, sanity-checking resolutions/strides, quick raw dumps.
+    A --> B --> C --> D
+    C --> E
+    D --> F
+    E --> F
+```
 
+## Folder Summary
 
+| Folder | Main lesson | Adds |
+| --- | --- | --- |
+| `vdo-utilities` | Discover camera channels, resolutions, and rotation | channel API, stream info |
+| `vdo-stream-blocking` | Fetch frames with the simplest blocking loop | `vdo_stream_get_buffer` ownership |
+| `vdo-stream-non-block` | Wait for frames with `poll` | non-blocking stream fd |
+| `vdo-stream-rgb` | Request RGB frames | convenience stream API, RGB layout |
+| `vdo-stream-nv12` | Request NV12 frames | YUV/NV12 layout |
+| `vdo-dma-bufs` | Inspect frame fds and mmap DMA-BUFs | fd, offset, capacity, zero-copy concept |
 
----
+## What VDO Does
 
-## vdo-producer
+VDO gives an application access to frames from the camera pipeline. The app asks
+for a stream with settings such as:
 
-**Goal:** Writer/producer path that fills NV12 buffers and shows BBox overlays; no model required—detections are simulated.
+- channel
+- format
+- resolution
+- framerate
+- blocking or non-blocking mode
+- number of buffers
+- image fit behavior
 
-**What it demonstrates**
-- Producer-side buffer flow with **EXPLICIT** strategy (`buffer.strategy=VDO_BUFFER_STRATEGY_EXPLICIT`, `buffer.access=…`, `buffer.count`).
-- Allocating/enqueuing buffers: `vdo_stream_buffer_alloc` → fill Y/UV → set frame type/size/timestamp → `vdo_stream_buffer_enqueue`.
-- Querying applied strides via `vdo_stream_get_info` (`plane.0/plane.1` stride), computing payload size.
-- Drawing overlays with **BBox** (`bbox_view_new`, `bbox_rectangle`, `bbox_commit`) and optional rotation awareness via `get_stream_rotation`.
+Then VDO returns `VdoBuffer*` objects. Each buffer represents one frame or frame
+chunk and must be returned to VDO after use.
 
-**Good for**
-- Teaching producer ownership, memory layout of NV12 (Y plane then interleaved UV), and how to drive overlays without ML.
+## Core Runtime Pattern
 
+```mermaid
+sequenceDiagram
+    participant App
+    participant VDO
+    App->>VDO: create VdoMap settings
+    App->>VDO: vdo_stream_new
+    App->>VDO: vdo_stream_get_info
+    App->>VDO: vdo_stream_start
+    loop each frame
+        App->>VDO: wait or poll
+        App->>VDO: vdo_stream_get_buffer
+        VDO-->>App: VdoBuffer
+        App->>App: inspect frame metadata or bytes
+        App->>VDO: vdo_stream_buffer_unref
+    end
+    App->>VDO: vdo_stream_stop
+```
 
----
+## Frame Ownership Rule
 
-## vdo-utilities
+The most important VDO rule is:
 
-**Goal:** Small toolkit to explore the platform: list channels, enumerate supported resolutions, create an NV12 stream, read rotation.
+```text
+get buffer -> use buffer -> return buffer
+```
 
-**What it demonstrates**
-- Channel enumeration (`vdo_channel_get_all`) and per-channel resolutions (`vdo_channel_get_resolutions` with filters like `aspect_ratio=native`).
-- Creating a stream from a simple `image_t { format, width, height }` description.
-- Reading live stream info (`rotation`, `width`, `height`, `framerate`) via `vdo_stream_get_info`.
+```mermaid
+flowchart LR
+    Pool[VDO buffer pool] --> Get[vdo_stream_get_buffer]
+    Get --> App[Application uses VdoBuffer]
+    App --> Return[vdo_stream_buffer_unref]
+    Return --> Pool
+```
 
-**Good for**
-- Discoverability/workshop intros: “what channels are there?”, “which resolutions are valid?”, “what’s the current rotation?”
+Do not read a `VdoBuffer`, `VdoFrame`, or data pointer after returning the
+buffer. VDO may immediately reuse that memory for another frame.
 
+## Blocking vs Non-Blocking
 
+Blocking stream:
 
----
+```text
+vdo_stream_get_buffer blocks until a frame is ready
+```
 
+Non-blocking stream:
+
+```text
+vdo_stream_get_buffer returns immediately
+poll(stream_fd) tells you when to try
+```
+
+```mermaid
+flowchart TD
+    Blocking[Blocking stream] --> BGet[vdo_stream_get_buffer waits]
+    NonBlocking[Non-blocking stream] --> Poll[poll stream fd]
+    Poll --> NBGet[vdo_stream_get_buffer returns frame]
+```
+
+Use blocking mode for the first example. Use non-blocking mode for real
+applications that may need timers, sockets, model queues, or several streams in
+one event loop.
+
+## Formats
+
+| Format | VDO value | Typical use |
+| --- | --- | --- |
+| H.264 | `VDO_FORMAT_H264` | encoded stream metadata and compressed bytes |
+| RGB | `VDO_FORMAT_RGB` | direct CPU/model-friendly pixels, larger frames |
+| YUV/NV12 | `VDO_FORMAT_YUV` or `vdo_stream_nv12_new` | efficient camera/native format |
+
+NV12 layout:
+
+```text
+Y plane:  width x height bytes
+UV plane: interleaved U,V at half vertical resolution
+```
+
+RGB layout:
+
+```text
+R G B R G B R G B ...
+```
+
+Always read back stream info after creation. VDO may adjust requested settings.
+
+## DMA-BUF Concept
+
+Some VDO buffers are backed by file descriptors. That lets another component map
+or share the same memory without copying image bytes.
+
+```mermaid
+flowchart LR
+    VDO[VDO fills frame buffer] --> FD[file descriptor]
+    FD --> App[mmap for inspection]
+    FD --> Other[Other API can consume fd]
+```
+
+The VDO DMA-BUF example does not use larod. It only shows that a VDO frame can
+be represented by:
+
+- fd
+- offset
+- capacity
+- frame size
+- format/pitch from stream info
+
+That is the base concept later used by larod examples.
+
+## Teaching Advice
+
+This content is good for newcomers if taught in order:
+
+1. First discover channels and valid resolutions.
+2. Then fetch frames with blocking VDO.
+3. Then switch to non-blocking `poll`.
+4. Then compare RGB and NV12.
+5. Finally inspect DMA-BUF fds and discuss zero-copy memory.
+
+Avoid starting with DMA-BUF. It is easier after students already understand
+buffer ownership and stream lifecycle.
+
+## Suggested Class Exercises
+
+1. Change channel id and observe stream creation behavior.
+2. Request unsupported resolution, then inspect the error or readback info.
+3. Compare blocking and non-blocking examples.
+4. Change RGB to NV12 and compare frame sizes.
+5. Log `fd`, `offset`, `capacity`, and `frame_size` in `vdo-dma-bufs`.
+6. Capture NV12 to a file and inspect it with `ffplay`.

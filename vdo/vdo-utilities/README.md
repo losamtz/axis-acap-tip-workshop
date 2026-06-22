@@ -1,201 +1,146 @@
-# VDO Utilities — Channels, Resolutions & Stream Info (NV12)
+# vdo-utilities
 
-This app is a tiny **VDO toolkit** you can use in a workshop to query **video channels**, list **supported resolutions**, create an **NV12 stream**, and read the stream’s **rotation**. It’s intentionally small and easy to extend.
+This is the discovery example for VDO. It does not fetch frames. It shows how to
+ask the camera what video channels exist, which resolutions are supported, and
+what stream metadata such as rotation looks like.
 
-> There is **no model** or overlay here. It’s a utilities app to explore the VDO API safely.
+Use this before choosing hardcoded stream settings in later examples.
 
----
+## Where This Fits
 
-## What it does
-
-1. **Enumerates channels** (logical video pipelines) with `vdo_channel_get_all()`
-2. **Lists resolutions** for a chosen channel (`aspect_ratio = "native"`)
-3. **Creates a stream** with NV12 (YUV 4:2:0) at a chosen resolution
-4. **Reads rotation** from the live stream’s info map
-
-The provided `main` builds a stream then immediately tears it down (no frame fetch), which makes it safe for quick checks.
-
----
-
-## File layout (3 files)
-
-```
-app/
-├─ utilities.h        # types and function declarations
-├─ utilities.c        # implementation (channels, resolutions, stream create/start, rotation)
-└─ vdo_utilities.c    # main() – calls the utilities in order
-# (panic.h/.c exists in your repo but is not required reading for this README)
+```mermaid
+flowchart LR
+    A[vdo-utilities<br/>discover channels/resolutions] --> B[vdo-stream-blocking<br/>fetch frames]
+    B --> C[vdo-stream-non-block<br/>poll frames]
+    C --> D[vdo-dma-bufs<br/>inspect fd-backed memory]
 ```
 
----
+## Concepts
 
+```mermaid
+flowchart TD
+    App[Application] --> Channels[vdo_channel_get_all]
+    App --> Filtered[vdo_channel_get_filtered]
+    App --> Res[vdo_channel_get_resolutions]
+    App --> Stream[vdo_stream_rgb_new]
+    Stream --> Info[vdo_stream_get_info]
+    Info --> Rotation[rotation]
+```
 
+VDO has two related APIs:
 
-## Runtime flow (in `vdo_utilities.c`)
+- channel API: discover what camera/video pipelines are available
+- stream API: create a stream from one channel and requested settings
+
+## What The App Does
+
+1. Lists available video channels.
+2. Lists filtered input channels.
+3. Lists supported resolutions for channel 1.
+4. Creates an RGB stream at 640 x 360.
+5. Reads stream rotation from `vdo_stream_get_info`.
+6. Releases the stream.
+
+## Channel Discovery
 
 ```c
-int main(void) {
-    // 1) List channels & resolutions
-    get_video_channels();
-    get_stream_resolutions();
+GList* channels = vdo_channel_get_all(&error);
 
-    // 2) Create an Image descriptor (format + target WxH)
-    image_t *img = create_image(640, 360, VDO_FORMAT_YUV);
-
-    // 3) Create stream (NV12)
-    create_stream(img);
-
-    // 4) Query rotation (from stream info)
-    get_stream_rotation(img);
-
-    // 5) Cleanup
-    if (img && img->vdo_stream) g_object_unref(img->vdo_stream);
-    g_free(img);
+for (GList* list = channels; list; list = list->next) {
+    VdoChannel* channel = list->data;
+    guint id = vdo_channel_get_id(channel);
+    syslog(LOG_INFO, "Channel id: %u", id);
 }
 ```
 
-This version **doesn’t start** the stream or fetch frames; it’s a pure utilities pass. (See *Mini‑Lab* for ideas to extend.)
+Channels are logical video pipelines. Most examples in this repo use channel 1,
+but real products may expose more.
 
----
+## Filtered Channels
 
-## Data types & ownership
-
-### `image_t`
 ```c
-typedef struct image {
-    VdoFormat  vdo_format;   // e.g., VDO_FORMAT_YUV
-    VdoStream* vdo_stream;   // created by create_stream()
-    unsigned   width, height;
-} image_t;
+VdoMap* filter = vdo_map_new();
+vdo_map_set_string(filter, "key", "input");
+
+GList* filtered_channels = vdo_channel_get_filtered(filter, &error);
 ```
 
-- `create_image(w,h,format)` allocates and fills this struct.
-- `create_stream(image*)` creates and stores the `VdoStream*` inside.
-- **Ownership:** `image->vdo_stream` must be released with `g_object_unref()` when done. The `image_t*` itself must be `g_free()`’d by the caller.
+Filtering is useful when you want only camera input channels rather than every
+VDO channel type.
 
----
+## Supported Resolutions
 
-## Functions (in `utilities.c`)
-
-### `image_t* create_image(unsigned int w, unsigned int h, VdoFormat format)`
-Allocates and initializes the `image_t` container—just metadata, no VDO calls. Logs format.
-
-**Errors:** panics on allocation failure.
-
----
-
-### `void create_stream(image_t *image)`
-Builds a `VdoMap* settings` and sets:
-- `"format"    = image->vdo_format` (e.g., `VDO_FORMAT_YUV`)
-- `"subformat" = "nv12"`            (NV12 under the YUV umbrella)
-- `"width"     = image->width`
-- `"height"    = image->height`
-
-Then:
-- `VdoStream* s = vdo_stream_new(settings, NULL, &err);`
-- On success: `image->vdo_stream = s`, logs “Stream created…”
-- Always unrefs `settings`, clears `err`
-
-**Errors:** `panic()` if stream creation fails (e.g., unsupported resolution).
-
-> Tip: If you need a specific channel, add `vdo_map_set_uint32(settings, "channel", 1u);` before `vdo_stream_new(...)`.
-
----
-
-### `gboolean start_stream(image_t *image)`
-Starts the stream:
 ```c
-if (!vdo_stream_start(image->vdo_stream, &err)) return FALSE;
+VdoChannel* channel = vdo_channel_get(1u, &error);
+
+VdoMap* map = vdo_map_new();
+vdo_map_set_string(map, "aspect_ratio", "native");
+
+VdoResolutionSet* set = vdo_channel_get_resolutions(channel, map, &error);
 ```
-Logs success and returns `TRUE`.
 
-**Note:** The current `main` doesn’t call this — it’s provided for your experiments.
+The app logs each resolution:
 
----
+```c
+for (size_t i = 0; i < set->count; ++i) {
+    VdoResolution* res = &set->resolutions[i];
+    syslog(LOG_INFO, "[%zu] %ux%u", i, res->width, res->height);
+}
+```
 
-### `void get_stream_resolutions(void)`
-Uses VDO Channel API to list resolutions:
-- `VdoChannel* ch = vdo_channel_get(VDO_CHANNEL, &err);`
-- Adds filter: `aspect_ratio = "native"`
-- `VdoResolutionSet* set = vdo_channel_get_resolutions(ch, map, &err);`
-- Loops and logs: `[%zu] WIDTHxHEIGHT`
+Use this list when selecting width and height in later examples.
 
-**Memory:** `g_object_unref(map)`, `g_clear_object(&ch)`, `g_free(set)`, and clear `err`.
+## Create A Stream Only To Inspect Info
 
-**Errors:** `panic()` on channel or set retrieval failure.
+The app creates a stream but does not start it:
 
----
+```c
+vdo_stream = vdo_stream_rgb_new(NULL,
+                                1u,
+                                (VdoResolution){ .width = 640, .height = 360 },
+                                &error);
+```
 
-### `void get_video_channels(void)`
-- Gets a list with `vdo_channel_get_all(&err)`
-- Logs the channel IDs (and “camera number” = `id + 1`)
-- Frees with `g_list_free_full(channels, (GDestroyNotify)g_object_unref)`
+Then it reads stream info:
 
----
+```c
+VdoMap* info = vdo_stream_get_info(stream, &error);
+syslog(LOG_INFO, "Current stream rotation: %u",
+       vdo_map_get_uint32(info, "rotation", 0));
+```
 
-### `void get_stream_rotation(image_t *image)`
-- `VdoMap* info = vdo_stream_get_info(image->vdo_stream, &err)`
-- Logs `rotation = vdo_map_get_uint32(info, "rotation", 0)`
-- Unrefs `info`, handles `err`
+You can inspect metadata before fetching frames.
 
+## Ownership
 
-## Build 
+```mermaid
+flowchart LR
+    Create[vdo_stream_rgb_new] --> Stream[VdoStream*]
+    Stream --> Info[vdo_stream_get_info]
+    Info --> UnrefInfo[g_object_unref info]
+    Stream --> UnrefStream[g_object_unref stream]
+```
 
+Anything returned as a GLib object must be unreferenced when done.
+
+## What This Teaches
+
+- how to discover VDO channels
+- how to list valid resolutions
+- how to create a stream object
+- how to read stream metadata
+- why later examples should read back actual stream info
+
+## Build
 
 ```bash
 docker build --tag vdo-utilities --build-arg ARCH=aarch64 .
-```
-```bash
 docker cp $(docker create vdo-utilities):/opt/app ./build
 ```
 
+## Exercises
 
-
---- 
-## Lab
-
-1. **Start the stream**
-   ```c
-   if (!start_stream(img)) { /* handle */ }
-   ```
-   Then call `vdo_stream_stop(img->vdo_stream)` on teardown.
-
-2. **Fetch & print N frames**
-   - After `start_stream`, call `vdo_stream_get_buffer(stream, &err)` a few times.
-   - Log `vdo_frame_get_sequence_nbr` and `vdo_frame_get_size`.
-   - Return buffer with `vdo_stream_buffer_unref(stream, &buffer, &err)`.
-
-3. **Pick a specific channel**
-   - Add `vdo_map_set_uint32(settings, "channel", 1u);` in `create_stream()`.
-   - Compare rotation or resolution availability across channels.
-
-4. **Try another resolution**
-   - Read the list from `get_stream_resolutions()` and pick an entry.
-   - Update `image->width/height`, recreate the stream, observe info in logs.
-
-5. **Log strides & framerate**
-   - From `info`, log `"plane.0.stride"`, `"plane.1.stride"`, `"framerate"`.
-   - Useful when you later want to write raw NV12 to files.
-
-6. **Handle transient reconfigure**
-   - Replace `panic()` in `get_stream_rotation()` with a retry loop that sleeps for a few ms if the interface is down.
-
----
-
-## Teardown & safety
-
-- If you started the stream: `vdo_stream_stop(image->vdo_stream);`
-- Always `g_object_unref(image->vdo_stream);`
-- `g_free(image);`
-- Clear any `GError*` with `g_clear_error(&err);`
-- Avoid using any buffer/stream pointer after unref/stop.
-
----
-
-## Troubleshooting
-
-- **Stream creation fails**: Resolution/format not supported on that channel; log `err->message` and try another size.
-- **Rotation info fails**: Likely transient pipeline reconfigure; treat as retryable (don’t crash in production).
-
----
-
+1. Change the channel id from `1u` to another discovered channel.
+2. Remove the native aspect ratio filter and compare resolution output.
+3. Log width, height, format, pitch, and framerate from stream info.
+4. Create an NV12 stream instead of RGB and compare stream info.

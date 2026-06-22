@@ -1,151 +1,129 @@
-# VDO Consumer — NV12 frames to `/dev/null` (Workshop)
+# vdo-stream-rgb
 
-This README explains how the **simple VDO consumer** works: it creates a VDO stream, fetches **NV12** frames, logs basic frame metadata, and writes the raw bytes to `/dev/null`. It also breaks down the functions, buffer lifecycle, error handling, and includes a short **mini‑lab** to experiment safely.
+This example requests RGB frames from VDO using the convenience constructor
+`vdo_stream_rgb_new`.
 
-> This app is based on patterns from `acap-native-sdk-examples`. It is intentionally small and uses **no model** or overlays.
+It keeps the non-blocking `poll` pattern from `vdo-stream-non-block`, but changes
+the stream format from encoded H.264 to raw RGB pixels.
 
----
+## Where This Fits
 
-## High‑level flow
-
-```
-setup_video_stream()         -> Prepare VDO settings (YUV/NV12, 640x360)
-create_stream()              -> vdo_stream_new() + log stream info
-start_stream(dest_f)         -> vdo_stream_start(); for N=10 frames:
-  ├─ vdo_stream_get_buffer() -> fetch VdoBuffer*
-  ├─ vdo_buffer_get_frame()  -> access VdoFrame* metadata
-  ├─ vdo_buffer_get_data()   -> pointer to NV12 bytes
-  ├─ fwrite(..., dest_f)     -> write bytes (here: /dev/null)
-  └─ vdo_stream_buffer_unref()-> return buffer to VDO
-main()                       -> installs SIGINT handler, calls above, teardown
+```mermaid
+flowchart LR
+    A[vdo-stream-non-block<br/>poll frame loop] --> B[vdo-stream-rgb<br/>raw RGB frames]
+    B --> C[vdo-dma-bufs<br/>inspect fd-backed memory]
 ```
 
-**Key idea:** *For each frame* you **get** a buffer, **use** its content & metadata, then **return** it to VDO. Never access the buffer after you unref it.
+## Architecture
 
----
+```mermaid
+flowchart TD
+    Request[vdo_stream_rgb_new<br/>channel 1, 640x360] --> Stream[VdoStream]
+    Stream --> FD[vdo_stream_get_fd]
+    FD --> Poll[poll]
+    Poll --> Buffer[vdo_stream_get_buffer]
+    Buffer --> Frame[VdoFrame metadata]
+    Frame --> Return[vdo_stream_buffer_unref]
+```
 
-## Functions explained
+## Why RGB
 
-### `setup_video_stream(void)`
-Creates a `VdoMap* settings` and populates essential keys:
-- `"format" = VDO_FORMAT_YUV` (we aim for NV12)
-- `"subformat" = "NV12"`
-- `"width" = 640`, `"height" = 360`
+RGB is easy to reason about:
 
-> You can tweak width/height here. NV12 is YUV 4:2:0 with *Y plane* followed by *interleaved UV*.
+```text
+R G B R G B R G B ...
+```
 
-### `create_stream(void)`
-- Calls `vdo_stream_new(settings, NULL, &err)` to get `VdoStream* stream`.
-- Reads `VdoMap* info = vdo_stream_get_info(stream, &err)` and logs some fields:
-  - `format`, `width`, `height`, `framerate`
+It is often convenient for CPU image processing and some ML models. It is larger
+than NV12 because it usually uses 3 bytes per pixel.
 
-> On success, it unrefs `settings` and later `info`. If it fails, it logs `err->message` and returns `FALSE`.
+## Create The RGB Stream
 
-### `print_frame(VdoFrame* frame)`
-- Uses `vdo_frame_get_is_last_buffer(frame)` to only log once per frame.
-- Logs sequence number, type (`VDO_FRAME_TYPE_YUV` → `"yuv"`), and size (`vdo_frame_get_size`).
+```c
+stream = vdo_stream_rgb_new(NULL,
+                            1u,
+                            (VdoResolution){ .width = 640u, .height = 360u },
+                            &error);
+```
 
-### `start_stream(FILE* dest_f)`
-- Calls `vdo_stream_start(stream, &err)`
-- **Loop** `NFRAMES` (=10):
-  - `VdoBuffer* buffer = vdo_stream_get_buffer(stream, &err)`
-  - `VdoFrame* frame = vdo_buffer_get_frame(buffer)`
-  - Optionally abort early if `shutdown` flag was set by SIGINT.
-  - `print_frame(frame)`
-  - `void* data = vdo_buffer_get_data(buffer)` → NV12 bytes (Y then interleaved UV)
-  - `fwrite(data, vdo_frame_get_size(frame), 1, dest_f)` → here `/dev/null`
-  - `vdo_stream_buffer_unref(stream, &buffer, &err)` → **return buffer**
-- Returns `TRUE` on success, `FALSE` on any error.
+This convenience API is roughly equivalent to building a `VdoMap` with:
 
-> **Note:** If `vdo_buffer_get_data` returns `NULL` on your platform, you can fall back to `vdo_frame_memmap((VdoFrame*)buffer)` to map a pointer temporarily. Do not use it after unref.
+```c
+vdo_map_set_uint32(settings, "channel", 1u);
+vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB);
+vdo_map_set_pair32u(settings, "resolution", resolution);
+```
 
-### `handle_sigint(int)`
-Sets `shutdown = TRUE` so the main loop can exit gracefully.
+The helper keeps the example focused on format behavior instead of map setup.
 
-### `main(void)`
-- Opens syslog, sets `SIGINT` handler.
-- Opens destination file (`/dev/null`) for writing.
-- Calls `setup_video_stream()` → `create_stream()` → `start_stream(dest_f)`.
-- On exit, handles `GError` cleanly and unrefs the stream.
+## Poll And Fetch
 
----
+The loop is the same non-blocking pattern:
 
-## Buffer lifecycle & ownership
+```c
+int fd = vdo_stream_get_fd(stream, &error);
+struct pollfd fds = {
+    .fd = fd,
+    .events = POLL_IN,
+};
 
-1. **Obtain** a buffer: `vdo_stream_get_buffer(stream, &err)`
-2. **Inspect** metadata: `VdoFrame* f = vdo_buffer_get_frame(buffer)`
-3. **Read** bytes: `void* data = vdo_buffer_get_data(buffer)`
-   - Layout for NV12: `Y plane` (size `y_stride * height`) followed by `UV plane` (size `uv_stride * (height/2)`)
-4. **Use** the data (e.g., write to file or convert YUV→RGB)
-5. **Return** the buffer: `vdo_stream_buffer_unref(stream, &buffer, &err)`
-   - After this call, **do not** dereference `buffer`, `f`, or `data`
+poll(&fds, 1, -1);
+VdoBuffer* vdo_buf = vdo_stream_get_buffer(stream, &error);
+```
 
-> This app uses `vdo_stream_buffer_unref(...)` (consumer pattern). In other contexts, `g_object_unref()` may be used; follow the pattern your SDK sample uses for your role (producer vs consumer).
+## Read Stream Info
 
----
+```c
+VdoMap* info = vdo_stream_get_info(stream, &error);
 
-## Error handling patterns
+syslog(LOG_INFO,
+       "Starting stream format RGB - resolution: %ux%u, at %u fps",
+       vdo_map_get_uint32(info, "width", 0),
+       vdo_map_get_uint32(info, "height", 0),
+       (unsigned int)(vdo_map_get_double(info, "framerate", 0.0) + 0.5));
+```
 
-- Always check `GError* err` after VDO calls. Log `err->message` and `g_clear_error(&err)` before continuing or returning.
-- Use `vdo_error_is_expected(&err)` during teardown (e.g., when shutting down early after a signal).
-- Log via `syslog(LOG_ERR, ...)` or `syslog(LOG_INFO, ...)` for consistent system logs on the camera.
+The stream info tells you what VDO actually created.
 
----
+## Buffer Lifecycle
 
-## NV12 reminder
+```mermaid
+sequenceDiagram
+    participant App
+    participant VDO
+    App->>VDO: poll stream fd
+    VDO-->>App: frame ready
+    App->>VDO: vdo_stream_get_buffer
+    VDO-->>App: RGB VdoBuffer
+    App->>App: inspect VdoFrame metadata
+    App->>VDO: vdo_stream_buffer_unref
+```
 
-- **Y plane** first (1 byte per pixel): `Y_SIZE = y_stride * height`
-- **UV plane** after Y (half resolution each axis, interleaved U,V): `UV_SIZE = uv_stride * (height/2)`
-- Total payload you typically write: `Y_SIZE + UV_SIZE`
+## RGB vs Encoded H.264
 
-The exact strides are available from `vdo_stream_get_info()` with keys like `"plane.0.stride"` and `"plane.1.stride"` if you need them.
+| Aspect | H.264 stream | RGB stream |
+| --- | --- | --- |
+| Data | compressed video bytes | raw pixels |
+| Size | smaller | larger |
+| CPU readability | needs decoding | direct pixel values |
+| Useful for | streaming/recording | image processing/ML input |
 
----
+## What This Teaches
 
-## Mini‑Lab
+- how to request RGB frames
+- how convenience constructors simplify stream creation
+- how the non-blocking frame loop stays the same across formats
+- why raw format choice affects memory size and downstream processing
 
-1. **Change frame count**
-   - Set `#define NFRAMES 60` and rerun; observe log rate and behavior.
-
-2. **Capture to file (host)**
-   - Replace `"/dev/null"` with a path like `"/tmp/out.nv12"`.
-   - `scp` the file to your host and view with ffplay:
-     ```bash
-     ffplay -f rawvideo -pixel_format nv12 -video_size 640x360 -framerate 30 /tmp/out.nv12
-     ```
-
-3. **Inspect strides**
-   - Log `plane.0.stride` and `plane.1.stride` from `vdo_stream_get_info()` and assert that `frame->size >= Y_SIZE + UV_SIZE` before writing.
-
-4. **Try another resolution**
-   - Change `width/height` in `setup_video_stream()` to a supported pair (e.g., 1280x720). If you pick an unsupported resolution, `vdo_stream_new()` may adjust or fail — check the info map.
-
-5. **Graceful interrupt**
-   - Hit Ctrl‑C while running. Verify the app exits without leaks and without “unexpected” errors in syslog.
-
-6. **Optional: memmap fallback**
-   - If `vdo_buffer_get_data()` returns `NULL`, swap to:
-     ```c
-     uint8_t* data = (uint8_t*)vdo_frame_memmap((VdoFrame*)buffer);
-     if (!data) { /* handle error */ }
-     ```
-   - Remember: do not use mapped data after unref.
-
----
-
-## Build & run
-
+## Build
 
 ```bash
-docker build --tag vdo-consumer --build-arg ARCH=aarch64 .
-```
-```bash
-docker cp $(docker create vdo-consumer):/opt/app ./build
+docker build --tag vdo-stream-rgb --build-arg ARCH=aarch64 .
+docker cp $(docker create vdo-stream-rgb):/opt/app ./build
 ```
 
+## Exercises
 
-Deploy as an ACAP or run in the SDK environment; the app writes frames to `/dev/null` and logs metadata for each of the `NFRAMES` frames.
-
----
-
-
+1. Change the resolution and compare `vdo_frame_get_size`.
+2. Log stream pitch from `vdo_stream_get_info`.
+3. Compare this output size with `vdo-stream-nv12` at the same resolution.
