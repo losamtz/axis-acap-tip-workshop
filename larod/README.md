@@ -1,422 +1,273 @@
-### Diagram
+# larod Examples
 
-```less
-    ┌──────────────────────────────────────────────────────────┐
-    │                    CAMERA SENSOR                         │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-                   ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  VDO Stream (poll + vdo_stream_get_buffer)               │
-    │                                                          │
-    │  Path A (A9): RGB at model resolution (e.g. 256×256)     │
-    │  Path B (A8): NV12 (YUV) at model resolution             │
-    │                                                          │
-    │  Buffers: 2 (rotating)                                   │
-    │  image.fit: "scale"                                      │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-                   │  vdo_buffer_get_fd() → file descriptor
-                   │
-                   ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  TENSOR TRACKING (first time only per buffer)            │
-    │                                                          │
-    │  dup(fd) → larodSetTensorFd → larodTrackTensor           │
-    │                                                          │
-    │  After this, larod knows where the image data lives.     │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-              ┌────┴────┐
-              │ need_pp?│
-              └────┬────┘
-         ┌──YES───┘└───NO──┐
-         │                 │
-         ▼                 ▼
-    ┌──────────────┐   ┌──────────────────────────────────┐
-    │ PREPROCESSING│   │  DIRECT TO INFERENCE             │
-    │ (cpu-proc)   │   │                                  │
-    │              │   │  Path A (A9): VDO delivers RGB   │
-    │ Path B (A8): │   │  at model resolution — no        │
-    │ NV12 → RGB   │   │  conversion needed.              │
-    │ + resize     │   │                                  │
-    │              │   │                                  │
-    │ Path A (A9): │   │                                  │
-    │ RGB → RGB    │   │                                  │
-    │ resize only  │   │                                  │
-    └──────┬───────┘   └───────────────┬──────────────────┘
-           │                           │
-           └───────────┬───────────────┘
-                       │
-                       ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  INFERENCE (larodRunJob)                                 │
-    │                                                          │
-    │  Backend: a9-dlpu-tflite (A9) or axis-a8-dlpu-tflite (A8)│
-    │  Input:  RGB 256×256 NHWC [1,256,256,3]                  │
-    │  Output: 2 × uint8                                       │
-    │          [0] = person confidence (0–255)                 │
-    │          [1] = car confidence    (0–255)                 │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-                   │  mmap'd memory — just read it
-                   │
-                   ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  RESULT                                                  │
-    │                                                          │
-    │  person_pct = output[0] / 2.55                           │
-    │  car_pct    = output[1] / 2.55                           │
-    │                                                          │
-    │  syslog: "Person: 82.4% — Car: 3.1%"                     │
-    └──────────────────────────────────────────────────────────┘
+This folder is a progressive set of examples for learning larod on Axis cameras.
+The intention is to start with the smallest possible mental model, then add one
+new piece at a time until the full camera-to-object-detection pipeline is clear.
+
+`larod` is the Axis local inference service. Applications use it to load models,
+select inference backends, allocate tensors, track shared memory buffers, and run
+inference jobs.
+
+## Recommended Learning Order
+
+```mermaid
+flowchart TD
+    A[1. larod-client<br/>Run a model manually from files]
+    B[2. larod-basic<br/>First live camera inference app]
+    C[3. larod-preprocessing<br/>Add cpu-proc resize/format conversion]
+    D[4. vdo-larod-min<br/>Non-blocking reusable VDO + larod pipeline]
+    E[5. object-detection-min<br/>SSD postprocessing and bbox overlay]
+
+    A --> B --> C --> D --> E
 ```
 
-# Larod functions Flow
-```less
-══════════════════════════════════════════════════════════════════════════
-                    LAROD FUNCTIONS — FD & DATA FLOW
-══════════════════════════════════════════════════════════════════════════
+This order is important. Each example keeps previous concepts and adds a new
+layer.
 
+## Folder Summary
 
-╔══════════════════════════════════════════════════════════════════════╗
-║  1. CONNECTION                                                       ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  larodConnect(&conn)                                                 ║
-║       │                                                              ║
-║       └──▶ conn (larodConnection*)                                   ║
-║            Used by ALL subsequent larod calls                        ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  2. LOAD MODELS                                                      ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  model.tflite ──▶ open() ──▶ model_fd (int)                          ║
-║                                  │                                   ║
-║                                  ▼                                   ║
-║  larodGetDevice(conn, "a9-dlpu-tflite") ──▶ device (larodDevice*)    ║
-║                                                │                     ║
-║                                                ▼                     ║
-║  larodLoadModel(conn, model_fd, device) ──▶ model (larodModel*)      ║
-║                                                                      ║
-║  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─         ║
-║                                                                      ║
-║  larodGetDevice(conn, "cpu-proc") ──▶ pp_device (larodDevice*)       ║
-║                                            │                         ║
-║                 pp_map ───────────────────▶│                         ║
-║                 (format, size, pitch)      │                         ║
-║                                            ▼                         ║
-║  larodLoadModel(conn, -1, pp_device) ──▶ pp_model (larodModel*)      ║
-║                        ^^                                            ║
-║                   fd=-1 means                                        ║
-║                   no model file                                      ║
-║                   (built-in pipeline)                                ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  3. PREPROCESSING MAP (input to larodLoadModel for PP)               ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  larodCreateMap() ──▶ pp_map (larodMap*)                             ║
-║       │                                                              ║
-║       ├── larodMapSetStr("image.input.format", "nv12" | "rgb-...")   ║
-║       ├── larodMapSetIntArr2("image.input.size", vdo_w, vdo_h)       ║
-║       ├── larodMapSetInt("image.input.row-pitch", vdo_pitch)         ║
-║       ├── larodMapSetStr("image.output.format", "rgb-interleaved")   ║
-║       ├── larodMapSetIntArr2("image.output.size", model_w, model_h)  ║
-║       └── larodMapSetInt("image.output.row-pitch", model_pitch)      ║
-║                                                                      ║
-║  Describes: VDO frame ──▶ model input conversion                     ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  4. READ MODEL METADATA (temporary tensors)                          ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  larodAllocModelInputs(conn, model) ──▶ tmp_in (larodTensor**)       ║
-║       │                                                              ║
-║       ├── larodGetTensorDims(tmp_in[0])                              ║
-║       │       └──▶ dims = [1, 256, 256, 3]                           ║
-║       │                    B   H    W   C                            ║
-║       │                         │    │                               ║
-║       │                    model_h  model_w                          ║
-║       │                                                              ║
-║       ├── larodGetTensorPitches(tmp_in[0])                           ║
-║       │       └──▶ pitches[2] = model_pitch (e.g. 768)               ║
-║       │                                                              ║
-║       └── larodDestroyTensors(tmp_in)   ← destroyed after reading    ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  5. OUTPUT TENSORS (larod allocates memory, you mmap to read)        ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  larodAllocModelOutputs(conn, model) ──▶ out_tensors (larodTensor**) ║
-║       │                                                              ║
-║       │   For each output tensor [0] and [1]:                        ║
-║       │                                                              ║
-║       ├── larodGetTensorFd(out_tensors[i])                           ║
-║       │       └──▶ out_fd (int)                                      ║
-║       │                                                              ║
-║       ├── larodGetTensorFdSize(out_tensors[i])                       ║
-║       │       └──▶ out_size (size_t)                                 ║
-║       │                                                              ║
-║       └── mmap(out_fd, out_size) ──▶ out_data[i] (void*)             ║
-║                                                                      ║
-║       ┌──────────────────────────────────────────┐                   ║
-║       │  out_data[0] ──▶ person confidence byte  │                   ║
-║       │  out_data[1] ──▶ car confidence byte     │                   ║
-║       └──────────────────────────────────────────┘                   ║
-║       These pointers stay valid for the lifetime                     ║
-║       of the tensors. Just read after each larodRunJob.              ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  6. PP OUTPUT TENSORS (= inference input when PP is used)            ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  larodAllocModelOutputs(conn, pp_model) ──▶ pp_out (larodTensor**)   ║
-║                                                                      ║
-║  These tensors hold the preprocessed RGB image.                      ║
-║  They are passed directly as inference input — zero copy.            ║
-║                                                                      ║
-║  ┌─────────────────────────────────────────────────────┐             ║
-║  │  pp_out ──▶ RGB 256×256 ──▶ inference input         │             ║
-║  └─────────────────────────────────────────────────────┘             ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  7. VDO INPUT TENSORS (always manual, one per VDO buffer)            ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  For each VDO buffer (i = 0, 1):                                     ║
-║                                                                      ║
-║  larodCreateTensors(1) ──▶ vdo_tensors[i] (larodTensor**)            ║
-║       │                                                              ║
-║       ├── larodSetTensorDataType(UINT8)                              ║
-║       ├── larodSetTensorLayout(420SP | NHWC | NCHW)                  ║
-║       ├── larodBuildTensorDims(layout, vdo_w, vdo_h, 3)              ║
-║       ├── larodBuildTensorPitches(layout, vdo_pitch, vdo_h, 3)       ║
-║       └── larodSetTensorFdProps(DMABUF | MAP)                        ║
-║                                                                      ║
-║  These tensors have NO fd yet — that happens during tracking.        ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  8. TENSOR TRACKING (binds VDO buffer fd to tensor, once per buf)    ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  VdoBuffer                                                           ║
-║       │                                                              ║
-║       ├── vdo_buffer_get_fd()      ──▶ vdo_fd (int)                  ║
-║       ├── vdo_buffer_get_offset()  ──▶ offset (int64_t)              ║
-║       └── vdo_buffer_get_capacity()──▶ capacity (size_t)             ║
-║                                                                      ║
-║                  vdo_fd                                              ║
-║                    │                                                 ║
-║                    ▼                                                 ║
-║               dup(vdo_fd) ──▶ duped_fd (int)                         ║
-║                    │                                                 ║
-║                    ▼                                                 ║
-║  larodSetTensorFd(tensor, duped_fd)                                  ║
-║  larodSetTensorFdOffset(tensor, offset)                              ║
-║  larodSetTensorFdSize(tensor, capacity)                              ║
-║  larodTrackTensor(conn, tensor)                                      ║
-║                                                                      ║
-║  ┌─────────────────────────────────────────────────────────┐         ║
-║  │  After tracking, larod knows:                           │         ║
-║  │    • WHERE the image data is    (duped_fd)              │         ║
-║  │    • WHERE it starts            (offset)                │         ║
-║  │    • HOW BIG the buffer is      (capacity)              │         ║
-║  │    • WHAT FORMAT it is          (from step 7)           │         ║
-║  │                                                         │         ║
-║  │  This only happens ONCE per VDO buffer.                 │         ║
-║  │  VDO reuses the same 2 buffers — so 2 track calls max.  │         ║
-║  └─────────────────────────────────────────────────────────┘         ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  9. JOB REQUESTS + EXECUTION (per frame)                             ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  WITH PREPROCESSING:                                                 ║
-║  ──────────────────                                                  ║
-║                                                                      ║
-║  vdo_tensors[slot]          pp_out                                   ║
-║  (VDO frame fd)        (PP output fd)                                ║
-║       │                      │                                       ║
-║       ▼                      ▼                                       ║
-║  ┌─────────────────────────────────────────────────┐                 ║
-║  │ pp_job = larodCreateJobRequest(                 │                 ║
-║  │              pp_model,                          │                 ║
-║  │              vdo_tensors[slot], 1,   ← input    │                 ║
-║  │              pp_out, pp_num_out,     ← output   │                 ║
-║  │              NULL)                              │                 ║
-║  │                                                 │                 ║
-║  │ larodRunJob(conn, pp_job)                       │                 ║
-║  └──────────────────────┬──────────────────────────┘                 ║
-║                         │                                            ║
-║                    pp_out now contains                               ║
-║                    RGB 256×256 data                                  ║
-║                         │                                            ║
-║       pp_out            │           out_tensors                      ║
-║  (PP output = inf input)│      (inference output)                    ║
-║       │                 │              │                             ║
-║       ▼                 ▼              ▼                             ║
-║  ┌─────────────────────────────────────────────────┐                 ║
-║  │ inf_job = larodCreateJobRequest(                │                 ║
-║  │               model,                            │                 ║
-║  │               pp_out, pp_num_out,    ← input    │                 ║
-║  │               out_tensors, num_out,  ← output   │                 ║
-║  │               NULL)                             │                 ║
-║  │                                                 │                 ║
-║  │ larodRunJob(conn, inf_job)                      │                 ║
-║  └──────────────────────┬──────────────────────────┘                 ║
-║                         │                                            ║
-║                         ▼                                            ║
-║                    out_data[0] ──▶ person byte                       ║
-║                    out_data[1] ──▶ car byte                          ║
-║                                                                      ║
-║  ═══════════════════════════════════════════════════                 ║
-║                                                                      ║
-║  WITHOUT PREPROCESSING:                                              ║
-║  ──────────────────────                                              ║
-║                                                                      ║
-║  vdo_tensors[slot]                    out_tensors                    ║
-║  (VDO frame fd)                  (inference output)                  ║
-║       │                                │                             ║
-║       ▼                                ▼                             ║
-║  ┌─────────────────────────────────────────────────┐                 ║
-║  │ inf_job = larodCreateJobRequest(                │                 ║
-║  │               model,                            │                 ║
-║  │               vdo_tensors[slot], 1,  ← input    │                 ║
-║  │               out_tensors, num_out,  ← output   │                 ║
-║  │               NULL)                             │                 ║
-║  │                                                 │                 ║
-║  │ larodRunJob(conn, inf_job)                      │                 ║
-║  └──────────────────────┬──────────────────────────┘                 ║
-║                         │                                            ║
-║                         ▼                                            ║
-║                    out_data[0] ──▶ person byte                       ║
-║                    out_data[1] ──▶ car byte                          ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  10. JOB REUSE (subsequent frames)                                  ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  Jobs are created ONCE (lazily on first frame).                      ║
-║  On subsequent frames, only the input is updated:                    ║
-║                                                                      ║
-║  larodSetJobRequestInputs(pp_job, vdo_tensors[slot], 1)              ║
-║                                                                      ║
-║  The output tensors never change — same mmap'd memory.               ║
-║  larodRunJob writes new results into the same out_data pointers.     ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  11. READING RESULTS (after each larodRunJob)                        ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  ┌────────────────────────────────────────────────────────┐          ║
-║  │                                                        │          ║
-║  │   out_fd[0] ◄──mmap──▶ out_data[0] ──▶ uint8_t byte    │          ║
-║  │                                         │              │          ║
-║  │                                    person / 2.55       │          ║
-║  │                                         │              │          ║
-║  │                                    "Person: 82.4%"     │          ║
-║  │                                                        │          ║
-║  │   out_fd[1] ◄──mmap──▶ out_data[1] ──▶ uint8_t byte    │          ║
-║  │                                         │              │          ║
-║  │                                    car / 2.55          │          ║
-║  │                                         │              │          ║
-║  │                                    "Car: 3.1%"         │          ║
-║  │                                                        │          ║
-║  └────────────────────────────────────────────────────────┘          ║
-║                                                                      ║
-║  No copy needed — mmap'd memory is updated in-place by larod.        ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-       │
-       ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║  12. CLEANUP (reverse order)                                         ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  larodDestroyJobRequest(&pp_job)                                     ║
-║  larodDestroyJobRequest(&inf_job)                                    ║
-║  larodDestroyTensors(vdo_tensors[i])     ← input tensors             ║
-║  close(duped_fds[i])                     ← dup'd VDO fds             ║
-║  larodDestroyTensors(pp_out)             ← PP output tensors         ║
-║  larodDestroyTensors(out_tensors)        ← inference output tensors  ║
-║  larodDestroyModel(&pp_model)                                        ║
-║  larodDestroyModel(&model)                                           ║
-║  larodDisconnect(&conn)                                              ║
-║  close(model_fd)                         ← model file fd             ║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
+| Folder | Main lesson | Adds |
+| --- | --- | --- |
+| `larod-client` | Run larod manually with model/input/output files | model validation, raw tensor files, SSD output inspection |
+| `larod-basic` | Minimal live camera inference app | VDO frames, direct RGB input, DMA-BUF tensor tracking |
+| `larod-preprocessing` | Add preprocessing | `cpu-proc`, image format conversion, resize to model input |
+| `vdo-larod-min` | Production-shaped minimal pipeline | non-blocking VDO, `poll`, backend-aware RGB/NV12 path |
+| `object-detection-min` | Object detection overlay | four SSD outputs, confidence filtering, `bbox` rectangles |
 
+## Core Concepts
 
-══════════════════════════════════════════════════════════════════════════
-  COMPLETE FD MAP — every file descriptor in the application
-══════════════════════════════════════════════════════════════════════════
+```mermaid
+flowchart LR
+    VDO[VDO<br/>camera frame provider]
+    App[ACAP application<br/>owns control flow]
+    Larod[larod<br/>inference service]
+    Backend[Inference backend<br/>DLPU/TFLite/CPU]
+    BBox[bbox<br/>overlay API]
 
-  ┌──────────────┬──────────────────────┬─────────────────────────────┐
-  │ FD           │ Source               │ Used by                     │
-  ├──────────────┼──────────────────────┼─────────────────────────────┤
-  │ model_fd     │ open(model.tflite)   │ larodLoadModel              │
-  │ vdo_fd[0]    │ VDO buffer 0         │ dup → tensor tracking       │
-  │ vdo_fd[1]    │ VDO buffer 1         │ dup → tensor tracking       │
-  │ duped_fd[0]  │ dup(vdo_fd[0])       │ larodSetTensorFd            │
-  │ duped_fd[1]  │ dup(vdo_fd[1])       │ larodSetTensorFd            │
-  │ pp_out_fd    │ larod (allocated)    │ PP output / inference input │
-  │ out_fd[0]    │ larod (allocated)    │ mmap → person result        │
-  │ out_fd[1]    │ larod (allocated)    │ mmap → car result           │
-  └──────────────┴──────────────────────┴─────────────────────────────┘
+    VDO -->|frame fd| App
+    App -->|tensor metadata + jobs| Larod
+    Larod --> Backend
+    Backend --> Larod
+    Larod -->|output tensors| App
+    App --> BBox
+```
 
-  ```less
+VDO and larod do different jobs:
 
-### memfd vs vmem
+- VDO provides camera frames.
+- larod runs models and preprocessing jobs.
+- The application connects the two by describing VDO buffers as larod tensors.
+- bbox draws results back into the camera view.
 
-  ```less
-┌─────────────────────────────────────────────────────────────────┐
-│  "memfd" / DMA-buf (dmabuf = true)                              │
-│                                                                 │
-│  • Modern Linux shared memory                                   │
-│  • File descriptor directly points to the frame data            │
-│  • Larod can access it directly via the fd                      │
-│  • Used on: ARTPEC-9 and newer SoCs                             │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  "vmem" (dmabuf = false)                                        │
-│                                                                 │
-│  • Axis proprietary video memory allocator                      │
-│  • The fd points to a vmem region — NOT directly usable         │
-│    by larod as-is                                               │
-│  • Must be converted to DMA-buf first                           │
-│  • Used on: older SoCs (ARTPEC-7, some ARTPEC-8 configs)        │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-  ```
+## What larod Owns
+
+larod owns:
+
+- loaded model handles
+- allocated input/output tensors when requested
+- job requests
+- execution on a selected backend
+- tracking metadata for external fd-backed tensors
+
+larod does not own:
+
+- the camera stream
+- the VDO frame lifecycle
+- application control flow
+- model-specific postprocessing
+- bbox overlays
+
+## The Standard larod Pattern
+
+Every larod application in this folder follows the same high-level structure:
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant Larod
+    participant VDO
+    App->>Larod: larodConnect
+    App->>Larod: larodGetDevice
+    App->>Larod: larodLoadModel
+    App->>Larod: allocate/read model tensors
+    App->>VDO: create stream
+    loop each frame
+        App->>VDO: get VDO buffer
+        App->>Larod: track fd as tensor if new
+        App->>Larod: run preprocessing if needed
+        App->>Larod: run inference
+        Larod-->>App: output tensors updated
+        App->>App: postprocess outputs
+        App->>VDO: return VDO buffer
+    end
+```
+
+## Progressive Complexity
+
+### 1. larod-client
+
+Start without camera frames. Use a model file and a prepared binary input file.
+
+```mermaid
+flowchart LR
+    Model[model.tflite] --> Client[larod-client]
+    Input[input.bin] --> Client
+    Client --> Larod[larod]
+    Larod --> Outputs[output0.bin<br/>output1.bin<br/>...]
+```
+
+This teaches:
+
+- the backend must be correct
+- the input tensor bytes must match the model
+- output tensors need decoding
+- SSD models often have multiple outputs
+
+### 2. larod-basic
+
+Add live camera frames, but keep the path direct:
+
+```mermaid
+flowchart LR
+    VDO[VDO RGB at model size] --> Tensor[VDO-backed larod tensor]
+    Tensor --> Inference[larod inference]
+    Inference --> Output[mmap outputs]
+```
+
+This teaches:
+
+- VDO stream setup
+- model input metadata
+- manual input tensor descriptors
+- DMA-BUF fd tracking
+- output tensor mmap
+
+Constraint: VDO must produce RGB at exactly the model size.
+
+### 3. larod-preprocessing
+
+Add conversion and resizing:
+
+```mermaid
+flowchart LR
+    VDO[VDO RGB/NV12<br/>camera size] --> PP[cpu-proc preprocessing]
+    PP --> RGB[RGB model-size tensor]
+    RGB --> Inference[larod inference]
+```
+
+This teaches:
+
+- preprocessing is a larod model
+- `cpu-proc` is configured with `larodMap`
+- fd `-1` means no model file for preprocessing
+- preprocessing output tensors can become inference input tensors
+
+### 4. vdo-larod-min
+
+Make the loop more realistic:
+
+```mermaid
+flowchart TD
+    Poll[poll VDO fd] --> Get[vdo_stream_get_buffer]
+    Get --> Track[track fd once]
+    Track --> Choice{need preprocessing?}
+    Choice -- yes --> PP[run cpu-proc]
+    PP --> INF[run inference]
+    Choice -- no --> INF
+    INF --> Read[read mmap outputs]
+    Read --> Return[return VDO buffer]
+    Return --> Poll
+```
+
+This teaches:
+
+- non-blocking streams
+- backend capability decisions
+- reusable setup helpers
+- production-style frame loop structure
+
+### 5. object-detection-min
+
+Replace the two-output classifier with an SSD object detector:
+
+```mermaid
+flowchart LR
+    Frame[VDO frame] --> Pipeline[VDO + optional PP + inference]
+    Pipeline --> Boxes[locations]
+    Pipeline --> Classes[classes]
+    Pipeline --> Scores[scores]
+    Pipeline --> Count[num detections]
+    Boxes --> Post[postprocess]
+    Classes --> Post
+    Scores --> Post
+    Count --> Post
+    Post --> BBox[bbox overlay]
+```
+
+This teaches:
+
+- model-specific output parsing
+- normalized detection box coordinates
+- confidence thresholds
+- drawing with bbox
+
+## Memory Model
+
+The key performance concept is avoiding full-frame CPU copies.
+
+```mermaid
+flowchart TD
+    VDO[VDO frame buffer] --> FD[file descriptor]
+    FD --> Dup[dup fd for larod]
+    Dup --> Tensor[larod tensor fd metadata]
+    Tensor --> Backend[backend reads shared memory]
+    Backend --> Out[small output tensors]
+    Out --> Mmap[CPU mmap reads results]
+```
+
+The large image frame is shared by fd. The CPU reads only small output tensors.
+
+## Common API Roles
+
+| API | Role |
+| --- | --- |
+| `larodConnect` | open session with larod |
+| `larodGetDevice` | choose backend |
+| `larodLoadModel` | load inference model or cpu-proc preprocessing pipeline |
+| `larodAllocModelInputs` | inspect model input metadata |
+| `larodAllocModelOutputs` | allocate backend-written output tensors |
+| `larodCreateTensors` | create manual tensor descriptors for external memory |
+| `larodTrackTensor` | register fd-backed memory with larod |
+| `larodCreateJobRequest` | bind model, inputs, outputs |
+| `larodRunJob` | execute preprocessing or inference |
+
+## Is This Good Teaching Content For Newcomers?
+
+Yes, with one caveat: newcomers need the progression to be explicit. larod has
+several concepts that look similar at first:
+
+- model input tensors vs manually created VDO tensors
+- preprocessing model vs inference model
+- VDO buffers vs larod tensors
+- output tensors vs postprocessed results
+
+The examples are good for teaching if they are used in this order and each class
+session focuses on one new idea:
+
+1. Run a model from files.
+2. Replace the input file with a live VDO frame.
+3. Add preprocessing when the frame does not match.
+4. Make the frame loop non-blocking and reusable.
+5. Add model-specific postprocessing and overlays.
+
+For a class, avoid starting with `object-detection-min`. It has all concepts at
+once. Start with `larod-client` or `larod-basic`, then build up.
+
+## Suggested Class Exercises
+
+1. Change `DEVICE_NAME` and observe backend errors.
+2. Print the model input dimensions and compare them to VDO stream dimensions.
+3. Change VDO resolution and force preprocessing.
+4. Log when a VDO fd is tracked and show that tracking happens once per buffer.
+5. Raise/lower confidence thresholds in object detection.
+6. Replace the model and identify which postprocessing assumptions break.

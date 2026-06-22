@@ -1,19 +1,20 @@
-#include <bbox.h>
+#ifndef POSTPROCESS_H
+#define POSTPROCESS_H
 
-// define box struct
+#include <bbox.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 typedef struct {
-    float y_min;
-    float x_min;
-    float y_max;
-    float x_max;
-    float score;
-    int label;
-} box;
+    int fd;
+    void* data;
+    size_t size;
+} output_buf_t;
 
 bbox_t* setup_bbox(uint32_t channel);
 bool parse_and_postprocess_output_tensors(bbox_t* bbox,
-                                          model_tensor_output_t* tensor_outputs,
-                                          float confidence_threshold,
-                                          char** labels,
-                                          unsigned int* post_processing_ms);
+                                          output_buf_t* tensor_outputs,
+                                          float confidence_threshold);
 
+#endif

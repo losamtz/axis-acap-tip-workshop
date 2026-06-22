@@ -1,139 +1,294 @@
-# Larod client tool
+# larod-client
 
-larod-client is a small program that uses the larod API in the same way as a typical application would do. Command line options and an interactive mode makes it easy to interact with the larod service. Some use case examples are listed in this file; please refer to the tool help (--help option) and ultimately the source code for nitty-gritty-details.
+`larod-client` is the first lesson in the larod learning path. It lets you run
+inference manually from the command line before writing a full ACAP application.
 
-## Description
+This is useful because it separates model execution from camera streaming. You
+can first prove that:
 
-Before starting this tutorial, we would need to configure camera developer mode ["Developer mode instructions"](https://developer.axis.com/acap/get-started/set-up-developer-environment/set-up-device-advanced/) 
+- the model loads on the target backend
+- the input tensor file has the expected format
+- larod writes the expected output tensors
+- the output order and shapes match your postprocessing assumptions
 
-In this example we will work with the larod client tool accessing it through ssh. 
+## Where This Fits
 
-We will:
+```mermaid
+flowchart LR
+    A[larod-client<br/>manual model execution] --> B[larod-basic<br/>first camera app]
+    B --> C[larod-preprocessing<br/>add resize/convert]
+    C --> D[vdo-larod-min<br/>non-blocking app structure]
+    D --> E[object-detection-min<br/>boxes and overlay]
+```
 
-1. Build and install a dummy app to be able to enable later ssh acap user
-2. Configure camera developer mode 
-3. Create an environment for python locally, so we avoid installing the needed libraries globally
-4. Download a model from Coral 
-5. Download a picture from unsplash with resolution 300x300
-6. Run a python script to convert the jpg into RGB or binary
-7. Export binary and model to the /tmp camera folder through ssh
-8. Run inference with larod tool selecting backend, the model and input file (binary dog picture) for the model
+`larod-client` is not a camera pipeline example. It is a model and tensor
+inspection tool.
 
-## Steps
+## Concept
 
-### 1 - Build this acap and install in the camera
+```mermaid
+flowchart TD
+    PC[Development PC] --> Image[JPG image]
+    Image --> Convert[img_converter.py<br/>resize and RGB bytes]
+    Convert --> Bin[input .bin]
+    PC --> Model[TFLite model]
+    Model --> Camera[/tmp on camera]
+    Bin --> Camera
+    Camera --> Client[larod-client command]
+    Client --> Larod[larod service]
+    Larod --> Backend[DLPU/TFLite backend]
+    Backend --> Outputs[output .bin files]
+    Outputs --> Decode[decode_larod_ssd_outputs.py]
+```
+
+## What larod-client Teaches
+
+- A model input tensor is just bytes with the expected shape and layout.
+- larod can run a model without VDO.
+- Output tensors can be written to files.
+- SSD object detection models usually produce multiple outputs.
+- You should verify output order before writing C postprocessing code.
+
+## Prerequisites
+
+You need:
+
+- an Axis camera with developer mode enabled
+- SSH access to the ACAP user
+- an ACAP SDK Docker build environment
+- Python on your development machine for image conversion
+
+Developer mode documentation:
+
+<https://developer.axis.com/acap/get-started/set-up-developer-environment/set-up-device-advanced/>
+
+## Build The ACAP Package
+
+Build:
 
 ```bash
 docker build --build-arg ARCH=aarch64 --tag larod-client .
 ```
 
+Copy the generated package out of the container:
+
 ```bash
 docker cp $(docker create --platform=linux/amd64 larod-client):/opt/app ./build
 ```
 
-### 2 - Configure developer mode and assign a password to your ssh user
+Install the `.eap` package on the camera. The package provides the
+`larod-client` tool in the ACAP environment.
 
-Instructions: ["Developer mode instructions"](https://developer.axis.com/acap/get-started/set-up-developer-environment/set-up-device-advanced/)
+## Prepare A Python Environment
 
-
-### 3 - Create an environment for python applications
-
-Do this once per project to avoid externally-managed-environment error:
+Create an isolated environment on your PC:
 
 ```bash
-
-# 1. Make a project folder (if you haven't already)
 mkdir -p ~/python-playground
 cd ~/python-playground
-
-# 2. Create a virtual environment called .venv
 python3 -m venv .venv
-
-# 3. Activate it (VERY important)
 source .venv/bin/activate
-
-# 4. Install safely the packages
 pip install click Pillow numpy
-
 ```
 
-When done (with the project):
+When finished:
 
 ```bash
 deactivate
 ```
 
-### 4 - Download model
+## Download A Model
 
-Model: ["Coral - SSD MobileNet V1"](https://raw.githubusercontent.com/google-coral/test_data/master/ssd_mobilenet_v1_coco_quant_postprocess.tflite)
-
-### 5 - Download image
-
-Image jpg (Save it as dog.jpg): ["dog"](https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300)
-
-or use curl:
+The tutorial uses a Coral SSD MobileNet model:
 
 ```bash
-curl -L -o dog.jpg "https://unsplash.com/photos/FFwNGYZK-2o/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzYzNDU3OTM1fA&force=true&w=300"
+curl -L -o ssd_mobilenet_v1_coco_quant_postprocess.tflite \
+  https://raw.githubusercontent.com/google-coral/test_data/master/ssd_mobilenet_v1_coco_quant_postprocess.tflite
 ```
 
-### 6 - Run python script 
+This model expects an RGB image tensor and produces detection boxes, classes,
+scores, and count.
 
-If you are in under `~/python-playground` copy the script `img-converter.py` in this folder
+## Create An Input Binary
+
+Download a test image:
 
 ```bash
-
-# 5. Run the script
-python img-converter.py -i dog.jpg -w 300 -h 300
-
+curl -L -o dog.jpg \
+  "https://unsplash.com/photos/FFwNGYZK-2o/download?force=true&w=300"
 ```
 
-You should get a `dog.bin` file.
-
-
-### 7 - Export model and binary recently created to /tmp in the camera
+Convert it to raw model input bytes:
 
 ```bash
-# 6. Send files to /tmp
-scp ssd_mobilenet_v1_coco_quant_postprocess.tflite dog.bin acap-larod_client_tool@cam_ip:/tmp/
-
+python img_converter.py -i dog.jpg -w 300 -h 300
 ```
 
-### 8 - Run inference with larod tool selecting backend, the model and input file (binary dog picture) for the model
+The output should be a `.bin` file, for example:
 
-* Create output files before running inference of your model due to a permission issues since FW 12. It will be fix soon. For now this step is needed.
+```text
+dog.bin
+```
+
+The binary is not an image file anymore. It is raw RGB bytes laid out in the
+order the model expects.
+
+## Copy Files To The Camera
 
 ```bash
-touch test_out0.bin
-touch test_out1.bin
-touch test_out2.bin
-touch test_out3.bin
+scp ssd_mobilenet_v1_coco_quant_postprocess.tflite dog.bin \
+  acap-larod_client_tool@CAMERA_IP:/tmp/
 ```
+
+Replace `CAMERA_IP` with the camera address.
+
+## Run Inference With larod-client
+
+SSH to the camera as the ACAP user, then prepare output files:
 
 ```bash
-# 7. Run inference
-larod-client -d -c axis-a8-dlpu-tflite -g ssd_mobilenet_v1_coco_quant_postprocess.tflite -R 1 -i test.bin -o test_out0.bin -o test_out1.bin -o test_out2.bin -o test_out3.bin
-
+cd /tmp
+touch test_out0.bin test_out1.bin test_out2.bin test_out3.bin
 ```
 
-## Extra steps - What are those 4 outputs?
-
-
-For SSD MobileNet V1 COCO with postprocess (the Coral-style model you have), the outputs are almost always:
-
-1. detection_boxes → [1, N, 4] (ymin, xmin, ymax, xmax), normalized 0–1
-2. detection_classes → [1, N] (float, class index)
-3. detection_scores → [1, N] (float confidence 0–1)
-4. num_detections → [1] (float, how many of the N are valid)
-
-…but to be 100% sure, we’ll ask the .tflite model itself for the exact shapes, order, and dtypes.
-
-### 9 - Copy outputs + model back to your PC 
+Run inference:
 
 ```bash
-# 8. Get back to you folder
-cd ~/python-playground
-
-# 9. Copy outputs and model to your
-
+larod-client \
+  -d \
+  -c axis-a8-dlpu-tflite \
+  -g ssd_mobilenet_v1_coco_quant_postprocess.tflite \
+  -R 1 \
+  -i dog.bin \
+  -o test_out0.bin \
+  -o test_out1.bin \
+  -o test_out2.bin \
+  -o test_out3.bin
 ```
+
+The exact backend name depends on your device. Common examples are:
+
+```text
+a9-dlpu-tflite
+axis-a8-dlpu-tflite
+```
+
+## What The Command Means
+
+```text
+-c  backend/device name
+-g  model file
+-i  raw input tensor file
+-o  output tensor file, repeated once per output
+-R  number of runs
+-d  debug/verbose mode
+```
+
+`larod-client` performs the same basic larod operations that a C app performs:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Client as larod-client
+    participant Larod
+    participant Backend
+    User->>Client: model + input file + output files
+    Client->>Larod: connect
+    Client->>Larod: load model on backend
+    Client->>Larod: create input/output tensors
+    Client->>Larod: run job
+    Larod->>Backend: execute model
+    Backend-->>Larod: output tensors
+    Larod-->>Client: outputs
+    Client-->>User: output .bin files
+```
+
+## SSD MobileNet Outputs
+
+The Coral SSD MobileNet postprocess model usually has four outputs:
+
+| Output file | Meaning | Data |
+| --- | --- | --- |
+| `test_out0.bin` | detection boxes | `[ymin, xmin, ymax, xmax]`, normalized 0..1 |
+| `test_out1.bin` | detection classes | class index |
+| `test_out2.bin` | detection scores | confidence 0..1 |
+| `test_out3.bin` | number of detections | count |
+
+You should verify the output order for any new model. Do not assume all models
+use the same order.
+
+## Copy Outputs Back To The PC
+
+```bash
+scp acap-larod_client_tool@CAMERA_IP:/tmp/test_out*.bin .
+scp acap-larod_client_tool@CAMERA_IP:/tmp/ssd_mobilenet_v1_coco_quant_postprocess.tflite .
+```
+
+## Decode Outputs
+
+Use the included helper:
+
+```bash
+python decode_larod_ssd_outputs.py \
+  --boxes test_out0.bin \
+  --classes test_out1.bin \
+  --scores test_out2.bin \
+  --count test_out3.bin
+```
+
+If you need to inspect tensor shapes directly, use a TFLite inspection script or
+Netron on the model. The important class habit is to verify model metadata
+before hardcoding postprocessing.
+
+## Relation To The Later C Examples
+
+The later C examples do the same conceptual work, but with live camera frames:
+
+| larod-client | C application |
+| --- | --- |
+| input `.bin` file | VDO frame buffer |
+| output `.bin` files | mmap output tensors |
+| command-line backend option | `DEVICE_NAME` constant |
+| manual run | frame loop |
+| manual decode script | C postprocess function |
+
+## Common Problems
+
+### Backend Not Found
+
+Use a backend name supported by your camera. If the command fails at device
+selection, the backend string is likely wrong for that model or hardware.
+
+### Input File Has Wrong Size
+
+The input file must match the model input tensor exactly. For RGB uint8:
+
+```text
+width * height * 3 bytes
+```
+
+For a 300 x 300 RGB image:
+
+```text
+300 * 300 * 3 = 270000 bytes
+```
+
+### Output Files Are Empty Or Unchanged
+
+Check that the output files are writable by the ACAP user and that you provided
+one `-o` argument per model output tensor.
+
+### Detections Look Wrong
+
+Check:
+
+- input image size
+- RGB vs BGR ordering
+- quantized vs float model expectations
+- output tensor order
+- class label indexing
+
+## Teaching Point
+
+Start here before writing camera code. If the model cannot run from a known
+input binary, a VDO application will be much harder to debug.

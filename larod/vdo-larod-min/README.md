@@ -1,431 +1,366 @@
-# Simple VDO-Larod minimized Example
+# vdo-larod-min
 
-A minimal but production-realistic example of running ML inference on an
-Axis camera using the **VDO** (Video Data Output) and **larod** (ML runtime) APIs.
+This example is the production-shaped version of the person/car classifier
+pipeline. It keeps the model simple, but introduces the runtime structure used
+by real camera applications:
 
-## What Does It Do?
+- non-blocking VDO stream
+- `poll` driven frame loop
+- backend-dependent RGB/NV12 selection
+- optional preprocessing
+- reusable helper functions
+- tracked DMA-BUF input tensors
+- mmap output tensors
 
-Captures live video frames from the camera sensor, preprocesses them
-(resize + color convert), runs a person/car classification model, and
-prints the confidence percentages to syslog.
+It is the bridge between the teaching examples and the object-detection example.
 
-Camera Sensor → VDO Frame → Preprocessing → Inference → "Person: 82% — Car: 3%"
+## Learning Progression
 
-## Who Is This For?
+```mermaid
+flowchart LR
+    A[larod-basic<br/>blocking RGB direct path] --> B[larod-preprocessing<br/>add cpu-proc]
+    B --> C[vdo-larod-min<br/>non-blocking reusable pipeline]
+    C --> D[object-detection-min<br/>SSD postprocess and bbox]
+```
 
-Developers new to ACAP Native SDK who want to understand the **VDO → larod
-pipeline** without getting lost in production error handling, dynamic
-configuration, and multi-platform support code.
+## What This Example Adds
 
----
+Compared to `larod-preprocessing`, this example adds:
+
+- `poll()` instead of blocking `vdo_stream_get_buffer`
+- helper functions for connection, model loading, tensor allocation, VDO setup,
+  preprocessing setup, input tensor creation, and buffer tracking
+- backend capability logic through `backend_supports_rgb`
+- a direct RGB path for `a9-dlpu-tflite`
+- a preprocessing path for backends that need NV12 to RGB conversion
 
 ## Architecture
 
-
-
-## Flow
+```mermaid
+flowchart TD
+    Start[Start app] --> Connect[Connect to larod]
+    Connect --> Load[Load TFLite model]
+    Load --> Meta[Read model input metadata]
+    Meta --> Outputs[Allocate mmap output tensors]
+    Outputs --> Backend{Backend supports RGB?}
+    Backend -- yes --> VdoRGB[Request RGB VDO stream]
+    Backend -- no --> VdoNV12[Request NV12 VDO stream]
+    VdoRGB --> NeedPP{Size matches model?}
+    VdoNV12 --> PP[Set up cpu-proc preprocessing]
+    NeedPP -- yes --> Inputs[Create VDO input tensors]
+    NeedPP -- no --> PP
+    PP --> Inputs
+    Inputs --> Loop[Poll frame loop]
+    Loop --> Track[Track VDO buffer fd once]
+    Track --> MaybePP{Need preprocessing?}
+    MaybePP -- yes --> RunPP[Run preprocessing job]
+    RunPP --> RunInf[Run inference job]
+    MaybePP -- no --> RunInf
+    RunInf --> Read[Read mmap outputs]
+    Read --> Return[Return VDO buffer]
+    Return --> Loop
 ```
-1.  larodConnect()                                 Connect to larod daemon
-2.  larodGetDevice() + larodLoadModel()            Load .tflite on the DLPU
-3.  larodAllocModelInputs()                        Read model's expected input size
-4.  larodAllocModelOutputs() + mmap                Create output buffers we can read
-5.  vdo_stream_new()                               Open camera stream (NV12)
-6.  If VDO size ≠ model size:
-       larodCreateMap() → larodLoadModel(fd=-1)    Create resize pipeline
-       larodAllocModelOutputs()                    PP output = inference input
-7.  larodCreateTensors()                           One input tensor per VDO buffer + set data type, layout, dims, pitches, fd props
-8.  Loop:
-       poll()                                      Wait for frame
-       vdo_stream_get_buffer()                     Get frame
-       dup(fd) + larodTrackTensor()                First-time: register buffer with larod
-       larodRunJob(pp)                             Preprocess (if needed)
-       larodRunJob(inf)                            Inference
-       Read mmap'd output                          Person: X% — Car: Y%
-       vdo_stream_buffer_unref()                   Return buffer to VDO
- 9.  Cleanup: destroy jobs, tensors, models, disconnect
+
+## Runtime Data Flow
+
+```mermaid
+flowchart LR
+    VDO[VDO frame fd] --> Tensor[VDO-backed larod tensor]
+    Tensor --> Choice{need_pp}
+    Choice -- false --> Inf[Inference model]
+    Choice -- true --> PP[cpu-proc preprocessing]
+    PP --> PPOUT[RGB model-size tensor]
+    PPOUT --> Inf
+    Inf --> OUT[Output tensors]
+    OUT --> MMAP[mmap CPU pointers]
+    MMAP --> Log[syslog person/car]
 ```
-## Flow
 
+## Step 1: Connect To larod
 
-### Step 1 - CONNECT TO LAROD SERVICE
-Opens a session with the larod daemon. All subsequent larod calls use this connection handle. One connection per application.
+The connection function is unchanged from earlier examples:
 
 ```c
 larodConnection* conn = NULL;
-larodConnect(&conn, &error)
+larodError* error = NULL;
+
+if (!larodConnect(&conn, &error)) {
+    PANIC("larodConnect: %s", error->msg);
+}
 ```
 
-### Step 2 - GET LAROD DEVICE BACKEND & LOAD THE MODEL
+All larod models, tensors, and jobs are created through this connection.
+
+## Step 2: Load The Model On A Backend
 
 ```c
-// Create larod models
-// model_file can be downloaded into the app through dockerfile which can live in /usr/local/packages/vdo_larod/model.tflite
-// curl -o model.tflite https://acap-ml-models.s3.amazonaws.com/tensorflow_to_larod_resnet/custom_resnet_artpec8_car_human_256.tflite ;
-// acap-build . -a 'model.tflite';
-int larod_model_fd = open(model_file, O_RDONLY);
-```
+const larodDevice* device = larodGetDevice(conn, DEVICE_NAME, 0, &error);
 
-```c
-// device_name can be retrieved with larodGetDevices or specifying as argumentin manifest or hardcoded: a9-dlpu-tflite | axis-a8-dlpu-tflite
-const larodDevice* device = larodGetDevice(conn, "a9-dlpu-tflite", 0, &error);
-```
-
-
-```c
 larodModel* model = larodLoadModel(conn,
-                                    larod_model_fd,
-                                    device,
-                                    LAROD_ACCESS_PRIVATE, // only this application can use the loaded model
-                                    "Vdo larod model",
-                                    NULL,
-                                    &error);
+                                   model_fd,
+                                   device,
+                                   LAROD_ACCESS_PRIVATE,
+                                   "person-car model",
+                                   NULL,
+                                   &error);
 ```
 
-Summary:
-- `larodGetDevice` — selects which hardware backend to use
-- `larodLoadModel` — loads the .tflite file onto that backend
-- `LAROD_ACCESS_PRIVATE` — only this application can use the loaded model
-
-### Step 3: SETUP TEMPORARY INPUT TENSORS - Get Model information and input dimentions
-
-We allocate temporary input tensors just to query the model's expected input size and pitch, then destroy them. This lets the code adapt to any model without hardcoding dimensions.
-
-Pitches are the byte offsets to move to the next element in each dimension. For NHWC, we expect pitch for W to be 3 (for RGB), and pitch for H to be width * 3, and pitch for N to be height * width * 3. We can read the pitch for the W dimension to understand how the model expects the data to be laid out in memory.
+The default backend is:
 
 ```c
-size_t num_inputs           = 0;
-larodTensor** tmp_input_tensors = larodAllocModelInputs(conn, model, 0, &num_inputs, NULL, &error);
-```
-```c
-const larodTensorDim* dims = larodGetTensorDims(tmp_input_tensors[0], &error);
-// dims = [1, 256, 256, 3] -> batch=1, H=256, W=256, channels=3
-```
-```c
-const larodTensorPitches* pitches = larodGetTensorPitches(tmp_input_tensors[0], &error);
-*pitch_out = pitches->pitches[2];  // pitch for W dimension
+#define DEVICE_NAME "a9-dlpu-tflite"
 ```
 
-### Step 4: CREATE OUTPUT TENSORS and mmap - Will be used for the inference job request
-Larod allocates the output memory. We mmap each tensor's file descriptor so we can read the inference results directly from memory after each larodRunJob call.
+For another device, change `DEVICE_NAME` and check whether that backend can
+consume RGB directly.
+
+## Step 3: Read Model Input Size
+
+The app does not hardcode model size. It asks larod:
 
 ```c
-size_t num_outputs           = 0;
-larodTensor** output_tensors = larodAllocModelOutputs(conn,
-                                                        model,
-                                                        LAROD_FD_PROP_READWRITE | LAROD_FD_PROP_MAP,
-                                                        num_outputs,
-                                                        NULL,
-                                                        &error);
+larodTensor** tmp_inputs = larodAllocModelInputs(conn, model, 0, &num_inputs, NULL, &error);
+const larodTensorDims* dims = larodGetTensorDims(tmp_inputs[0], &error);
+
+MODEL_HEIGHT = dims->dims[1];
+MODEL_WIDTH = dims->dims[2];
 ```
-mmap
+
+For NHWC image models:
+
+```text
+dims[0] = batch
+dims[1] = height
+dims[2] = width
+dims[3] = channels
+```
+
+The model pitch is also read so preprocessing can write the expected layout.
+
+## Step 4: Allocate And Map Output Tensors
+
+The output tensors are larod-managed buffers:
 
 ```c
-// For each output tensor: get its fd, size, and mmap it so we can read the results after inference
-int fd      = larodGetTensorFd(output_tensors[i], &error);
-size_t size = ...;  // from larodGetTensorFdSize
-void* data  = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+larodTensor** tensors = larodAllocModelOutputs(conn,
+    model,
+    LAROD_FD_PROP_READWRITE | LAROD_FD_PROP_MAP,
+    num_outputs,
+    NULL,
+    &error);
 ```
 
-### Step 5 — Determine if preprocessing is needed
-```yml
-┌─────────────────────────────────────────────────────┐
-│  Does the backend accept RGB directly?              │
-│                                                     │
-│  YES (a9-dlpu-tflite):                              │
-│    → Request RGB from VDO at model resolution       │
-│    → If VDO delivers exact size: skip preprocessing │
-│    → If VDO gives different size: resize RGB→RGB    │
-│                                                     │
-│  NO (axis-a8-dlpu-tflite, cpu-tflite, etc.):        │
-│    → Request NV12 from VDO                          │
-│    → ALWAYS preprocess: NV12→RGB + resize           │
-└─────────────────────────────────────────────────────┘
-```
-
-### Step 6 — Set up preprocessing (if needed)
-
-Preprocessing is itself a larod model — loaded with fd = -1 (no model file):
+Each tensor fd is mapped for CPU reads:
 
 ```c
-// Describe input (what VDO gives us)
-larodMapSetStr(map, "image.input.format", "nv12", &error);
+out_bufs[i].fd = larodGetTensorFd(tensors[i], &error);
+larodGetTensorFdSize(tensors[i], &out_bufs[i].size, &error);
+out_bufs[i].data = mmap(NULL, out_bufs[i].size, PROT_READ, MAP_SHARED, out_bufs[i].fd, 0);
+```
+
+After inference, `out_bufs[0]` and `out_bufs[1]` are read as quantized
+person/car confidence bytes.
+
+## Step 5: Choose VDO Format From Backend Capability
+
+This example introduces backend-aware stream setup:
+
+```c
+static bool backend_supports_rgb(const char* device_name) {
+    return strcmp(device_name, "a9-dlpu-tflite") == 0;
+}
+```
+
+If RGB is supported, VDO can be asked for RGB:
+
+```c
+vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB);
+```
+
+If not, VDO is asked for YUV/NV12:
+
+```c
+vdo_map_set_uint32(settings, "format", VDO_FORMAT_YUV);
+```
+
+This keeps each backend on a path it can handle.
+
+## Step 6: Create A Non-Blocking VDO Stream
+
+The important difference from earlier examples is:
+
+```c
+vdo_map_set_boolean(settings, "socket.blocking", false);
+```
+
+The app then uses `poll`:
+
+```c
+int poll_fd = vdo_stream_get_fd(vdo_stream, &vdo_error);
+struct pollfd pfd = { .fd = poll_fd, .events = POLLIN };
+
+poll(&pfd, 1, -1);
+```
+
+This pattern is better for real applications because it can be extended to wait
+on several fds or timers in one event loop.
+
+## Step 7: Decide Whether Preprocessing Is Needed
+
+```c
+if (rgb_backend) {
+    need_pp = (vdo_w != MODEL_WIDTH || vdo_h != MODEL_HEIGHT);
+} else {
+    need_pp = true;
+}
+```
+
+There are two paths:
+
+```mermaid
+flowchart TD
+    Backend{Backend supports RGB?}
+    Backend -- yes --> RGB[VDO RGB]
+    RGB --> Size{VDO size == model size?}
+    Size -- yes --> Direct[Direct inference]
+    Size -- no --> Resize[Preprocess RGB to RGB resize]
+    Backend -- no --> NV12[VDO NV12]
+    NV12 --> Convert[Preprocess NV12 to RGB and resize]
+```
+
+## Step 8: Configure cpu-proc Preprocessing
+
+Preprocessing is a larod model loaded on `cpu-proc` with fd `-1`.
+
+```c
+larodMapSetStr(map, "image.input.format", input_format_str, &error);
 larodMapSetIntArr2(map, "image.input.size", vdo_w, vdo_h, &error);
 larodMapSetInt(map, "image.input.row-pitch", vdo_pitch, &error);
 
-
-// Describe output (what the model needs)
 larodMapSetStr(map, "image.output.format", "rgb-interleaved", &error);
 larodMapSetIntArr2(map, "image.output.size", MODEL_WIDTH, MODEL_HEIGHT, &error);
 larodMapSetInt(map, "image.output.row-pitch", model_pitch, &error);
-
-// Load on cpu-proc (libyuv-based image processing)
-const larodDevice* pp_device = larodGetDevice(provider->conn, "cpu-proc", 0, &error);
-larodModel* pp = larodLoadModel(conn, -1, pp_device, LAROD_ACCESS_PRIVATE, "", map, &error);
 ```
 
-The preprocessing output tensors become the inference input tensors — zero-copy.
-
-### Step 7 — Create input tensors for VDO buffers
-
-Input tensors describe the VDO frame layout so larod knows how to read the image data. They are **always created manually** with
-`larodCreateTensors`, regardless of format or whether preprocessing is used. These same tensors serve as input to either the preprocessing model or the inference model directly.
-
-The tensor layout must match what VDO delivers:
-
-**NV12 (YUV) input — e.g. `axis-a8-dlpu-tflite`:**
+Then:
 
 ```c
-larodTensor** t = larodCreateTensors(1, &error);
-larodSetTensorDataType(t[0], LAROD_TENSOR_DATA_TYPE_UINT8, &error);
-larodSetTensorLayout(t[0], LAROD_TENSOR_LAYOUT_420SP, &error);     // NV12
-larodBuildTensorDims(t[0], LAROD_TENSOR_LAYOUT_420SP, w, h, 3, &error);
-larodBuildTensorPitches(t[0], LAROD_TENSOR_LAYOUT_420SP, pitch, h, 3, &error);
-larodSetTensorFdProps(t[0], LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
+const larodDevice* pp_device = larodGetDevice(conn, PP_DEVICE_NAME, 0, &error);
+
+larodModel* pp_model = larodLoadModel(conn,
+                                      -1,
+                                      pp_device,
+                                      LAROD_ACCESS_PRIVATE,
+                                      "",
+                                      map,
+                                      &error);
 ```
 
-**RGB interleaved input — e.g. a9-dlpu-tflite:**
+The preprocessing output tensors become the inference input.
 
+## Step 9: Create VDO Input Tensors
 
-```c
-larodTensor** t = larodCreateTensors(1, &error);
-larodSetTensorDataType(t[0], LAROD_TENSOR_DATA_TYPE_UINT8, &error);
-larodSetTensorLayout(t[0], LAROD_TENSOR_LAYOUT_NHWC, &error);     // RGB interleaved
-larodBuildTensorDims(t[0], LAROD_TENSOR_LAYOUT_NHWC, w, h, 3, &error);
-larodBuildTensorPitches(t[0], LAROD_TENSOR_LAYOUT_NHWC, pitch, h, 3, &error);
-larodSetTensorFdProps(t[0], LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
-```
-**Planar RGB input — e.g. ambarella-cvflow:**
+Each VDO buffer gets one tensor descriptor:
 
 ```c
-larodTensor** t = larodCreateTensors(1, &error);
-larodSetTensorDataType(t[0], LAROD_TENSOR_DATA_TYPE_UINT8, &error);
-larodSetTensorLayout(t[0], LAROD_TENSOR_LAYOUT_NCHW, &error);
-larodBuildTensorDims(t[0], LAROD_TENSOR_LAYOUT_NCHW, w, h, 3, &error);
-larodBuildTensorPitches(t[0], LAROD_TENSOR_LAYOUT_NCHW, pitch, h, 3, &error);
-larodSetTensorFdProps(t[0], LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
-```
-The layout must match what VDO delivers, otherwise larod will misinterpret the pixel data. The code handles this automatically
-via a switch on vdo_format:
+tracked[i].tensors = larodCreateTensors(1, &error);
 
-```c
-switch (vdo_format) {
-    case VDO_FORMAT_YUV:        layout = LAROD_TENSOR_LAYOUT_420SP; break;
-    case VDO_FORMAT_RGB:        layout = LAROD_TENSOR_LAYOUT_NHWC;  break;
-    case VDO_FORMAT_PLANAR_RGB: layout = LAROD_TENSOR_LAYOUT_NCHW;  break;
-}
+larodSetTensorDataType(t, LAROD_TENSOR_DATA_TYPE_UINT8, &error);
+larodSetTensorLayout(t, layout, &error);
+larodBuildTensorDims(t, layout, vdo_w, vdo_h, 3, &error);
+larodBuildTensorPitches(t, layout, vdo_pitch, vdo_h, 3, &error);
+larodSetTensorFdProps(t, LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
 ```
 
-Why always manual? These tensors describe VDO frame memory, not model expectations. The same tensor is used as input to either the
-preprocessing model or the inference model. When preprocessing is skipped, it works because VDO already delivers frames matching the
-model's expected format, size, and pitch exactly.
+Layout depends on the VDO format:
 
-### Step 8 — Track VDO buffers (DMA-buf zero-copy)
+| VDO format | larod layout | Meaning |
+| --- | --- | --- |
+| `VDO_FORMAT_YUV` | `LAROD_TENSOR_LAYOUT_420SP` | NV12 |
+| `VDO_FORMAT_RGB` | `LAROD_TENSOR_LAYOUT_NHWC` | RGB interleaved |
+| `VDO_FORMAT_PLANAR_RGB` | `LAROD_TENSOR_LAYOUT_NCHW` | RGB planar |
 
-This is the most hardware-specific part. VDO gives you frames as file descriptors. For larod to access this memory efficiently:
+## Step 10: Track DMA-BUFs Once
+
+The app keeps a small table:
 
 ```c
-// 1. Get fd from VDO buffer
+typedef struct {
+    larodTensor** tensors;
+    int duped_fd;
+    int vdo_fd;
+} tracked_input_t;
+```
+
+First time a VDO fd appears:
+
+```c
 int vdo_fd = vdo_buffer_get_fd(vdo_buf);
-
-// 2. Convert vmem → dmabuf if needed (some SoCs use vmem)
-int buf_fd = larodConvertVmemFdToDmabuf(vdo_fd, offset, &error);
-
-// 3. Dup the fd (larod needs its own copy)
+int64_t vdo_offset = vdo_buffer_get_offset(vdo_buf);
+size_t vdo_capacity = vdo_buffer_get_capacity(vdo_buf);
 int duped = dup(buf_fd);
 
-// 4. Bind to tensor and register
-larodSetTensorFd(tensor, duped, &error);
-larodSetTensorFdOffset(tensor, offset, &error);
-larodSetTensorFdSize(tensor, capacity, &error);
-larodTrackTensor(conn, tensor, &error);
+larodSetTensorFd(t, duped, &error);
+larodSetTensorFdOffset(t, vdo_offset, &error);
+larodSetTensorFdSize(t, vdo_capacity, &error);
+larodTrackTensor(conn, t, &error);
 ```
-This happens once per VDO buffer (typically 2 buffers). After tracking, the tensor is reused automatically for every subsequent frame from that buffer.
 
-### Step 9 — Main loop: poll → preprocess → infer → read
+Later frames with the same fd reuse the same tracked tensor. This avoids
+recreating tensor/fd metadata every frame.
+
+## Step 11: Run Jobs Per Frame
+
+With preprocessing:
 
 ```c
-while (running) {
-    poll(&pfd, 1, -1);                              // Wait for frame
-    VdoBuffer* buf = vdo_stream_get_buffer(...);     // Get frame
-
-    track_vdo_buffer(conn, tracked, ...);            // First-time: register
-
-    if (need_pp) {
-        larodRunJob(conn, pp_job, &error);           // Preprocess
-    }
-
-    larodRunJob(conn, inf_job, &error);              // Inference
-
-    uint8_t* person = (uint8_t*)out_bufs[0].data;   // Read mmap'd output
-    uint8_t* car    = (uint8_t*)out_bufs[1].data;
-    syslog(LOG_INFO, "Person: %.1f%% — Car: %.1f%%",
-           *person / 2.55f, *car / 2.55f);
-
-    vdo_stream_buffer_unref(stream, &buf, ...);      // Return buffer
-}
+larodRunJob(conn, pp_job, &error);
+larodRunJob(conn, inf_job, &error);
 ```
 
-Job requests are created once (lazily on first frame) and reused for all subsequent frames. Only the input tensors underlying data changes (VDO fills the same buffer with new frame data).
+Without preprocessing:
 
-### Step 10 — Cleanup
-
-Resources are freed in reverse order of creation:
-
-```lua
-VDO stream → output mmaps → job requests → tracked tensors →
-PP tensors → inference tensors → models → connection → file descriptors
+```c
+larodRunJob(conn, inf_job, &error);
 ```
 
-### Diagram
+The inference input is chosen once per frame:
 
-```less
-    ┌──────────────────────────────────────────────────────────┐
-    │                    CAMERA SENSOR                         │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-                   ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  VDO Stream (poll + vdo_stream_get_buffer)               │
-    │                                                          │
-    │  Path A (A9): RGB at model resolution (e.g. 256×256)     │
-    │  Path B (A8): NV12 (YUV) at model resolution             │
-    │                                                          │
-    │  Buffers: 2 (rotating)                                   │
-    │  image.fit: "scale"                                      │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-                   │  vdo_buffer_get_fd() → file descriptor
-                   │
-                   ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  TENSOR TRACKING (first time only per buffer)            │
-    │                                                          │
-    │  dup(fd) → larodSetTensorFd → larodTrackTensor           │
-    │                                                          │
-    │  After this, larod knows where the image data lives.     │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-              ┌────┴────┐
-              │ need_pp?│
-              └────┬────┘
-         ┌──YES───┘└───NO──┐
-         │                 │
-         ▼                 ▼
-    ┌──────────────┐   ┌──────────────────────────────────┐
-    │ PREPROCESSING│   │  DIRECT TO INFERENCE             │
-    │ (cpu-proc)   │   │                                  │
-    │              │   │  Path A (A9): VDO delivers RGB   │
-    │ Path B (A8): │   │  at model resolution — no        │
-    │ NV12 → RGB   │   │  conversion needed.              │
-    │ + resize     │   │                                  │
-    │              │   │                                  │
-    │ Path A (A9): │   │                                  │
-    │ RGB → RGB    │   │                                  │
-    │ resize only  │   │                                  │
-    └──────┬───────┘   └───────────────┬──────────────────┘
-           │                           │
-           └───────────┬───────────────┘
-                       │
-                       ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  INFERENCE (larodRunJob)                                 │
-    │                                                          │
-    │  Backend: a9-dlpu-tflite (A9) or axis-a8-dlpu-tflite (A8)│
-    │  Input:  RGB 256×256 NHWC [1,256,256,3]                  │
-    │  Output: 2 × uint8                                       │
-    │          [0] = person confidence (0–255)                 │
-    │          [1] = car confidence    (0–255)                 │
-    └──────────────┬───────────────────────────────────────────┘
-                   │
-                   │  mmap'd memory — just read it
-                   │
-                   ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  RESULT                                                  │
-    │                                                          │
-    │  person_pct = output[0] / 2.55                           │
-    │  car_pct    = output[1] / 2.55                           │
-    │                                                          │
-    │  syslog: "Person: 82.4% — Car: 3.1%"                     │
-    └──────────────────────────────────────────────────────────┘
+```c
+larodTensor** inf_input = need_pp ? pp_outputs : input;
+size_t inf_input_n = need_pp ? pp_num_outputs : 1;
 ```
 
-## Larod API Reference (functions used in this example)
+## Step 12: Read Quantized Outputs
 
-### Connection
+```c
+uint8_t* person = (uint8_t*)out_bufs[0].data;
+uint8_t* car = (uint8_t*)out_bufs[1].data;
 
-| Function | Purpose |
-|:---------|:--------|
-| `larodConnect` | Open session with larod daemon |
-| `larodDisconnect` | Close session |
+syslog(LOG_INFO, "Person: %.1f%% - Car: %.1f%%",
+       (float)*person / 2.55f,
+       (float)*car / 2.55f);
+```
 
-### Device & Model
+The CPU reads only the small output tensors. The image frame itself stayed in
+shared fd-backed memory.
 
-| Function | Purpose |
-|:---------|:--------|
-| `larodGetDevice` | Get handle for a named backend (e.g. `"a9-dlpu-tflite"`) |
-| `larodLoadModel` | Load a model file onto a device (`fd=-1` for preprocessing) |
-| `larodDestroyModel` | Unload a model |
+## Why This Example Matters
 
-### Tensors — Allocation
+This is the best starting point for a reusable camera inference app:
 
-| Function | Purpose |
-|:---------|:--------|
-| `larodAllocModelInputs` | Allocate input tensors matching model's expected dimensions |
-| `larodAllocModelOutputs` | Allocate output tensors (larod allocates the memory) |
-| `larodCreateTensors` | Create empty tensors (you configure dims manually) |
-| `larodDestroyTensors` | Free tensor handles |
+- It supports more than one backend behavior.
+- It separates setup functions from the frame loop.
+- It uses non-blocking VDO.
+- It keeps frame memory zero-copy through DMA-BUF tracking.
+- It uses preprocessing only when needed.
 
-### Tensors — Configuration
+## What Comes Next
 
-| Function | Purpose |
-|:---------|:--------|
-| `larodSetTensorDataType` | Set data type (e.g. `UINT8`) |
-| `larodSetTensorLayout` | Set layout (`NHWC`, `NCHW`, `420SP`) |
-| `larodBuildTensorDims` | Build width/height/channels for a layout |
-| `larodBuildTensorPitches` | Build row stride for a layout |
-| `larodSetTensorFdProps` | Set memory properties (`DMABUF`, `MAP`) |
+`object-detection-min` uses the same frame/inference structure but changes the
+model and postprocessing:
 
-### Tensors — Buffer Binding
-
-| Function | Purpose |
-|:---------|:--------|
-| `larodSetTensorFd` | Bind a file descriptor to a tensor |
-| `larodSetTensorFdOffset` | Set byte offset within the fd |
-| `larodSetTensorFdSize` | Set usable byte size |
-| `larodTrackTensor` | Register tensor memory with larod |
-| `larodGetTensorFd` | Read back a tensor's fd |
-| `larodGetTensorFdSize` | Read back a tensor's byte size |
-
-### Tensors — Introspection
-
-| Function | Purpose |
-|:---------|:--------|
-| `larodGetTensorDims` | Read tensor dimensions |
-| `larodGetTensorPitches` | Read tensor pitches (row strides) |
-
-### Preprocessing Map
-
-| Function | Purpose |
-|:---------|:--------|
-| `larodCreateMap` | Create key-value config map |
-| `larodMapSetStr` | Set string (e.g. `"image.input.format"`, `"nv12"`) |
-| `larodMapSetInt` | Set integer (e.g. `"image.input.row-pitch"`) |
-| `larodMapSetIntArr2` | Set width+height pair (e.g. `"image.input.size"`) |
-| `larodDestroyMap` | Free map |
-
-### Job Execution
-
-| Function | Purpose |
-|:---------|:--------|
-| `larodCreateJobRequest` | Package model + input/output tensors into a runnable job |
-| `larodSetJobRequestInputs` | Update inputs on an existing job (reuse) |
-| `larodRunJob` | Execute inference (blocks until complete) |
-| `larodDestroyJobRequest` | Free job request |
-
-### Utility
-
-| Function | Purpose |
-|:---------|:--------|
-| `larodConvertVmemFdToDmabuf` | Convert vmem fd to DMA-buf fd |
-| `larodClearError` | Free error struct |
+- four SSD output tensors
+- detection box parsing
+- confidence filtering
+- `bbox` overlay drawing

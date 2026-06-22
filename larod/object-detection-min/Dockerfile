@@ -28,14 +28,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 # Download pretrained models
 WORKDIR /opt/app/model
-ARG CHIP=
-RUN if [ "$CHIP" = artpec8 ] || [ "$CHIP" = artpec9 ] || [ "$CHIP" = cpu ]  ; then \
-        curl -L -o converted_model.tflite \
-            https://github.com/google-coral/test_data/raw/master/ssd_mobilenet_v2_coco_quant_postprocess.tflite ; \
-    else \
-        printf "Error: '%s' is not a valid value for the CHIP variable\n", "$CHIP"; \
-        exit 1; \
-    fi
+
+RUN curl -L -o converted_model.tflite \
+            https://github.com/google-coral/test_data/raw/master/ssd_mobilenet_v2_coco_quant_postprocess.tflite ; 
 
 # Download labels for model
 WORKDIR /opt/app/label
@@ -48,12 +43,5 @@ RUN curl -L -o labels.txt https://github.com/google-coral/test_data/raw/master/c
 WORKDIR /opt/app
 COPY ./app .
 
-RUN cp /opt/app/manifest.json.${CHIP} /opt/app/manifest.json && \
-    . /opt/axis/acapsdk/environment-setup* && \
-    if [ "$CHIP" = artpec8 ] || [ "$CHIP" = artpec9 ] || [ "$CHIP" = cpu ] || [ "$CHIP" = edgetpu ]; then \
-        acap-build . -a 'label/labels.txt' \
-        -a 'model/converted_model.tflite'; \
-    else \
-        printf "Error: '%s' is not a valid value for the CHIP variable\n", "$CHIP"; \
-        exit 1; \
-fi
+RUN . /opt/axis/acapsdk/environment-setup* && acap-build . -a 'label/labels.txt' -a 'model/converted_model.tflite'; 
+    
