@@ -1,58 +1,92 @@
-## VAPIX API Samples
+# VAPIX Examples
 
-This folder contains two ACAP-native examples demonstrating how to interact with Axis cameras using VAPIX and ONVIF APIs from within an app.
-Both samples highlight different ways to control video streams and overlays through HTTP/JSON or SOAP requests.
+VAPIX is the HTTP API exposed by Axis devices. In this workshop it belongs to the core/basic track because many ACAP applications eventually need to read or change camera configuration, create overlays, or call camera services from inside the device.
 
-## Samples Overview
+The important lesson is that an ACAP can call the local camera APIs through localhost and use a VAPIX service account instead of embedding a fixed password in the application.
 
-1. dynamic-overlay-vapix
+## Learning Order
 
-    - Purpose: Add and manage text overlays on a video stream using the Dynamic Overlay VAPIX API.
-    - Key features:
+```mermaid
+flowchart TD
+    Start[Start here] --> Overlay[dynamic-overlay-vapix]
+    Overlay --> Onvif[onvif-request]
 
-        - Retrieves VAPIX service account credentials over D-Bus (no hard-coded secrets).
-        - Builds a JSON request to dynamicoverlay.cgi (addText method).
-        - Posts the JSON payload with libcurl and parses the response with jansson.
+    Overlay --> A[JSON-RPC style VAPIX request]
+    Onvif --> B[SOAP request through ONVIF service endpoint]
+```
 
-    - What you’ll learn:
+## Examples
 
-        - Securely accessing VAPIX credentials.
-        - Constructing JSON requests.
-        - Modifying overlay properties (text, position, font, colors).
+| Example | Main idea | What to study |
+| --- | --- | --- |
+| `dynamic-overlay-vapix` | Call a local VAPIX endpoint with JSON | Credentials, libcurl, Jansson, response parsing |
+| `onvif-request` | Send an ONVIF SOAP request | XML body, authentication, service endpoint, response handling |
 
+## Core Architecture
 
+```mermaid
+sequenceDiagram
+    participant App as ACAP application
+    participant DBus as VAPIXServiceAccounts1
+    participant Local as 127.0.0.12
+    participant Camera as Camera service
 
-2. onvif-request
+    App->>DBus: GetCredentials(service account)
+    DBus-->>App: username:password
+    App->>Local: HTTP request with credentials
+    Local->>Camera: Execute VAPIX or ONVIF operation
+    Camera-->>Local: JSON or XML response
+    Local-->>App: Response body
+```
 
-- Purpose: Configure video encoder properties using the ONVIF Media2 API with SOAP.
-- Key features:
+## Why `127.0.0.12` Is Used
 
-    - Retrieves ONVIF credentials via the same D-Bus VAPIX account interface.
-    - Builds and posts a SetVideoEncoderConfiguration SOAP request to /vapix/services.
-    - Configures properties like:
+The examples call the camera API from inside the ACAP container:
 
-        - Resolution
-        - Frame rate 
-        - Bitrate limit
-        - Multicast address and port
-        - Encoding profile (H.264)
+```c
+curl_easy_setopt(handle, CURLOPT_URL, "http://127.0.0.12/axis-cgi/...");
+curl_easy_setopt(handle, CURLOPT_NOPROXY, "*");
+curl_easy_setopt(handle, CURLOPT_USERPWD, credentials);
+```
 
-- What you’ll learn:
+`127.0.0.12` is the local route to the camera web services from an ACAP application. `CURLOPT_NOPROXY` avoids sending local camera traffic through a proxy configuration.
 
-- Building SOAP XML envelopes in C.
-- Sending authenticated ONVIF requests with libcurl.
-- Handling HTTP status codes and SOAP responses.
+## Credential Pattern
 
-Use case example: Dynamically reconfigure a camera’s encoding settings (e.g., switch to multicast 4K@25fps).
+The examples retrieve credentials through D-Bus:
 
-## Common Concepts
+```c
+GVariant *result = g_dbus_connection_call_sync(connection,
+                                               "com.axis.HTTPConf1",
+                                               "/com/axis/HTTPConf1/VAPIXServiceAccounts1",
+                                               "com.axis.HTTPConf1.VAPIXServiceAccounts1",
+                                               "GetCredentials",
+                                               g_variant_new("(s)", username),
+                                               NULL,
+                                               G_DBUS_CALL_FLAGS_NONE,
+                                               -1,
+                                               NULL,
+                                               &error);
+```
 
-Both samples demonstrate:
+This keeps credentials out of source code. The application asks the camera for credentials for a named service account and then uses those credentials in libcurl.
 
-- Using D-Bus to fetch VAPIX credentials → avoids embedding usernames/passwords in code.
-- Making HTTP(S) requests with libcurl → JSON-RPC for VAPIX, SOAP/XML for ONVIF.
-- System logging with syslog → consistent runtime feedback.
-- Error handling with panic() → ensures invalid states exit clearly.
+## Build Pattern
 
+Each example can be built from its own directory:
 
-These samples provide a foundation for apps that both display information on a video stream and reconfigure video encoder settings dynamically using Axis camera APIs.
+```sh
+docker build --tag example-name --build-arg ARCH=aarch64 .
+docker cp $(docker create example-name):/opt/app ./build
+```
+
+Install the `.eap` file from `build/` on the camera.
+
+## Teaching Notes
+
+VAPIX is a good early topic because it connects ACAP applications to camera configuration. The student should understand these points before moving to webserver or overlay examples:
+
+- The ACAP process can be both a local client and a service.
+- Authentication still matters even when the request is local.
+- JSON and XML responses should be parsed with libraries, not string slicing.
+- API side effects should be logged clearly because they change camera configuration.

@@ -1,272 +1,54 @@
-# Event API – Send State (statefull) with data (stateless)
+# Send State With Data Event
 
-**Property-state (stateful) event generator for ACAP but sending data/metadata through the event**
+This example combines a stateful event with additional data. That pattern is common in analytics: the event tells whether a condition is active, while the payload explains what triggered it.
 
-This sample declares and periodically toggles a stateful event (a property state), where the boolean key active represents the current state (0/1). Because the event is stateful (declare with stateful=0), the system keeps track of the last value and subscribers receive the current state immediately upon subscription, then on each change.
+## Concept
 
-In this case we will declare 4 more key_value pairs represented as data to be sent when the event is active. Similar to AOA.
-
-## What this app does
-
-- Declares one stateful event with topic:
-
+```mermaid
+flowchart TD
+    State[active true or false] --> Meaning[Condition state]
+    Data[triggerTime, classTypes, scenarioType, objectId] --> Context[Context for this event]
+    Meaning --> Event[Published event]
+    Context --> Event
 ```
-topic0 = tnsaxis:CameraApplicationPlatform
-topic1 = tnsaxis:SendStateWithData
-topic2 = tnsaxis:SendStateWithDataEvent
-```
-- Adds one data key:
 
-    - active (BOOL) — the property’s current state
+State and data have different jobs. The state drives rule logic. The data helps the receiver understand the event.
 
-- After declaration completes, starts a GLib timer that every 5 seconds toggles active (0→1→0→…)
+## Key Code
 
-- Sends the event with the updated active value on each tick and the rest of data (not statefull) through metadata (triggerTime, classTypes, scenarioType, objectId).
-
-Note:
-
-1. If topic1=ObjectAnalytics (not recommended) the data (key_value_pair) declared won't appear in the UI as same behavior as AOA.
-2. If topic1=SendStateWithData then all properties declared with key_value_pair will show up in UI.
-
-<div>
-    <img src="with_objectanalytics_keyname.png" width="300" alt="State with data example">
-    <img src="without_objectanalytics_keyname.png" width="300" alt="State with data example">
-</div>
-
-### Important
-3. In this case, if as we need to send state and data not statefull in the same event, function `ax_event_handler_declare2()` needs to be used.
-
-## Code walkthrough
-
-**Types & globals**
+The state key is declared separately from data fields.
 
 ```c
-typedef struct {
-    AXEventHandler* event_handler;
-    guint event_id;
-    guint timer;
-    guint state_value; // 0/1
-} AppData;
-
-static AppData* app_data = NULL;
+ax_event_key_value_set_add_key_value(key_value_set, "active", NULL, &start_value,
+                                     AX_VALUE_TYPE_BOOL, NULL);
 ```
 
-**Declaration (stateful)**
+Additional keys are marked as data:
 
 ```c
-ax_event_key_value_set_add_key_value(key_value_set,
-                                         "topic0",
-                                         "tnsaxis",
-                                         "CameraApplicationPlatform",
-                                         AX_VALUE_TYPE_STRING,
-                                         NULL);
-
-ax_event_key_value_set_add_key_value(key_value_set,
-                                         "topic1",
-                                         "tnsaxis",
-                                         "ObjectAnalytics", /*  If key value is = ObjectAnalytics then the declared key_value_set won't be visible in UI / same as AOA . If SendStateWithData then key_value_set will appear in UI*/
-                                         AX_VALUE_TYPE_STRING,
-                                         NULL);
-
-ax_event_key_value_set_add_key_value(kv, "active", NULL, &start_value, AX_VALUE_TYPE_BOOL, NULL);
-ax_event_key_value_set_mark_as_data(kv, "active", NULL, NULL);
-
-ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "", AX_VALUE_TYPE_STRING, NULL);
-ax_event_key_value_set_mark_as_data(key_value_set, "triggerTime", NULL, NULL);
-
-ax_event_key_value_set_add_key_value(key_value_set, "classTypes", NULL, "", AX_VALUE_TYPE_STRING, NULL);
-ax_event_key_value_set_mark_as_data(key_value_set, "classTypes", NULL, NULL);
-
-ax_event_key_value_set_add_key_value(key_value_set, "scenarioType",NULL, "", AX_VALUE_TYPE_STRING, NULL);
-ax_event_key_value_set_mark_as_data(key_value_set, "scenarioType", NULL, NULL);
-
-ax_event_key_value_set_add_key_value(key_value_set, "objectId", NULL, "", AX_VALUE_TYPE_STRING, NULL);
+ax_event_key_value_set_add_key_value(key_value_set, "objectId", NULL, "",
+                                     AX_VALUE_TYPE_STRING, NULL);
 ax_event_key_value_set_mark_as_data(key_value_set, "objectId", NULL, NULL);
-
-// Declare as STATEFUL: the third arg to declare is 0 (stateful), 1 would be stateless
-ax_event_handler_declare2(handler, kv, 
-                        /*stateful=*/0, 
-                        "active" /*the key which has state */, 
-                        &declaration, 
-                        declaration_complete, 
-                        &start_value, 
-                        NULL);
-
 ```
 
-- Stateful means the system keeps the current active value.
-- Consumers/subscribers get an immediate callback with the current state when they subscribe.
-
-**Callback after declaration**
+The example uses the event declaration variant that identifies the state key.
 
 ```c
-static void declaration_complete(guint declaration, int* value) {
-    app_data->state_value = *value;
-    app_data->timer = g_timeout_add_seconds(5, (GSourceFunc)send_event, app_data);
-}
+ax_event_handler_declare2(event_handler, key_value_set, FALSE, "active",
+                          &declaration,
+                          (AXDeclarationCompleteCallback)declaration_complete,
+                          &start_value, NULL);
 ```
-
-- Save initial state and start the periodic toggle sender.
-
-**Sending the state updates**
-
-```c
-static gboolean send_event(AppData* send_data) {
-    AXEventKeyValueSet* kv = ax_event_key_value_set_new();
-    AXEvent* ev = NULL;
-
-    ax_event_key_value_set_add_key_value( key_value_set, active, NULL, &send_data->value, AX_VALUE_TYPE_BOOL, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "triggerTime", NULL, "today", AX_VALUE_TYPE_STRING, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "classTypes", NULL, "car", AX_VALUE_TYPE_STRING, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "scenarioType",NULL, "Scenario1", AX_VALUE_TYPE_STRING, NULL);
-    ax_event_key_value_set_add_key_value(key_value_set, "objectId", NULL, "1", AX_VALUE_TYPE_STRING, NULL);
-
-    ev = ax_event_new2(kv, NULL);
-    ax_event_key_value_set_free(kv);
-
-    if (!ax_event_handler_send_event(d->event_handler, send_data->event_id, ev, NULL))
-        LOG_ERROR("Could not fire event\n");
-    ax_event_free(ev);
-
-    send_data->state_value = !send_data->state_value;   // toggle 0/1
-    return TRUE;                        // keep timer running
-}
-```
-
-
-## LAB: 
-
-1. Build your app. Instruction under **build**
-2. Install the produced ACAP package on the camera (Web UI → Apps → Upload & Install).
-3. Start the app from the camera Apps page.
-4. Check parameters declared with the GetEventInstances
-
-- create a python env folder:
-
-```bash
-    # 1. Make a project folder (if you haven't already)
-mkdir -p ~/python-env
-cd ~/python-env
-
-# 2. Create a virtual environment called .venv
-python3 -m venv .venv
-
-# 3. Activate it (VERY important)
-source .venv/bin/activate
-
-# 4. Install safely the packages
-pip install request
-```
-- Create an onvif user in the camera
-- Run command 
-
-```bash
-get_eventlist.py getlist -u onvif -p onvif i- 192.168.0.90
-
-```
-- Check localy for onviflist.xml and find the event declared "SendStateWithData"
-
-```xml
-    <tnsaxis:CameraApplicationPlatform>
-                    <SendStateData>
-                        <SendStateDataEvent wstop:topic="true" aev:NiceName="Send State Data Event">
-                            <aev:MessageInstance aev:isProperty="true">
-                                <aev:DataInstance>
-                                    <aev:SimpleItemInstance Type="xsd:string" Name="triggerTime"></aev:SimpleItemInstance>
-                                    <aev:SimpleItemInstance Type="xsd:string" Name="scenarioType"></aev:SimpleItemInstance>
-                                    <aev:SimpleItemInstance Type="xsd:string" Name="classTypes"></aev:SimpleItemInstance>
-                                    <aev:SimpleItemInstance Type="xsd:string" Name="objectId"></aev:SimpleItemInstance>
-                                    <aev:SimpleItemInstance isPropertyState="true" Type="xsd:boolean" Name="active"></aev:SimpleItemInstance>
-                                </aev:DataInstance>
-                            </aev:MessageInstance>
-                        </SendStateDataEvent>
-                    </SendStateData>
-                    ...
-                    ...
-    </tnsaxis:CameraApplicationPlatform>            
-```
-
-- When done (with the project):
-
-```bash
-deactivate
-```
-
-**Action Rule (UI)**
-
-4. Create a rule:
-
-- When: Event → CameraApplicationPlatform / SendStateWithData / SendStateWithDataEvent
-- Filter: active (by default)
-- Then: choose an action text overlay while rule is active
-
-![Event config](./event_state_overlay.png)
-
-5. Check paylad:
-
-```bash
-gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:SendStateWithData/axis:SendStateWithDataEvent" ! fdsink
-
-// or with ObjectAnalytics
-
-gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:ObjectAnalytics/axis:SendStateWithDataEvent" ! fdsink
-
-```
-
-It should look like this:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<tt:MetadataStream xmlns:tt="http://www.onvif.org/ver10/schema">
-    <tt:Event>
-        <wsnt:NotificationMessage xmlns:tns1="http://www.onvif.org/ver10/topics" xmlns:tnsaxis="http://www.axis.com/2009/event/topics" xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2" xmlns:wsa5="http://www.w3.org/2005/08/addressing">
-            <wsnt:Topic Dialect="http://docs.oasis-open.org/wsn/t-1/TopicExpression/Simple">tnsaxis:CameraApplicationPlatform/SendStateData/SendStateDataEvent</wsnt:Topic>
-            <wsnt:ProducerReference>
-                <wsa5:Address>uri://cb10c153-2609-431a-b386-f9fa8e0d24cb/ProducerReference</wsa5:Address>
-            </wsnt:ProducerReference>
-            <wsnt:Message>
-                <tt:Message UtcTime="2026-01-07T15:56:22.917692Z" PropertyOperation="Changed">
-                    <tt:Source></tt:Source>
-                    <tt:Key></tt:Key>
-                    <tt:Data>
-                        <tt:SimpleItem Name="classTypes" Value="car"/>
-                        <tt:SimpleItem Name="objectId" Value="1"/>
-                        <tt:SimpleItem Name="triggerTime" Value="today"/>
-                        <tt:SimpleItem Name="scenarioType" Value="scenario1"/>
-                        <tt:SimpleItem Name="active" Value="1"/>
-                    </tt:Data>
-                </tt:Message>
-            </wsnt:Message>
-        </wsnt:NotificationMessage>
-    </tt:Event>
-</tt:MetadataStream>
-```
-
-You’ll see it trigger every time the state flips to the filtered value.
-
-![Triggered state](./alarm_overlay.png)
-
-## How this differs from a stateless pulse
-
-- Stateful (this sample): there is always a current value. Subscribers receive the current state immediately and on each change.
-
-- Stateless (pulse): has no memory — callbacks only fire when you send a pulse.
-
-Pick **stateful** for things like “while rule is active”.
-
-
-## Notes
-
-- The event key active is marked as data because it represents a state payload.
-- For source-style dropdowns, you would declare distinct source values, but that’s not the property-state pattern demonstrated here.
 
 ## Build
 
-```bash
-docker build --build-arg ARCH=aarch64 --tag send-state-with-data .
-```
-
-```bash
+```sh
+docker build --tag send-state-with-data --build-arg ARCH=aarch64 .
 docker cp $(docker create send-state-with-data):/opt/app ./build
 ```
 
+## Classroom Exercises
+
+1. Add a new data field such as `"confidence"`.
+2. Send different `objectId` values while the state is active.
+3. Compare this example with `send-state` and identify which part changes rule behavior.

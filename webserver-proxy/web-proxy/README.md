@@ -1,138 +1,64 @@
-# Webserver Civetweb - Web Proxy
+# Web Proxy
 
-This sample demonstrates how to build a reverse-proxied web server inside an ACAP application using CivetWeb + AXParameter + Jansson.
-
-- CivetWeb runs a multithreaded-threaded HTTP server.
-- AXParameter is used to persist configuration parameters.
-- JSON endpoints allow get/set of parameters.
-- Reverse proxy forwards requests from /local/api/ → http://localhost:2001.
-
-This is the simplest possible architecture—no mutexes or threading required.
+This example runs a CivetWeb HTTP server inside the ACAP application and exposes a small JSON API for AXParameter values.
 
 ## Endpoints
 
-Base path: `/local/web_proxy/api/`
+| Method | Path | Meaning |
+| --- | --- | --- |
+| `GET` | `/` | Serve `html/index.html` |
+| `GET` | `/local/web_proxy/api/info` | Read `MulticastAddress` and `MulticastPort` |
+| `POST` | `/local/web_proxy/api/param` | Update `MulticastAddress` and `MulticastPort` |
 
-- **GET** `/info`
-    Returns current parameter values:
-
-    ```json
-    {
-    "MulticastAddress": "224.0.0.1",
-    "MulticastPort": "1024",
-    "ok": true
-    }
-    ```
-- **POST** `/param`
-    Accepts JSON body:
-
-    ```json
-    { "MulticastAddress": "239.1.2.3", "MulticastPort": "9000" }
-    ```
-
-    returns:
-    ```json
-    { "ok": true, "changed": true }
-    ```
-
-- **GET** `/` → Serves `html/index.html` (frontend).
-
----
-
-## Parameters
-
-Configured via `manifest.json`:
-
-- MulticastAddress (default: 224.0.0.1)
-- MulticastPort (default: 1024)
-
-Stored persistently using AXParameter.
-
-## How it works
-
-- CivetWeb listens on port `2001` inside the app.
-- ACAP reverseProxy exposes `/local/web_proxy/api/`.
-- `index.html` uses fetch() calls (js) to the endpoints or/and curl
-- All AXParameter access happens in a single thread, so no locking is required.
-
-## 2) Architecture & request flow
+## Code Flow
 
 ```mermaid
-flowchart LR
-  A[Browser UI]
-  B["/local/web_proxy/... (device web server)"]
-  C["127.0.0.1:2001<br/>(CivetWeb)"]
-  D[AXParameter]
-  E[Jansson]
+sequenceDiagram
+    participant Browser
+    participant App as CivetWeb app
+    participant Param as AXParameter
 
-  A -- HTTPS --> B
-  B -- reverse proxy --> C
-  C -- handlers --> D
-  C -- JSON --> E
-
-  subgraph Process
-    direction TB
-    C
-    D
-    E
-  end
-
+    Browser->>App: GET /local/web_proxy/api/info
+    App->>Param: ax_parameter_get()
+    App-->>Browser: JSON
+    Browser->>App: POST /local/web_proxy/api/param
+    App->>App: json_loads()
+    App->>Param: ax_parameter_set()
+    App-->>Browser: JSON
 ```
 
-1. The device web server exposes `/local/web_proxy/...` (reverse proxy).
-2. Requests are forwarded to **CivetWeb** bound on a local port.
-3. Handlers parse/emit JSON (Jansson) and read/set values via **AXParameter**.
+## Starting The Server
 
+```c
+const char* opts[] = {
+    "listening_ports", PORT,
+    "request_timeout_ms", "10000",
+    "error_log_file", "error.log",
+    0
+};
 
----
-
-## 3) Main building blocks in the code
-
-- **Signal handling:** `SIGINT`/`SIGTERM` flips a `running` flag and exits cleanly.
-- **CivetWeb Intializes:** `mg_init_library(0);`
-- **CivetWeb setup:** `mg_start` with options:
-  - `listening_ports = "2001"` (recommend binding to loopback: `"127.0.0.1:2001"` in production)
-  - `request_timeout_ms = "10000"`
-  - `error_log_file = "error.log"`
-- **Handlers registered:** `mg_set_request_handler`
-  - `/` → `RootHandler` (streams `html/index.html`)
-  - `/local/web_proxy/api/info` → `InfoHandler` (GET)
-  - `/local/web_proxy/api/param` → `ParamHandler` (POST)
-- **AXParameter session:** `ax_parameter_new(APP_NAME, &error)` stored in global `handle`.
-- **Helpers:**
-  - `get_param(name)` → returns newly allocated string (caller frees with `g_free`), or `NULL` on failure.
-  - `set_param(name, value)` → updates a single parameter; returns `TRUE` on success.
-
----
-
-## Lab:
-
-1. start & open under apps applicatiion web proxy
-2. Test changing values
-3. reload page
-
-4. Test the api with curl:
-
-3. Test with curl:
-
-```bash
-curl --anyauth -u root:pass http://192.168.0.90/local/web_proxy/api/info
+struct mg_context* ctx = mg_start(&cb, NULL, opts);
 ```
 
-```bash
-curl --anyauth -u root:pass -H "Content-Type: application/json" \
-  -d '{"MulticastAddress":"224.0.0.2","MulticastPort":"9000"}' \
-  http://192.168.0.90/local/web_proxy/api/param
+## Registering Handlers
 
+```c
+mg_set_request_handler(ctx, "/", RootHandler, NULL);
+mg_set_request_handler(ctx, "/local/web_proxy/api/info", InfoHandler, NULL);
+mg_set_request_handler(ctx, "/local/web_proxy/api/param", ParamHandler, NULL);
 ```
+
+Each handler returns `1` when it has handled the request.
 
 ## Build
 
-```bash
+```sh
 docker build --tag web-proxy --build-arg ARCH=aarch64 .
-
-```
-```bash
 docker cp $(docker create web-proxy):/opt/app ./build
-
 ```
+
+## Classroom Exercises
+
+1. Add an endpoint that returns the application version.
+2. Validate the JSON body before calling `ax_parameter_set()`.
+3. Compare the request path with the FastCGI example.

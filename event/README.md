@@ -1,62 +1,120 @@
-# Event API Samples
+# Event Examples
 
-This folder contains ACAP examples that demonstrate how to **send and subscribe to Axis events** using the Axis Event API.  
-Events are a core mechanism in the ACAP framework to communicate state changes, data, or signals between applications and services on the device.  
+The Event API is a core ACAP concept. It lets an application publish events that
+other applications, action rules, or clients can subscribe to.
 
-The samples here cover different **event types** (`data`, `pulse`, `pulse with dropdown`, `state`) and one **subscription example** that consumes published event data.  
+This folder teaches event publishing first, then event subscription.
 
----
+## Recommended Learning Order
 
-## Folder Content
+```mermaid
+flowchart TD
+    A[send-data<br/>stateless event with payload] --> B[subscribe-event-data<br/>receive and parse payload]
+    A --> C[send-pulse<br/>short trigger event]
+    C --> D[send-pulse-dropdown<br/>source values for UI dropdowns]
+    A --> E[send-state<br/>stateful property event]
+    E --> F[send-state-with-data<br/>state plus extra metadata]
+```
 
-### Event Senders
+## Example Summary
 
-These samples show how to publish different event types from an ACAP application:
+| Example | Main lesson |
+| --- | --- |
+| `send-data` | declare and send stateless data events |
+| `subscribe-event-data` | subscribe to a topic and extract payload |
+| `send-pulse` | send short trigger-like events |
+| `send-pulse-dropdown` | mark values as source fields for dropdown behavior |
+| `send-state` | declare a stateful event with an active property |
+| `send-state-with-data` | combine state with additional data fields |
 
-- **send-data**  
-  Sends a **data event** with arbitrary key/value payloads (e.g. `"temperature": "42"`).  
-  Useful when you want to propagate sensor values or structured data to other apps or clients.
+## Core Event Flow
 
-- **send-pulse**  
-  Sends a **pulse event**, representing a short-lived trigger.  
-  Often used to signal a single occurrence (e.g. motion detected).
+```mermaid
+sequenceDiagram
+    participant Publisher
+    participant EventSystem as AXEvent system
+    participant Subscriber
+    Publisher->>EventSystem: declare topic + schema
+    EventSystem-->>Publisher: declaration complete
+    Publisher->>EventSystem: send AXEvent
+    Subscriber->>EventSystem: subscribe with matching topic
+    EventSystem-->>Subscriber: callback with AXEvent
+    Subscriber->>Subscriber: extract key/value payload
+```
 
-- **send-pulse-dropdown**  
-  A variation of `send-pulse` that includes a **dropdown option**, allowing the event to carry one of several predefined values.  
-  Example: trigger an event that specifies the "cause" or "source" from a predefined list.
+## Topics
 
-- **send-state**  
-  Sends a **state event**, which maintains its last known value.  
-  Useful for representing conditions such as `"door=OPEN"` / `"door=CLOSED"` or `"system=ACTIVE"`.
+Events are organized by topic keys:
 
----
+```c
+ax_event_key_value_set_add_key_value(kv,
+                                     "topic0",
+                                     "tnsaxis",
+                                     "CameraApplicationPlatform",
+                                     AX_VALUE_TYPE_STRING,
+                                     NULL);
+```
 
-### Event Subscriber
+Most examples use:
 
-- **subscribe-to-event-data**  
-  A companion example that **listens for `send-data` events** and prints/acts on the received payload.  
-  Demonstrates how to integrate event subscriptions inside an ACAP application.
+```text
+topic0 = tnsaxis:CameraApplicationPlatform
+topic1 = tnsaxis:<ExampleGroup>
+topic2 = tnsaxis:<ExampleEvent>
+```
 
----
+The subscriber must use matching topic values.
 
-## Objectives
+## Data vs Source
 
-By working through these labs, you will learn:
+Data values are event payload:
 
-- How to define and send different types of Axis events in an ACAP app.  
-- The differences between **data**, **pulse**, and **state** event types.  
-- How to add additional metadata (dropdowns, payload values) to events.  
-- How to subscribe to and process events published by other ACAP applications.  
+```c
+ax_event_key_value_set_mark_as_data(kv, "Temperature", NULL, NULL);
+```
 
----
+Source values describe selectable event sources, often visible as dropdowns:
 
-## Next Steps
+```c
+ax_event_key_value_set_mark_as_source(kv, "value", NULL, NULL);
+```
 
-1. Start with **send-data** to understand basic event publishing.  
-2. Experiment with **send-pulse** and **send-pulse-dropdown** to see different trigger semantics.  
-3. Use **send-state** for persistent condition tracking.  
-4. Run **subscribe-to-event-data** in parallel with **send-data** to observe the event flow.
+## Stateless vs Stateful
 
----
+When declaring an event, the state flag controls event semantics:
 
-For more details, see the [Axis Event API documentation](https://developer.axis.com/acap).  
+```c
+ax_event_handler_declare(handler, kv, 1, &declaration, callback, data, NULL);
+```
+
+```text
+1 = stateless event
+0 = stateful/property event
+```
+
+Stateful events represent a current condition. Stateless events represent an
+occurrence or data sample.
+
+## Build Pattern
+
+Run from each example folder:
+
+```bash
+docker build --tag EXAMPLE_NAME --build-arg ARCH=aarch64 .
+docker cp $(docker create EXAMPLE_NAME):/opt/app ./build
+```
+
+## Teaching Notes
+
+- Declare before sending.
+- Keep topic names stable; subscribers depend on exact matches.
+- Use data fields for values consumers should read.
+- Use source fields when event configuration should expose selectable choices.
+- Keep the GLib main loop running so timers and callbacks execute.
+
+## Exercises
+
+1. Change `topic1` in a sender and observe that the subscriber stops receiving.
+2. Add a new data field to `send-data` and parse it in the subscriber.
+3. Change a stateless event to stateful and inspect behavior in the camera UI.
+4. Add more dropdown values to `send-pulse-dropdown`.

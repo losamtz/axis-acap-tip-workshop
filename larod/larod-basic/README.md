@@ -294,6 +294,26 @@ sequenceDiagram
 - How DMA-BUF fd sharing avoids image copies.
 - Why VDO buffers must be returned after use.
 
+## Build
+
+Build the ACAP package from this folder:
+
+```bash
+docker build --tag larod-basic --build-arg ARCH=aarch64 .
+```
+
+Copy the generated package out of the build container:
+
+```bash
+docker cp $(docker create larod-basic):/opt/app ./build
+```
+
+The Dockerfile downloads the person/car model and packages it as:
+
+```text
+/usr/local/packages/larod_basic/model/model.tflite
+```
+
 ## What This Example Does Not Teach Yet
 
 - non-blocking VDO with `poll`

@@ -1,83 +1,120 @@
-# ACAP Parameter API – Workshop Overview
+# Parameter Examples
 
-Welcome to **Module 1: Parameter API** of the *Axis ACAP Tip Workshop*.  
-This section focuses on understanding and mastering ACAP’s **AXParameter API**—the foundation for making ACAP applications configurable and responsive to runtime changes.
+The Parameter API is a core ACAP concept. Parameters let an application expose
+persistent configuration values that can be changed from code, VAPIX, the camera
+UI, or a custom web page.
 
----
+This folder belongs in the basic track of the workshop.
 
-## Lab Samples Included
+## Recommended Learning Order
 
-This folder contains three progressive hands-on samples:
+```mermaid
+flowchart TD
+    A[parameter-manifest<br/>declare parameters in manifest] --> B[parameter-runtime<br/>add/set/list/remove in C]
+    B --> C[parameter-custom-interface<br/>connect parameters to a web UI]
+```
 
-### 1. `parameter_manifest`
-- **Objective**: Demonstrates how to create and register application parameters via the **application manifest**.
-- **Key Features**:
-  - Parameters are declared in the manifest file.
-  - Application code registers callbacks to respond to parameter changes.
-  - Graceful shutdown with signal handling.
-- **What you'll learn**:
-  - Using `ax_parameter_new()` to open a parameter handle.
-  - Registering callbacks with `ax_parameter_register_callback()`.
-  - Integrating with a GLib main loop to monitor parameter updates.
+## Example Summary
 
----
+| Example | Main lesson | Adds |
+| --- | --- | --- |
+| `parameter-manifest` | Parameters declared in `manifest.json` | callbacks and GLib main loop |
+| `parameter-runtime` | Parameters created by C code | add, set, list, remove |
+| `parameter-custom-interface` | Parameters controlled from a web UI | `param.cgi`, callbacks, deferred writes |
 
-### 2. `parameter_runtime`
-- **Objective**: Demonstrates how to **add, remove, set, and list parameters dynamically** at runtime.
-- **Key Features**:
-  - `ax_parameter_add()` to add new parameters.
-  - `ax_parameter_set()` to update values (with optional callback trigger).
-  - `ax_parameter_remove()` to unregister parameters.
-  - `ax_parameter_list()` to inspect current parameters.
-- **What you'll learn**:
-  - Building applications that can evolve parameter sets during runtime.
-  - Observing parameter updates via syslog.
-  - Linking parameter changes to application logic.
+## Core Concept
 
----
+```mermaid
+flowchart LR
+    UI[Camera UI or custom page] --> Param[AXParameter storage]
+    VAPIX[param.cgi] --> Param
+    App[ACAP app] --> Param
+    Param --> Callback[registered callback]
+    Callback --> Logic[application logic]
+```
 
-### 3. `parameter_custom_interface`
-- **Objective**: Demonstrates how to build a **custom web interface** to edit parameters live.
-- **Key Features**:
-  - A Bootstrap-based modal UI for editing parameters.
-  - JavaScript (`onload.js` and `submitForm.js`) fetching parameters with `/axis-cgi/param.cgi` and updating them.
-  - Tight coupling between the browser UI and AXParameter callbacks in the ACAP application.
-- **What you'll learn**:
-  - Bridging backend parameter logic with a frontend.
-  - Securely fetching and setting parameters via CGI.
-  - Delivering user-friendly configuration panels on Axis devices.
+Parameters are stored under the app scope:
 
----
+```text
+root.<app_name>.<parameter_name>
+```
 
-## How to Work Through the Labs
+Example:
 
-1. **Start with `parameter_manifest`**  
-   Understand the basics of parameter creation, registration, and monitoring.
+```text
+root.parameter_runtime.ParameterRuntime
+```
 
-2. **Move to `parameter_runtime`**  
-   Learn how to manipulate parameters dynamically during the lifetime of your application.
+## Basic API Pattern
 
-3. **Finish with `parameter_custom_interface`**  
-   Build a real-world UI that lets end users configure your application interactively.
+Create a handle:
 
----
+```c
+AXParameter* handle = ax_parameter_new(APP_NAME, &error);
+```
 
-## Lab Workflow Summary
+Register a callback:
 
-| Lab / Sample                  | Primary Focus             | Expected Learning Outcomes                  |
-|-------------------------------|---------------------------|---------------------------------------------|
-| `parameter_manifest`          | Static parameter setup    | Manifest-declared params, callbacks, signals |
-| `parameter_runtime`           | Dynamic param management  | Adding, setting, listing, removing params    |
-| `parameter_custom_interface`  | UI-driven parameter edits | Bridging web UI with AXParameter backend     |
+```c
+ax_parameter_register_callback(handle,
+                               "ParameterManifest",
+                               acap_parameter_changed,
+                               NULL,
+                               &error);
+```
 
-> Recommended path: **manifest → runtime → custom interface**.
+Set a value:
 
----
+```c
+ax_parameter_set(handle, "ParameterRuntime", "yes", TRUE, &error);
+```
 
-## Prerequisites
+List values:
 
-- ACAP SDK with Docker-based toolchain
-- Basic familiarity with **C** and **GLib**
-- Axis device with web access
-- Browser for testing the custom UI
+```c
+GList* list = ax_parameter_list(handle, &error);
+```
 
+## Callback Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Param as AXParameter
+    participant App
+    User->>Param: update value
+    Param->>App: registered callback
+    App->>App: read name/value and react
+```
+
+Callbacks are delivered through the GLib main loop, so long-running parameter
+apps usually create:
+
+```c
+GMainLoop* loop = g_main_loop_new(NULL, FALSE);
+g_main_loop_run(loop);
+```
+
+## Build Pattern
+
+Run from each example folder:
+
+```bash
+docker build --tag EXAMPLE_NAME --build-arg ARCH=aarch64 .
+docker cp $(docker create EXAMPLE_NAME):/opt/app ./build
+```
+
+## Teaching Notes
+
+- Use manifest parameters for known configuration values.
+- Use runtime parameters when the app needs to create/remove parameters itself.
+- Use callbacks to react to changes.
+- Use custom UI or VAPIX when an external user/system should update values.
+- Avoid doing heavy work directly inside callbacks; schedule work if needed.
+
+## Exercises
+
+1. Add a boolean `Enabled` parameter to `parameter-manifest`.
+2. Add a second runtime parameter and list it.
+3. Use `param.cgi` to update a value and watch the callback log.
+4. Extend the custom interface with one more field.

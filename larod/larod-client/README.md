@@ -73,7 +73,7 @@ docker build --build-arg ARCH=aarch64 --tag larod-client .
 Copy the generated package out of the container:
 
 ```bash
-docker cp $(docker create --platform=linux/amd64 larod-client):/opt/app ./build
+docker cp $(docker create larod-client):/opt/app ./build
 ```
 
 Install the `.eap` package on the camera. The package provides the

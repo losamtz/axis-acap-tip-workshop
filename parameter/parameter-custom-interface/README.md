@@ -1,96 +1,134 @@
-# AXIS Parameter API demo - parameter_custom_interface
+# parameter-custom-interface
 
-Drive RTP Multicast Settings from ACAP Parameters + Web UI 
+This example connects ACAP parameters to a small custom web UI. The user edits
+MulticastAddress and MulticastPort in the app page, the values are stored as
+application parameters, and C callbacks propagate them to camera RTP settings.
 
-## Goal
+## Architecture
 
-- Expose app parameters (MulticastAddress, MulticastPort) in a simple Bootstrap modal.
-- When the user saves the form, update the ACAP parameters.
-- The app’s parameter callbacks propagate values to the device RTP settings:
-    - root.Network.RTP.R0.VideoAddress
-    - root.Network.RTP.R0.VideoPort
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Web as Camera web server
+    participant Param as param.cgi / AXParameter
+    participant App as ACAP callback
+    participant RTP as Network.RTP.R0
+    Browser->>Web: open settingPage index.html
+    Browser->>Param: list app parameters
+    Browser->>Param: update MulticastAddress/Port
+    Param->>App: parameter callback
+    App->>App: schedule 1 second deferred write
+    App->>RTP: ax_parameter_set root.Network.RTP.R0.*
+```
 
-- Use a short deferred write (1s) to avoid racing the parameter system.
+## Manifest Parameters
 
-## html settup:
+The parameters are declared in `manifest.json`:
 
-Manifest file
+```json
+"paramConfig": [
+  {
+    "name": "MulticastAddress",
+    "default": "224.0.0.1",
+    "type": "string:maxlen=64"
+  },
+  {
+    "name": "MulticastPort",
+    "default": "1024",
+    "type": "int:maxlen=5;min=1024;max=65535"
+  }
+]
+```
+
+The manifest also declares:
+
+```json
+"settingPage": "index.html"
+```
+
+That makes the page available from the camera Apps UI.
+
+## C Callback Flow
+
+The app opens its AXParameter scope:
 
 ```c
-"configuration": {
-            "settingPage": "index.html",
-            "paramConfig": [
-                {
-                    "name": "MulticastAddress",
-                    "default": "224.0.0.1",
-                    "type": "string:maxlen=64"
-                },
-                {
-                    "name": "MulticastPort",
-                    "default": "1024",
-                    "type": "int:maxlen=5;min=1024;max=65535"
-                }
-            ]
-        }
+axparameter = ax_parameter_new(app_name, &error);
 ```
 
-## What the app does (timeline)
+Then registers callbacks:
 
-1. User opens your app page (/local/parameter_custom_interface/index.html):
-    - UI fetches current values via param.cgi?action=list.
+```c
+ax_parameter_register_callback(axparameter,
+                               "MulticastAddress",
+                               multicast_address_callback,
+                               NULL,
+                               &error);
+```
 
-2. User edits and saves:
-    - UI updates root.Parameter_custom_interface.MulticastAddress, root.Parameter_custom_interface.MulticastPort
+The callback schedules a deferred write:
 
-3. The C app sees parameter changes:
-    - Callback schedules ax_parameter_set → writes RTP parameters after 1s.
+```c
+struct message* msg = malloc(sizeof(struct message));
+msg->name = strdup("root.Network.RTP.R0.VideoAddress");
+msg->value = strdup(value);
 
-4. Camera RTP config now matches app params.
+g_timeout_add_seconds(1, set_parameter, msg);
+```
 
-## Lab: Test the callback
+The delayed function writes the camera RTP parameter:
 
+```c
+ax_parameter_set(axparameter, msg->name, msg->value, TRUE, &error);
+```
 
-1. As sooon as you start the app, o to app http://192.168.0.90/camera/index.html#/apps > Parameter custom interface > open. It should look like this:
+## Why Deferred Write
 
-![Parameter custom modal initial settings page](./modal_ui_settings.png)
+The callback is triggered by a parameter update. Writing another parameter
+immediately from inside the callback can be harder to reason about. The sample
+uses a short GLib timeout to let the callback return, then performs the device
+parameter write.
 
-2. Change values and save.
-3. Check the values under http://192.168.0.90/camera/index.html#/system/plainConfig/group/Network > Network / RTP / R0
+## Test With VAPIX
 
-4. Refresh the UI, it should look like this:
-
-![Plain config multicast settings](./plainconfig_network_r0_rtp.png)
-
-
-3. Check the logs, under app logs or http://192.168.0.90/axis-cgi/admin/systemlog.cgi?appname=parameter_custom_interface
-
-
-
-![Parameter custom UI logs](./logs_parameter_custom_ui.png)
-
-
-4. Use VAPIX param.cgi to list parameter.
+List app parameters:
 
 ```bash
-curl --anyauth -u root:pass "http://192.168.0.90/axis-cgi/param.cgi?action=list&group=root.parameter_custom_interface"
-
+curl --anyauth -u root:pass \
+  "http://CAMERA_IP/axis-cgi/param.cgi?action=list&group=root.parameter_custom_interface"
 ```
-5. Update the parameter (triggers callback)
+
+Update app parameters:
 
 ```bash
-curl --anyauth -u root:pass "http://192.168.0.90/axis-cgi/param.cgi?action=update&root.parameter_custom_interface.MulticastAddress=224.0.0.101&root.parameter_custom_interface.MulticastPort=56000"
-
+curl --anyauth -u root:pass \
+  "http://CAMERA_IP/axis-cgi/param.cgi?action=update&root.parameter_custom_interface.MulticastAddress=224.0.0.101&root.parameter_custom_interface.MulticastPort=56000"
 ```
-6. check logs again
 
+Then inspect:
 
+```text
+root.Network.RTP.R0.VideoAddress
+root.Network.RTP.R0.VideoPort
+```
+
+## What This Teaches
+
+- custom setting pages can edit ACAP parameters
+- `param.cgi` and AXParameter operate on the same values
+- callbacks can bridge app parameters to other device parameters
+- deferred writes avoid doing too much inside the callback
 
 ## Build
 
 ```bash
 docker build --tag parameter-custom-interface --build-arg ARCH=aarch64 .
-```
-```bash
 docker cp $(docker create parameter-custom-interface):/opt/app ./build
 ```
 
+## Exercises
+
+1. Add a TTL parameter to the manifest and UI.
+2. Validate multicast address format before writing RTP settings.
+3. Change the timeout from 1 second to 3 seconds and observe logs.
+4. Update values through both the UI and `curl`.

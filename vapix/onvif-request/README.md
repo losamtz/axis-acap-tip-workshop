@@ -1,114 +1,107 @@
-# VAPIX API - ONVIF Request
+# ONVIF Request
 
-Configure ONVIF media settings from an ACAP app using SOAP over HTTP.
-This sample shows how to:
+This example sends an ONVIF SOAP request from an ACAP application through the camera service endpoint. It is more advanced than the JSON VAPIX example because the request body is XML and the operation changes video encoder multicast settings.
 
-- Fetch camera credentials for a service account over D-Bus (HTTPConf1/VAPIXServiceAccounts1).
-- Build and POST an ONVIF SetVideoEncoderConfiguration SOAP request with libcurl.
-- Log and validate the HTTP response.
+## What this example teaches
 
-The code you shared sends a Media2 SetVideoEncoderConfiguration to /vapix/services, updating resolution, FPS, bitrate limits, and multicast settings on the profile token default_1
+- How an ACAP can call ONVIF services locally.
+- How VAPIX service account credentials are reused for authenticated requests.
+- How libcurl is configured for SOAP/XML.
+- Why camera configuration changes should be made carefully and logged.
 
-## What you’ll learn
+## Code Flow
 
-- How to obtain per-device credentials programmatically (no hard-coded secrets).
-- How to compose SOAP XML and post it with proper Content-Type and WS action.
-- How to check HTTP status and handle errors robustly in C.
+```mermaid
+sequenceDiagram
+    participant App as onvif_request
+    participant DBus as VAPIXServiceAccounts1
+    participant Curl as libcurl
+    participant ONVIF as /vapix/services
 
-## Folder layout (key files)
+    App->>DBus: GetCredentials("random_user")
+    DBus-->>App: credentials
+    App->>App: Build SetVideoEncoderConfiguration SOAP body
+    App->>Curl: POST http://127.0.0.12/vapix/services
+    Curl->>ONVIF: Authenticated SOAP request
+    ONVIF-->>Curl: XML response
+    Curl-->>App: Response text
+```
 
-- `onvif-request.c` — main program:
+## Credential Retrieval
 
-    - `retrieve_onvif_credentials()` via D-Bus → "id:password".
-    - `onvif_post()` / `onvif_post_xml()` POST the SOAP request with libcurl.
-    - `set_onvif_properties()` contains the SOAP body for Media2 SetVideoEncoderConfiguration.
-
-## How it works (annotated)
-
-1) Get credentials over D-Bus
+The application asks the camera for credentials for a VAPIX service account:
 
 ```c
+char *credentials = retrieve_onvif_credentials("random_user");
+```
 
-static char *retrieve_onvif_credentials(const char *username) {
-    // Calls com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials(username)
-    // Returns "id:password"
+Internally that function calls D-Bus:
+
+```c
+g_dbus_connection_call_sync(connection,
+                            bus_name,
+                            object_path,
+                            interface_name,
+                            "GetCredentials",
+                            g_variant_new("(s)", username),
+                            NULL,
+                            G_DBUS_CALL_FLAGS_NONE,
+                            -1,
+                            NULL,
+                            &error);
+```
+
+## SOAP Request
+
+The example builds a `SetVideoEncoderConfiguration` SOAP body. The multicast part is the important configuration payload:
+
+```c
+"<sch:Multicast>"
+"<sch:Address>"
+"<sch:Type>IPv4</sch:Type>"
+"<sch:IPv4Address>224.0.0.72</sch:IPv4Address>"
+"</sch:Address>"
+"<sch:Port>7072</sch:Port>"
+"<sch:TTL>5</sch:TTL>"
+"<sch:AutoStart>false</sch:AutoStart>"
+"</sch:Multicast>"
+```
+
+The body is posted with libcurl:
+
+```c
+curl_easy_setopt(handle, CURLOPT_URL, "http://127.0.0.12/vapix/services");
+curl_easy_setopt(handle, CURLOPT_NOPROXY, "*");
+curl_easy_setopt(handle, CURLOPT_USERPWD, credentials);
+curl_easy_setopt(handle, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+curl_easy_setopt(handle, CURLOPT_POSTFIELDS, soap_xml_body);
+```
+
+## Response Handling
+
+The response is collected into a `GString` by a write callback:
+
+```c
+static size_t append_to_gstring_callback(char *ptr, size_t size,
+                                         size_t nmemb, void *userdata)
+{
+    size_t processed_bytes = size * nmemb;
+    g_string_append_len((GString *)userdata, ptr, processed_bytes);
+    return processed_bytes;
 }
 ```
 
-- Avoids shipping secrets in your binary.
-- Works with service accounts created in the camera UI / VAPIX.
-
-2) Compose the SOAP body
-
-```c
-
-const char *soap_body =
-    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-    "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\""
-    "               xmlns:wsdl=\"http://www.onvif.org/ver20/media/wsdl\""
-    "               xmlns:sch=\"http://www.onvif.org/ver10/schema\">"
-    "  <soap:Header/>"
-    "  <soap:Body>"
-    "    <wsdl:SetVideoEncoderConfiguration>"
-    "      <wsdl:Configuration token=\"default_1_h264\" GovLength=\"32\">"
-    "        <sch:Name>default_1 h264</sch:Name>"
-    "        <sch:UseCount>0</sch:UseCount>"
-    "        <sch:Encoding>H264</sch:Encoding>"
-    "        <sch:Resolution><sch:Width>3840</sch:Width><sch:Height>2160</sch:Height></sch:Resolution>"
-    "        <sch:RateControl ConstantBitRate=\"false\">"
-    "          <sch:FrameRateLimit>25</sch:FrameRateLimit>"
-    "          <sch:BitrateLimit>2147483647</sch:BitrateLimit>"
-    "        </sch:RateControl>"
-    "        <sch:Multicast>"
-    "          <sch:Address><sch:Type>IPv4</sch:Type><sch:IPv4Address>224.0.0.72</sch:IPv4Address></sch:Address>"
-    "          <sch:Port>7072</sch:Port><sch:TTL>5</sch:TTL><sch:AutoStart>false</sch:AutoStart>"
-    "        </sch:Multicast>"
-    "        <sch:Quality>70</sch:Quality>"
-    "      </wsdl:Configuration>"
-    "    </wsdl:SetVideoEncoderConfiguration>"
-    "  </soap:Body>"
-    "</soap:Envelope>";
-
-
-```
-
-3) POST to the VAPIX endpoint (it will change ONVIF settings in the web interface)
-
-```c
-
-char *url = "http://127.0.0.12/vapix/services";
-curl_slist *headers = NULL;
-headers = curl_slist_append(headers,
-  "Content-Type: application/soap+xml;charset=UTF-8;"
-  "action=\"http://www.onvif.org/ver20/media/wsdl/SetVideoEncoderConfiguration\"");
-
-```
-
-- Uses Basic Auth with the credentials from D-Bus.
-- Checks for HTTP 200; otherwise logs and aborts.
-
---- 
-
-## Setting to be changed under ONVIF > ONVIF media profiles > profile_1 h264
-
-![Settings to change](./onvif_multicast_setVideoencoderConf.png)
-
-## Lab
-
-1. Build and run the application
-2. It will automatically update the onvif profile settings with new multicast address an port.Maybe needs a UI refresh.
-3. It should enable multicast
-4. stop the app
-5. Change values and build it again.
-6. Uplaod app and run.
+The example checks the HTTP status code and fails if it is not `200`.
 
 ## Build
 
-```bash
+```sh
 docker build --tag onvif-request --build-arg ARCH=aarch64 .
-
-```
-```bash
 docker cp $(docker create onvif-request):/opt/app ./build
-
 ```
+
+## Classroom Exercises
+
+1. Change the multicast address and port, then inspect the camera configuration.
+2. Replace the hard-coded XML with a loaded XML file from `app/initial-info-request/`.
+3. Add safer logging that avoids printing credentials.

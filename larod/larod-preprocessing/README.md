@@ -322,6 +322,26 @@ sequenceDiagram
 - The preprocessing output tensor can be passed directly to inference.
 - Format conversion and resizing can be hidden behind a larod job.
 
+## Build
+
+Build the ACAP package from this folder:
+
+```bash
+docker build --tag larod-preprocessing --build-arg ARCH=aarch64 .
+```
+
+Copy the generated package out of the build container:
+
+```bash
+docker cp $(docker create larod-preprocessing):/opt/app ./build
+```
+
+The Dockerfile downloads the person/car model and packages it as:
+
+```text
+/usr/local/packages/larod_preprocessing/model/model.tflite
+```
+
 ## What Comes Next
 
 `vdo-larod-min` keeps the same conceptual pipeline but makes it more realistic:

@@ -807,6 +807,27 @@ larodDisconnect(&conn, &cleanup_error);
 bbox_destroy(bbox);
 ```
 
+## Build
+
+Build the ACAP package from this folder:
+
+```bash
+docker build --tag object-detection-min --build-arg ARCH=aarch64 .
+```
+
+Copy the generated package out of the build container:
+
+```bash
+docker cp $(docker create object-detection-min):/opt/app ./build
+```
+
+The Dockerfile downloads and packages:
+
+```text
+/usr/local/packages/object_detection_min/model/converted_model.tflite
+/usr/local/packages/object_detection_min/label/labels.txt
+```
+
 ## Troubleshooting
 
 ### `larodGetDevice` fails

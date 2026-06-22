@@ -241,6 +241,34 @@ The large image frame is shared by fd. The CPU reads only small output tensors.
 | `larodCreateJobRequest` | bind model, inputs, outputs |
 | `larodRunJob` | execute preprocessing or inference |
 
+## Build Instructions
+
+Each example is built from its own folder with Docker. The common pattern is:
+
+```bash
+docker build --tag IMAGE_NAME --build-arg ARCH=aarch64 .
+docker cp $(docker create IMAGE_NAME):/opt/app ./build
+```
+
+Run the commands from the example folder, not from `larod/`.
+
+| Example | Build command |
+| --- | --- |
+| `larod-client` | `docker build --tag larod-client --build-arg ARCH=aarch64 .` |
+| `larod-basic` | `docker build --tag larod-basic --build-arg ARCH=aarch64 .` |
+| `larod-preprocessing` | `docker build --tag larod-preprocessing --build-arg ARCH=aarch64 .` |
+| `vdo-larod-min` ARTPEC-9 | `docker build --tag vdo-larod-min --build-arg ARCH=aarch64 --build-arg CHIP=artpec9 .` |
+| `vdo-larod-min` ARTPEC-8 | `docker build --tag vdo-larod-min --build-arg ARCH=aarch64 --build-arg CHIP=artpec8 .` |
+| `object-detection-min` | `docker build --tag object-detection-min --build-arg ARCH=aarch64 .` |
+
+After building, copy the package out:
+
+```bash
+docker cp $(docker create IMAGE_NAME):/opt/app ./build
+```
+
+The generated `.eap` package will be under the copied `build` directory.
+
 ## Is This Good Teaching Content For Newcomers?
 
 Yes, with one caveat: newcomers need the progression to be explicit. larod has

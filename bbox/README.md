@@ -1,66 +1,121 @@
-# Bounding Box (bbox) Samples & Labs
+# BBox Examples
 
-This folder contains examples of how to use ACAP’s **Bounding Box (bbox)** utilities with multiple views on Axis devices.  
-Each sample demonstrates how bounding boxes can be rendered on different camera views using the **Overlay API** together with `bbox`.
+`bbox` is the simplest visual feedback API in this workshop. It lets an ACAP
+application draw rectangles and related box styles on one or more camera views.
 
----
+This section belongs early in the visual basics track. It is easier than the
+full `overlay/` examples because `bbox` is specialized for box-like graphics.
 
-## Sample Contents
+## Recommended Learning Order
 
-### 1. **bbox-multi-view/**
-- **Objective:** Demonstrates how to manage bounding boxes across **all camera views**.
-- **Behavior:** A box moves along the X-axis and is displayed across every available view on the device.
-- **What you learn:**
-  - How to iterate through all views in a multi-view setup.
-  - How to create and update bounding boxes consistently across multiple streams.
-  - How to animate a moving box using the Overlay API (bbox).
+```mermaid
+flowchart TD
+    A[bbox-view<br/>draw one static box] --> B[bbox-multi-view<br/>draw on several views]
+    B --> C[bbox-multi-view-refactor-lab<br/>persistent handle + timer animation]
+```
 
----
+## Example Summary
 
-### 2. **bbox-view/**
-- **Objective:** Shows how to draw a single large bounding box that frames an **entire view**.
-- **Behavior:** A bounding box is created that covers the full extent of the selected view.
-- **What you learn:**
-  - How to query the view dimensions.
-  - How to render a bounding box that encapsulates a full view.
-  - How to work with view-specific bbox normalization.
+| Example | Main lesson | Adds |
+| --- | --- | --- |
+| `bbox-view` | Draw one box on one view | `bbox_view_new`, style, commit, cleanup |
+| `bbox-multi-view` | Draw on multiple views | `bbox_new`, several view ids, animation |
+| `bbox-multi-view-refactor-lab` | Structure a smoother bbox app | persistent bbox handle, GLib timer, clean shutdown |
 
----
+## Core Flow
 
-### 3. **bbox-multiview-refactor-lab/**
-- **Objective:** Refactored version of the moving box sample using **best practices** for smoother animation.
-- **Behavior:** A yellow rectangle moves horizontally across multiple views, bouncing off edges.
-- **What’s new / improved:**
-  - Uses **GLib timers** (`g_timeout_add`) instead of blocking `sleep()` calls, ensuring smooth 30 FPS animation.
-  - Creates a **persistent bbox handle** once and reuses it each frame instead of recreating/destroying every tick.
-  - Proper cleanup on exit: clears overlays before destroying resources.
-- **What you learn:**
-  - How to structure bbox-based applications efficiently.
-  - How to decouple animation timing from rendering logic.
-  - How to manage resources (create once, reuse, destroy on shutdown) for performance.
+```mermaid
+sequenceDiagram
+    participant App
+    participant BBox
+    App->>BBox: bbox_view_new or bbox_new
+    App->>BBox: bbox_clear
+    App->>BBox: set style, thickness, color
+    App->>BBox: bbox_rectangle
+    App->>BBox: bbox_commit
+    App->>BBox: bbox_destroy on shutdown
+```
 
----
+## Core Concepts
 
-## Learning Goals
+### Handle
 
-By working through these labs, you will:
-- Understand how to attach bounding boxes to **specific views** in multi-view cameras.
-- Learn the difference between per-view rendering and synchronizing across multiple views.
-- Practice updating bbox coordinates dynamically (moving objects) vs. static overlays (framing views).
-- Apply **refactoring patterns** for smoother overlays and better resource management.
+A `bbox_t*` is the drawing context. It can target one view or several views.
 
----
+```c
+bbox_t* bbox = bbox_view_new(1u);
+```
 
-## Lab Checklist
+or:
 
-| Sample                        | What to Verify |
-|-------------------------------|----------------|
-| bbox-multi-view               | A moving box travels horizontally across all views simultaneously. |
-| bbox-view                     | A static box is drawn that frames the entire selected view. |
-| bbox-multiview-refactor-lab   | A smoothly animated yellow box bounces horizontally, with no stutter and efficient resource use. |
+```c
+bbox_t* bbox = bbox_new(4u, 1u, 2u, 3u, 4u);
+```
 
----
+### Draw Queue
 
-## Lib flow summary
+Drawing calls queue geometry. Nothing appears until commit:
 
-[bbox-api](./bbox-api.md "Go to bbox flow")
+```c
+bbox_clear(bbox);
+bbox_rectangle(bbox, x1, y1, x2, y2);
+bbox_commit(bbox, 0u);
+```
+
+### Style
+
+```c
+bbox_style_outline(bbox);
+bbox_thickness_thin(bbox);
+bbox_color(bbox, bbox_color_from_rgb(0xff, 0x00, 0x00));
+```
+
+### Coordinates
+
+Many examples use normalized coordinates:
+
+```text
+x = 0.0 left, 1.0 right
+y = 0.0 top,  1.0 bottom
+```
+
+If normalized mode is needed, enable it explicitly:
+
+```c
+bbox_coordinates_frame_normalized(bbox);
+```
+
+## Runtime Architecture
+
+```mermaid
+flowchart LR
+    App[ACAP application] --> BBox[bbox API]
+    BBox --> View1[View 1 overlay]
+    BBox --> View2[View 2 overlay]
+    BBox --> ViewN[Other targeted views]
+```
+
+## Build Pattern
+
+Run the build command from each example folder:
+
+```bash
+docker build --tag EXAMPLE_NAME --build-arg ARCH=aarch64 .
+docker cp $(docker create EXAMPLE_NAME):/opt/app ./build
+```
+
+## Teaching Notes
+
+- `bbox` is specialized and simple. Use it for box overlays.
+- `bbox_commit` is the point where queued drawing becomes visible.
+- Clear before redrawing animated boxes.
+- Prefer creating a persistent handle once for repeated drawing.
+- Always clear overlays on shutdown.
+
+## Exercises
+
+1. Change box color and thickness.
+2. Draw two rectangles before one `bbox_commit`.
+3. Switch between pixel and normalized coordinates.
+4. Target a different view id.
+5. Compare recreating the handle every frame with reusing one handle.

@@ -1,106 +1,56 @@
-# Event API – Send Pulse (stateless)
+# Send Pulse Event
 
-Stateless ONVIF/Axis event “pulse” generator for ACAP.
-This sample declares a stateless event under the CameraApplicationPlatform topic and periodically sends it with a numeric value that steps 0→100 by 10.
+This example publishes a stateless pulse event. A pulse is useful for "something happened" signals, such as a detected object, a button press, or a threshold crossing.
 
-## What this app does
+## Concept
 
-- Declares a stateless event:
+A pulse event does not represent a current condition. It represents an instant.
 
-```
-    topic0 = tnsaxis:CameraApplicationPlatform
-    topic1 = tnsaxis:SendPulse
-    topic2 = tnsaxis:SendPulseEvent
-    Data key: value (INT)
-```
-
-- Starts a GLib timer that fires every 5 seconds.
-
-- Each tick:
-
-    - Builds an AXEvent with the current value
-    - Sends it with ax_event_handler_send_event
-    - Increments value by 10 (wraps at 100)
-
-This is ideal for testing action rules, event forwarding (MQTT), or another ACAP app that subscribes to these events.
-
-
-- **Stateless events**
-This sample declares the event as stateless (1), meaning each fired event is independent and does not represent an ongoing state.
-
-- **Event loop**
-A GLib main loop schedules periodic event generation every 5 seconds using g_timeout_add_seconds.
-
-
-## Code Walkthrough
-
-- setup_declaration()
-Declares the event and defines the topic hierarchy and data fields.
-
-- declaration_complete()
-Callback when declaration succeeds. Sets initial values and starts the periodic event timer.
-
-- send_event()
-Creates an event, adds key/value pairs, and sends it through ax_event_handler_send_event. sends it with a numeric value that steps 0 → 100 by 10.
-
-- main()
-Initializes syslog, seeds RNG, creates the event handler, registers declaration, and runs the GLib main loop.
-
-## Read Data stream
-
-1. Build the ACAP application and install it on your camera.
-2. Start the application
-3. Use **Gstreamer/Axis Metadata Monitor/MQTT** to subscribe to the event
-
-```bash
-gst-launch-1.0 rtspsrc location="rtsp://root:pass@192.168.0.90/axis-media/media.amp?video=0&audio=0&event=on&eventtopic=axis:CameraApplicationPlatform/axis:SendPulse/axis:SendPulseEvent" ! fdsink
-
-```
-4. Observer events with data payload:
-
-```xml
-
-    <?xml version="1.0" encoding="UTF-8"?>
-    <tt:MetadataStream xmlns:tt="http://www.onvif.org/ver10/schema">
-        <tt:Event>
-            <wsnt:NotificationMessage xmlns:tns1="http://www.onvif.org/ver10/topics" 
-                                    xmlns:tnsaxis="http://www.axis.com/2009/event/topics" 
-                                    xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2" 
-                                    xmlns:wsa5="http://www.w3.org/2005/08/addressing">
-                <wsnt:Topic Dialect="http://docs.oasis-open.org/wsn/t-1/TopicExpression/Simple">tnsaxis:CameraApplicationPlatform/SendPulse/SendPulseEvent</wsnt:Topic>
-                <wsnt:ProducerReference>
-                    <wsa5:Address>uri://834f16ae-0f06-437c-8d04-2ad363dfc88d/ProducerReference</wsa5:Address>
-                </wsnt:ProducerReference>
-                <wsnt:Message>
-                    <tt:Message UtcTime="2025-08-16T18:26:08.676764Z">
-                        <tt:Source></tt:Source>
-                        <tt:Data>
-                            <tt:SimpleItem Name="value" Value="10"/>
-                        </tt:Data>
-                    </tt:Message>
-                </wsnt:Message>
-            </wsnt:NotificationMessage>
-        </tt:Event>
-    </tt:MetadataStream>
-
+```mermaid
+flowchart LR
+    Timer[Timer fires] --> Build[Build event payload]
+    Build --> Send[Send pulse event]
+    Send --> Rule[Rule engine sees one occurrence]
 ```
 
+The example still attaches a small value to make the event easy to inspect, but the important part is that each call to `ax_event_handler_send_event()` is an occurrence.
 
-6. Check if application send pulse is listed when creating an event
+## Key Code
 
-![Event settings](./pulse_event_listed.png)
+The topic names place the event under the application namespace:
 
-7. Check the available actions. You will see that while is active actions are greyed out due to require state.
+```c
+ax_event_key_value_set_add_key_value(key_value_set, "topic0", "tnsaxis",
+                                     TOPIC0_TAG, AX_VALUE_TYPE_STRING, NULL);
+ax_event_key_value_set_add_key_value(key_value_set, "topic1", "tnsaxis",
+                                     TOPIC1_TAG, AX_VALUE_TYPE_STRING, NULL);
+ax_event_key_value_set_add_key_value(key_value_set, "topic2", "tnsaxis",
+                                     EVENT_TAG, AX_VALUE_TYPE_STRING, NULL);
+```
 
-![Actions listing](./event_stateless_actions.png)
+The timer callback sends the pulse repeatedly:
+
+```c
+g_timeout_add_seconds(5, send_pulse, app_data);
+```
+
+The event is declared once and sent many times:
+
+```c
+ax_event_handler_declare(event_handler, key_value_set, 1, &declaration,
+                         (AXDeclarationCompleteCallback)declaration_complete,
+                         &start_value, NULL);
+```
 
 ## Build
 
-```bash
-docker build --build-arg ARCH=aarch64 --tag pulse-send-stless .
+```sh
+docker build --tag send-pulse --build-arg ARCH=aarch64 .
+docker cp $(docker create send-pulse):/opt/app ./build
 ```
 
-```bash
-docker cp $(docker create pulse-send-stless):/opt/app ./build
-```
+## Classroom Exercises
 
+1. Change the event interval from 5 seconds to 1 second.
+2. Remove the data value and make the event a pure pulse.
+3. Create an event rule on the camera that reacts to this pulse.

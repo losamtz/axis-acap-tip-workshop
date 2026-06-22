@@ -1,113 +1,153 @@
 # AXIS ACAP TIP Workshop
 
-Hands-on samples and labs for several ACAP SDK libraries and platform features. Each folder contains progressive samples to describe the libraries functionalities, buildable focused on one topic (parameters, events, VDO frames, overlays, bbox utils, FastCGI web UI, Civetweb web UI, VAPIX, etc.). 
-GitHub
+This repository is a progressive workshop for learning ACAP application development. The examples are intentionally small and focused: each folder introduces one platform concept, then later folders combine those concepts into richer applications.
 
-## Repo map
+The recommended teaching order is:
 
-- bbox/ — Bounding-box helpers and demos
-    Learn about drawing, and common operations.
+1. Core/basic platform APIs: `parameter/`, `vapix/`, `event/`
+2. Visual basics: `bbox/`
+3. Intermediate web UI and APIs: `webserver-fastcgi/`, `webserver-proxy/`
+4. Advanced visual rendering: `overlay/`
+5. Advanced video frames and buffers: `vdo/`
+6. Most advanced machine learning flow: `larod/`
 
-- event/ — AXEvent publisher/subscriber patterns
-    Stateless vs property events, marking source vs data fields, and dropdown (source) declarations + timed sends.
+## Curriculum Map
 
-- overlay/ — axoverlay examples
-    Create layers, draw primitives/text, manage z-order and alpha, and render dynamic overlays over live video.
+```mermaid
+flowchart TD
+    Start[ACAP basics] --> Param[parameter]
+    Param --> Vapix[vapix]
+    Vapix --> Event[event]
+    Event --> BBox[bbox]
+    BBox --> FastCGI[webserver-fastcgi]
+    FastCGI --> Proxy[webserver-proxy]
+    Proxy --> Overlay[overlay]
+    Overlay --> VDO[vdo]
+    VDO --> LAROD[larod]
 
-- parameter/ — Three ways to work with axparameter
-
-    1. Manifest parameters (declared in package.conf),
-    2. Runtime create/update/list/remove via API,
-    3. Custom UI that reads/writes parameters from a web page.
-
-- vapix/ — VAPIX HTTP API examples
-Calling param.cgi / events / I/O from scripts or tiny clients (GET/POST patterns, auth, and safe parsing).
-
-- vdo/ — libvdo capture & buffer handling
-Open channels, pull frames, manage formats, timestamps, and (optionally) hand off to inference pipelines.
-
-- webserver-fastcgi/ — FastCGI web UI samples
-Serve a Bootstrap UI, read/write ACAP parameters via endpoints, and wire simple “settings” forms to the device.
-
-
-Tip: some folders contain multiple labs that build on each other. Open each folder’s own README for exact build/run steps.
-
-## What you’ll learn 
-
-- **Parameters**: declare (manifest), add at runtime, list/remove, and subscribe to callbacks; wire a custom HTML UI (FastCGI) that round-trips to param.cgi/axparameter.
-- **Events**: differences between stateless & property events; declaring source (dropdown) vs data (free text), and subscribing with filters.
-- **VDO**: grabbing frames efficiently, NV12/RGBA formats, timestamps/metadata, and safe plane access.
-- **Overlay**: drawing layers/text/shapes with axoverlay, controlling z-order/opacity, and dynamic update loops.
-- **BBox**: converting frame-normalized ↔ scene-normalized, drawing, and simple metrics.
-- **Web UI**: FastCGI endpoint patterns + Bootstrap UIs; parameter viewer/editor.
-- **VAPIX**: small HTTP calls to system/config APIs (auth, query, set) for glue logic.
-
-
-
-## Building & running (quick start)
-
-Exact steps vary by sample. Typical flow:
-
-1) On your dev host / Codespace
-git clone https://github.com/losamtz/axis-acap-tip-workshop
-cd axis-acap-tip-workshop/
-
-2) Build (most samples provide a Makefile or simple build script)
-
-Build the application: 
-
-```bash
-docker build --build-arg ARCH=aarch64 --tag <APP_NAME> .
-
-```
-Copy the result from the container image to a local directory build:
-
-```bash
-docker cp $(docker create <APP_NAME>):/opt/app ./build
-
+    Param --> P1[Configuration model]
+    Vapix --> V1[Camera HTTP APIs]
+    Event --> E1[Publish and subscribe]
+    BBox --> B1[Simple visual annotations]
+    FastCGI --> W1[HTTP endpoints through camera web server]
+    Proxy --> W2[Embedded web backend and Angular UI]
+    Overlay --> O1[Direct video overlay drawing]
+    VDO --> D1[Frame capture and dma-buf]
+    LAROD --> L1[Inference, tensors, preprocessing, postprocessing]
 ```
 
-3) Go to camera app section and upload *.eap file under sample build forder
+## Repository Map
 
+| Folder | Level | What it teaches |
+| --- | --- | --- |
+| `parameter/` | Core/basic | Manifest parameters, runtime parameters, callbacks, and a custom parameter UI |
+| `vapix/` | Core/basic | Calling camera HTTP APIs from inside ACAP with service-account credentials |
+| `event/` | Core/basic | Declaring, sending, and subscribing to ACAP events |
+| `bbox/` | Visual basics | Drawing bounding boxes and reasoning about visual annotations |
+| `webserver-fastcgi/` | Intermediate | FastCGI endpoints served through the camera web server |
+| `webserver-proxy/` | Intermediate | CivetWeb reverse-proxy backends and packaged Angular frontends |
+| `overlay/` | Advanced visual | Drawing text, shapes, logos, and per-view overlays on video |
+| `vdo/` | Advanced video | Capturing frames, reading formats, and understanding dma-buf ownership |
+| `larod/` | Advanced ML | Running inference with LAROD, configuring tensors, and combining VDO plus postprocessing |
 
-Then read the sample’s README for:
+Each folder has its own README with diagrams, build instructions, code snippets, and classroom exercises.
 
-Run command (how it is launched on the device).
+## How The Examples Build On Each Other
 
-Logs location (usually via syslog).
+```mermaid
+sequenceDiagram
+    participant Student
+    participant Core as Core APIs
+    participant UI as Web UI
+    participant Video as Video path
+    participant ML as ML inference
 
+    Student->>Core: Learn parameters, VAPIX, events
+    Student->>UI: Add HTTP endpoints and browser UI
+    Student->>Video: Add bbox and overlay rendering
+    Student->>Video: Capture frames with VDO
+    Student->>ML: Run inference with LAROD
+    ML-->>Video: Draw detections back on video
+```
 
-## Suggested learning path
+The structure is designed for newcomers. Early examples avoid video frames and neural networks so students can first understand the ACAP process model, configuration, event system, and camera APIs. Later examples add memory management, rendering callbacks, dma-buf, tensors, and postprocessing.
 
-- parameter/
-Start with manifest vs runtime parameters and callbacks. Then open webserver-fastcgi/ to see a UI that reads/writes parameters.
+## Build Quick Start
 
-- vapix/
-Glue everything with simple HTTP calls to device APIs (e.g., read/write params, trigger actions).
+Most example folders follow the same Docker build pattern. From the example directory:
 
-- event/
-Declare & send stateless events; try a dropdown source series (0..100) and subscribe from a small consumer.
+```sh
+docker build --tag example-name --build-arg ARCH=aarch64 .
+docker cp $(docker create example-name):/opt/app ./build
+```
 
-- webserver/ 
-fastcgi - reverse proxy
+The generated `.eap` package is copied to `build/`. Upload that package in the camera web interface under Apps.
 
-- overlay/
-Render bounding boxes/text on live video.
+Some examples support other architectures:
 
-- bbox/
-convert/draw boxes.
+```sh
+docker build --tag example-name --build-arg ARCH=armv7hf .
+```
 
-- vdo/
-Capture frames, read them (consumer) or use them as input for larod api and push them back to the pipeline adding bounding boxes (producer).
+Always check the example README for any specific runtime requirements, such as a camera model with MLPU support, a VAPIX service account, or a particular stream format.
 
+## Recommended Class Flow
 
-## Where to look first
+### 1. Core/basic
 
-- parameter/ → see the three samples (manifest, runtime, custom UI).
-- webserver-fastcgi/ → Bootstrap modal UI + FastCGI or civetweb handlers hooked to parameters.
-- vapix/ → tiny scripts/snippets for VAPIX api.
-- event/ → drop-down source declarations & timed sends; matching subscriber.
-- vdo/ → minimal capture loop; NV12 example; timestamps/metadata.
-- overlay/ → drawing and dynamic updates.
-- bbox/ → coordinate conversions & helpers.
+Start with `parameter/`. Parameters are the simplest persistent state mechanism for an ACAP app. Students learn the difference between manifest-defined configuration and runtime-created configuration.
 
+Then use `vapix/`. VAPIX shows how an ACAP app can call local camera APIs through authenticated HTTP requests.
+
+Then use `event/`. Events show how an app communicates state and occurrences to the camera event system and to other applications.
+
+### 2. Visual basics
+
+Use `bbox/` before `overlay/`. BBox examples introduce the idea of placing annotations on video without exposing the full overlay rendering lifecycle yet.
+
+### 3. Intermediate web
+
+Use `webserver-fastcgi/` first to show how the camera web server forwards requests to an application over a FastCGI socket.
+
+Then use `webserver-proxy/` to show an embedded CivetWeb backend, JSON APIs, and packaged Angular frontends.
+
+### 4. Advanced visual
+
+Use `overlay/` after students understand parameters and web APIs. Overlay introduces callbacks, Cairo drawing, color spaces, stream resolution changes, rotation, and per-view rendering.
+
+### 5. Advanced video
+
+Use `vdo/` when students are ready to work with video frames directly. This section introduces blocking and non-blocking frame capture, pixel formats such as NV12 and RGB, and dma-buf based memory ownership.
+
+### 6. Machine learning
+
+Finish with `larod/`. LAROD examples combine the previous topics: model loading, tensor inputs and outputs, VDO frame sources, optional preprocessing, dma-buf transfer, inference execution, postprocessing, and visual output.
+
+## Concept Map
+
+```mermaid
+flowchart LR
+    Config[AXParameter] --> Web[Web UI]
+    Config --> Events[AXEvent]
+    VAPIX[VAPIX] --> Camera[Camera services]
+    Web --> Config
+    VDO[VDO frames] --> LAROD[LAROD inference]
+    LAROD --> Post[Postprocess detections]
+    Post --> BBox[BBox or Overlay]
+    Overlay[axoverlay] --> Video[Video stream]
+    BBox --> Video
+```
+
+## Teaching Guidance
+
+This content is good for teaching newcomers because the examples are small and ordered by complexity. To make the most of it in a class:
+
+- Start each folder by drawing the Mermaid flow and explaining where the code runs.
+- Build and install one example at a time.
+- Read the main loop and callback functions before reading helper functions.
+- Ask students to make one small modification per example.
+- Delay VDO and LAROD until students are comfortable with ACAP packaging, logging, parameters, and callbacks.
+
+## Where To Start
+
+Open `parameter/README.md` first. After that, follow the curriculum map above or jump directly to a folder if you already know the prerequisite concepts.

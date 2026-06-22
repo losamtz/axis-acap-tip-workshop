@@ -1,138 +1,62 @@
-# Webserver Civetweb - Web Proxy
+# Web Proxy Angular
 
-This sample demonstrates how to build a reverse-proxied web server inside an ACAP application using CivetWeb + AXParameter + Jansson.
+This example packages an Angular frontend with a CivetWeb ACAP backend. It is the bridge from C-only web examples to a browser UI that calls ACAP JSON endpoints.
 
-- CivetWeb runs a multithreaded-threaded HTTP server.
-- AXParameter is used to persist configuration parameters.
-- JSON endpoints allow get/set of parameters.
-- Reverse proxy forwards requests from /local/api/ → http://localhost:2001.
-
-This is the simplest possible architecture—no mutexes or threading required.
-
-## Endpoints
-
-Base path: `/local/web_proxy/api/`
-
-- **GET** `/info`
-    Returns current parameter values:
-
-    ```json
-    {
-    "MulticastAddress": "224.0.0.1",
-    "MulticastPort": "1024",
-    "ok": true
-    }
-    ```
-- **POST** `/param`
-    Accepts JSON body:
-
-    ```json
-    { "MulticastAddress": "239.1.2.3", "MulticastPort": "9000" }
-    ```
-
-    returns:
-    ```json
-    { "ok": true, "changed": true }
-    ```
-
-- **GET** `/` → Serves `html/index.html` (frontend).
-
----
-
-## Parameters
-
-Configured via `manifest.json`:
-
-- MulticastAddress (default: 224.0.0.1)
-- MulticastPort (default: 1024)
-
-Stored persistently using AXParameter.
-
-## How it works
-
-- CivetWeb listens on port `2001` inside the app.
-- ACAP reverseProxy exposes `/local/web_proxy/api/`.
-- `index.html` uses fetch() calls (js) to the endpoints or/and curl
-- All AXParameter access happens in a single thread, so no locking is required.
-
-## 2) Architecture & request flow
+## Architecture
 
 ```mermaid
-flowchart LR
-  A[Browser UI]
-  B["/local/web_proxy/... (device web server)"]
-  C["127.0.0.1:2001<br/>(CivetWeb)"]
-  D[AXParameter]
-  E[Jansson]
+sequenceDiagram
+    participant Browser
+    participant UI as Angular files
+    participant API as CivetWeb API
+    participant Param as AXParameter
 
-  A -- HTTPS --> B
-  B -- reverse proxy --> C
-  C -- handlers --> D
-  C -- JSON --> E
-
-  subgraph Process
-    direction TB
-    C
-    D
-    E
-  end
-
+    Browser->>UI: GET /
+    UI-->>Browser: index.html, JS, CSS
+    Browser->>API: GET /local/web_proxy/api/info
+    API->>Param: ax_parameter_get()
+    API-->>Browser: JSON
+    Browser->>API: POST /local/web_proxy/api/param
+    API->>Param: ax_parameter_set()
+    API-->>Browser: JSON
 ```
 
-1. The device web server exposes `/local/web_proxy/...` (reverse proxy).
-2. Requests are forwarded to **CivetWeb** bound on a local port.
-3. Handlers parse/emit JSON (Jansson) and read/set values via **AXParameter**.
+## Frontend API Client
 
+The Angular service calls the same endpoints as `web-proxy`:
 
----
+```ts
+private readonly BASE = '/local/web_proxy/api';
 
-## 3) Main building blocks in the code
-
-- **Signal handling:** `SIGINT`/`SIGTERM` flips a `running` flag and exits cleanly.
-- **CivetWeb Intializes:** `mg_init_library(0);`
-- **CivetWeb setup:** `mg_start` with options:
-  - `listening_ports = "2001"` (recommend binding to loopback: `"127.0.0.1:2001"` in production)
-  - `request_timeout_ms = "10000"`
-  - `error_log_file = "error.log"`
-- **Handlers registered:** `mg_set_request_handler`
-  - `/` → `RootHandler` (streams `html/index.html`)
-  - `/local/web_proxy/api/info` → `InfoHandler` (GET)
-  - `/local/web_proxy/api/param` → `ParamHandler` (POST)
-- **AXParameter session:** `ax_parameter_new(APP_NAME, &error)` stored in global `handle`.
-- **Helpers:**
-  - `get_param(name)` → returns newly allocated string (caller frees with `g_free`), or `NULL` on failure.
-  - `set_param(name, value)` → updates a single parameter; returns `TRUE` on success.
-
----
-
-## Lab:
-
-1. start & open under apps applicatiion web proxy
-2. Test changing values
-3. reload page
-
-4. Test the api with curl:
-
-3. Test with curl:
-
-```bash
-curl --anyauth -u root:pass http://192.168.0.90/local/web_proxy/api/info
+getInfo(): Observable<InfoResponse> {
+  return this.http.get<InfoResponse>(`${this.BASE}/info`, {
+    headers: { 'Cache-Control': 'no-cache' },
+    withCredentials: true,
+  });
+}
 ```
 
-```bash
-curl --anyauth -u root:pass -H "Content-Type: application/json" \
-  -d '{"MulticastAddress":"224.0.0.2","MulticastPort":"9000"}' \
-  http://192.168.0.90/local/web_proxy/api/param
+The backend serves static files from `app/html/` and registers JSON handlers:
 
+```c
+mg_set_request_handler(ctx, "/", RootHandler, NULL);
+mg_set_request_handler(ctx, "/local/web_proxy/api/info", InfoHandler, NULL);
+mg_set_request_handler(ctx, "/local/web_proxy/api/param", ParamHandler, NULL);
 ```
 
 ## Build
 
-```bash
-docker build --tag web--angular --build-arg ARCH=aarch64 .
-
-```
-```bash
+```sh
+docker build --tag web-proxy-angular --build-arg ARCH=aarch64 .
 docker cp $(docker create web-proxy-angular):/opt/app ./build
-
 ```
+
+## Updating The Angular Assets
+
+The Angular source lives in `../acap-angular-ui/`. After changing it, build the frontend and copy the generated files into this example's `app/html/` directory before building the ACAP package.
+
+## Classroom Exercises
+
+1. Add a visible "last saved" status in the Angular UI.
+2. Add validation before sending the POST request.
+3. Compare static file serving in C with API request handling in C.

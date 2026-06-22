@@ -1,137 +1,70 @@
+# Subscribe Event Data
 
-# Event API – Subscribe Event Data
+This example subscribes to an event and reads its data fields. It is intentionally paired with `send-events-types/send-data`.
 
-**Subscribe to and log data events from another ACAP app**
+The folder name is `subcribe-event-data` in this repository, but the lesson is event subscription.
 
-This sample shows how to receive events using the AXIS Event API. It subscribes to the topic hierarchy:
+## Code Flow
+
+```mermaid
+sequenceDiagram
+    participant Publisher as send-data
+    participant Event as Event System
+    participant Subscriber as subscribe_event_data
+
+    Subscriber->>Event: Declare subscription filter
+    Publisher->>Event: Publish SendDataEvent
+    Event->>Subscriber: Invoke callback
+    Subscriber->>Subscriber: Read data fields
 ```
-tnsaxis:CameraApplicationPlatform
-tnsaxis:SendData
-tnsaxis:SendDataEvent
-```
-…and logs the payload keys it expects from a matching producer (e.g. the send-data sample):
 
-- Temperature (double)
-- Load (double)
-- UsedMemory (int)
-- FreeMemory (int)
+## Key Code
 
-Error handling is intentionally minimal to keep the sample focused on the subscription flow.
-
-## What this app does
-
-1. Creates an AXEventHandler.
-2. Builds a subscription filter with the topic keys above.
-3. Calls ax_event_handler_subscribe(...) and registers subscription_callback.
-4. Runs a GMainLoop so callbacks can be delivered.
-5. In each callback, it extracts values from the event’s AXEventKeyValueSet and logs them.
-
-## Code highlights
-
-**Subscription filter**
+The subscription filter matches the topic published by `send-data`.
 
 ```c
-AXEventKeyValueSet* kv = ax_event_key_value_set_new();
-
-ax_event_key_value_set_add_key_value(kv, "topic0", "tnsaxis",
+ax_event_key_value_set_add_key_value(key_value_set, "topic0", "tnsaxis",
                                      "CameraApplicationPlatform",
                                      AX_VALUE_TYPE_STRING, NULL);
-ax_event_key_value_set_add_key_value(kv, "topic1", "tnsaxis",
-                                     "SendData",
-                                     AX_VALUE_TYPE_STRING, NULL);
-ax_event_key_value_set_add_key_value(kv, "topic2", "tnsaxis",
-                                     "SendDataEvent",
-                                     AX_VALUE_TYPE_STRING, NULL);
+ax_event_key_value_set_add_key_value(key_value_set, "topic1", "tnsaxis",
+                                     "SendData", AX_VALUE_TYPE_STRING, NULL);
+ax_event_key_value_set_add_key_value(key_value_set, "topic2", "tnsaxis",
+                                     "SendDataEvent", AX_VALUE_TYPE_STRING, NULL);
+```
 
-ax_event_handler_subscribe(handler, kv, &subscription,
+The application subscribes with a callback.
+
+```c
+ax_event_handler_subscribe(event_handler,
+                           key_value_set,
+                           &subscription,
                            (AXSubscriptionCallback)subscription_callback,
-                           NULL, NULL);
+                           NULL,
+                           NULL);
 ```
 
-**Callback: extract payload**
+Inside the callback, data fields are extracted by name.
 
 ```c
-static void subscription_callback(guint subscription, AXEvent* event, gpointer* userdata) {
-    (void)subscription; (void)userdata;
-
-    const AXEventKeyValueSet* kv = ax_event_get_key_value_set(event);
-
-    gdouble temperature = 0.0, load = 0.0;
-    gint used_memory = 0, free_memory = 0;
-
-    ax_event_key_value_set_get_double(kv, "Temperature", NULL, &temperature, NULL);
-    ax_event_key_value_set_get_double(kv, "Load", NULL, &load, NULL);
-    ax_event_key_value_set_get_integer(kv, "UsedMemory", NULL, &used_memory, NULL);
-    ax_event_key_value_set_get_integer(kv, "FreeMemory", NULL, &free_memory, NULL);
-
-    syslog(LOG_INFO, "Temperature: %f C", temperature);
-    syslog(LOG_INFO, "Load: %f", load);
-    syslog(LOG_INFO, "Used Memory: %d (MB)", used_memory);
-    syslog(LOG_INFO, "Free Memory: %d (MB)", free_memory);
-
-    ax_event_free(event); // free the event (do NOT free kv)
-}
+ax_event_key_value_set_get_double(key_value_set, "Temperature",
+                                  NULL, &temperature, NULL);
 ```
 
-**Main loop**
+## Build
 
-```c
-GMainLoop* loop = g_main_loop_new(NULL, FALSE);
-g_main_loop_run(loop);
-
-```
-## Lab
-
-1. Install the produced ACAP package on the camera (Web UI → Apps → Upload & Install).
-2. Start the app from the camera Apps page.
-3. For a live test, also install and run the matching producer (send-data) on the same camera.
-
-**Verify it works**
-4. Watch logs    Apps > acap > app log
-
-You should see lines similar to:
-```
-subscribe_event_data[10917]: Temperature: 53.540000 C
-subscribe_event_data[10917]: Load: 2.440000
-subscribe_event_data[10917]: Used Memory: 39 (MB)
-subscribe_event_data[10917]: Free Memory: 461 (MB)
-
+```sh
+docker build --tag subscribe-event-data --build-arg ARCH=aarch64 .
+docker cp $(docker create subscribe-event-data):/opt/app ./build
 ```
 
-5. Confirm topic match
+## How To Test
 
-Make sure the producer uses exactly:
+1. Install and start `send-data`.
+2. Install and start this subscriber.
+3. Watch the application log and verify that values from the publisher are printed by the subscriber.
 
-```
-topic0 = tnsaxis:CameraApplicationPlatform
-topic1 = tnsaxis:SendData
-topic2 = tnsaxis:SendDataEvent
-```
+## Classroom Exercises
 
-If these differ, your subscription won’t receive anything.
-
-
-## Extra
-
-
-## Lab 1 — Add a new key
-
-- Modify your producer to also send a new key, e.g. Hostname as AX_VALUE_TYPE_STRING.
-- In the subscriber callback, call
-
-```c
-ax_event_key_value_set_get_string(kv, "Hostname", NULL, &str, NULL)
-```
-and log it.
-
-- Test: See the hostname printed in subscriber logs.
-
-
-## Lab 2 — Multiple subscriptions
-
-- Create two independent subscriptions:
-    - One to SendDataEvent
-    - One to your other event (e.g., SendPulseEvent)
-
-- Log which subscription id fired in the callback for clarity.
-- Test: Trigger both producer apps and see both streams of logs.
+1. Subscribe to a different topic and observe that no events arrive.
+2. Add a new data field in `send-data` and read it here.
+3. Discuss why topic filtering belongs in the subscription instead of inside the callback.

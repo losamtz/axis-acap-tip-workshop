@@ -1,87 +1,91 @@
-# Web Parameter Samples — FastCGI + AXParameter
+# Webserver FastCGI Examples
 
-This folder contains two ACAP samples that demonstrate how to build web-enabled configuration UIs using **FastCGI** and **AXParameter** on Axis devices.
-Both samples expose **HTTP endpoints** that interact with parameters defined in `manifest.json`, and return **JSON** responses using **jansson**.
-A companion `index.html` provides a simple UI for testing.
+These examples show how an ACAP application can expose HTTP endpoints through the camera web server by using FastCGI. This is an intermediate topic because it combines request routing, JSON parsing, AXParameter, and the ACAP package web configuration.
 
-## 1. web_parameter
+FastCGI is useful when the camera web server should own the public HTTP path and forward requests to the application through a socket.
 
-- **Objective**:
-    Introduces a single-process FastCGI server that responds to HTTP requests with JSON.
-    Uses AXParameter for reading and writing camera parameters, without threading.
+## Learning Order
 
-- **Endpoints**:
+```mermaid
+flowchart TD
+    A[web-parameter] --> B[web-parameter-thread]
+    A --> C[Single request loop]
+    B --> D[Shared state protected by mutex]
+```
 
-    - `info-acap.cgi` → GET → returns current parameter values.
-    - `param-acap.cgi` → POST → updates parameters.
+## Examples
 
-- **Parameters**:
+| Example | Main idea | What to study |
+| --- | --- | --- |
+| `web-parameter` | Minimal FastCGI JSON API for parameters | `FCGX_Accept_r`, routing by `SCRIPT_NAME`, AXParameter get/set |
+| `web-parameter-thread` | Same idea with thread-safe parameter access | Mutexes, idempotent parameter creation, CORS headers |
 
-    - MulticastAddress (default: 224.0.0.1)
-    - MulticastPort (default: 1024)
+## Architecture
 
-- **Highlights**:
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Camera as Camera web server
+    participant FCGI as FastCGI socket
+    participant App as ACAP app
+    participant Param as AXParameter
 
-    - Shows how to declare FastCGI endpoints in manifest.json.
-    - Reads JSON request body, validates, and updates parameters.
-    - Simplest possible architecture — no threading, single loop handles all requests.
+    Browser->>Camera: GET /local/app/endpoint.cgi
+    Camera->>FCGI: Forward request over socket
+    FCGI->>App: FCGX_Accept_r()
+    App->>Param: Read or write parameter
+    App-->>Camera: JSON response
+    Camera-->>Browser: HTTP response
+```
 
-## 2. web_parameter_thread
+## FastCGI Request Loop
 
-- **Objective**:
-    Extends the previous sample to support thread-safe parameter access with pthread_mutex.
-    Prepared for multi-threaded FastCGI handling.
+Both examples use the same core pattern:
 
-- **Endpoints**:
+```c
+sock = FCGX_OpenSocket(socket_path, 5);
+FCGX_InitRequest(&req, sock, 0);
 
-    - `information-acap.cgi` → GET → returns current values.
-    - `parameter-acap.cgi` → POST → updates values.
+while (FCGX_Accept_r(&req) == 0) {
+    route_request(&req, handle);
+    FCGX_Finish_r(&req);
+}
+```
 
-- **Parameters**:
+The socket path comes from the package runtime environment:
 
-    - IpAddress (default: 192.168.0.90)
-    - Port (default: 8080)
+```c
+socket_path = getenv("FCGI_SOCKET_NAME");
+```
 
-- **Highlights**:
+## JSON And Parameters
 
-    - Demonstrates mutex-protected AXParameter usage (pthread_mutex around ax_parameter_get/set).
-    - Uses ax_parameter_add() at startup to ensure parameters exist (idempotent).
-    - Shows a scalable structure: one binary can serve multiple .cgi endpoints.
-    - Adds CORS headers (Access-Control-Allow-Origin: *) for client-side JS testing.
+The examples expose small JSON endpoints that read or update AXParameter values:
 
-## Learning Goals
+```c
+ax_parameter_get(handle, "MulticastAddress", &addr, &error);
+ax_parameter_set(handle, "MulticastPort", s, FALSE, &error);
+```
 
-By working with these two samples, you will learn:
+This is a common pattern for ACAP applications with a small configuration UI.
 
-- How to expose camera parameters via web APIs (GET/POST JSON).
-- How to use FastCGI in ACAP (FCGX_Accept_r loop).
-- When to use AXParameter get/set directly vs. add mutex protection for multi-threading.
-- How to connect parameters to a simple HTML UI with JavaScript fetch() calls.
+## Build Pattern
 
-## Suggested Workshop Labs
+From any example directory:
 
-1. Modify Parameters
-    - Change defaults in manifest.json and verify updates in the web UI.
+```sh
+docker build --tag example-name --build-arg ARCH=aarch64 .
+docker cp $(docker create example-name):/opt/app ./build
+```
 
-2. Add Validation
-    - Reject invalid IP/port values in both samples.
+## Teaching Notes
 
-3. Add a New Parameter
-    - Add TTL or Enabled flag, wire it through GET/POST, and update the HTML page.
+Use these examples after `parameter/` because the webserver is only a transport layer. The useful mental model is:
 
-4. Compare Single vs. Threaded
-    - Deploy both apps, send multiple simultaneous requests (e.g. with ab or curl &), observe differences.
-
-5. Enable Multi-threading (advanced)
-    - In `web_parameter_thread`, spawn worker threads to process FastCGI requests in parallel.
-
-6. Integrate with Another Module
-    - Use the saved parameters in another ACAP (e.g., multicast streaming config).
-
-## Summary
-
-- `web_parameter` → the simplest FastCGI + AXParameter example, single-threaded, great for learning the basics.
-
-- `web_parameter_thread` → builds on it, adds thread-safety and scalability for real-world apps.
-
-Together, they form a progressive workshop path: start small, then add concurrency and robustness.
+```mermaid
+flowchart LR
+    Web[HTTP request] --> Parse[Parse JSON]
+    Parse --> Validate[Validate fields]
+    Validate --> Parameter[AXParameter get/set]
+    Parameter --> Reply[JSON response]
+```

@@ -1,125 +1,38 @@
-# Acap Angular Ui with routing
+# ACAP Angular UI Routing
 
+This folder contains the Angular source used by `../web-proxy-angular-route/`. It adds client-side routing to the basic Angular UI pattern.
 
-## Description
+## Concept
 
-AcapAngularUi is a minimal Angular (standalone) frontend intended to run inside an ACAP application. It provides a small UI to read and update multicast settings through a backend API exposed by the camera/ACAP.
-
-The app uses Angular standalone components (no `AppModule`) and is configured for static/subpath hosting via `baseHref: "./index.html"`.
-
-## Functionality
-
-- Loads current multicast settings from the backend (`GET /info` via `ApiService`).
-- Lets the user edit:
-  - `MulticastAddress`
-  - `MulticastPort`
-- Saves settings back to the backend (`POST/PUT /param` via `ApiService`).
-- Shows the latest backend response as formatted JSON.
-- Handles loading/saving states and displays readable error messages.
-
-## Architecture
-
-High-level flow:
-
-1) Bootstrap
-   - `src/main.ts` bootstraps the standalone root component.
-2) Root component
-   - `src/app/app.ts` renders the multicast settings feature.
-3) Feature component
-   - `src/app/multicast-settings/multicast-settings.ts` owns the page state and UI behavior.
-4) API layer
-   - `src/app/api.ts` encapsulates HTTP calls and response shapes.
-
-Key files and folders:
-
-- `src/app/app.ts` — standalone root component.
-- `src/app/multicast-settings/` — multicast settings feature (template, styles, logic, spec).
-- `src/app/api.ts` — HTTP API service and interfaces.
-- `angular.json` — build/serve config (including `baseHref: "./"` for ACAP hosting).
-
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
+```mermaid
+flowchart TD
+    Index[index.html] --> Router[Angular router]
+    Router --> PageA[Settings page]
+    Router --> PageB[Other route]
+    PageA --> API[/local/web_proxy/api]
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+The browser route controls which Angular component is displayed. API calls still go to the ACAP backend under `/local/web_proxy/api`.
 
-## Code scaffolding
+## API Client
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```ts
+private readonly BASE = '/local/web_proxy/api';
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Keep backend API paths stable even when frontend routes change.
 
-```bash
-ng generate --help
+## Local Frontend Commands
+
+```sh
+npm install
+npm run build
 ```
 
-### Note 
+Copy the build output into `../web-proxy-angular-route/app/html/` before building the ACAP package.
 
-1. Add this into `angular.json`:
+## Classroom Exercises
 
-```json
-"build": {
-            ...
-          "options": {
-            "baseHref": "./index.html",
-            "polyfills": ["zone.js"],
-            ...
-          }
-}
-```
-
-Install previously zone.js to avoid errors on change detection not running after the async callback (zoneless setup with non-signal state), i.e. you update class fields, but Angular never re-renders those parts of the template.
-
-
-```bash
-npm install zone.js
-```
-
-Check `app.config.ts` file, it should contain `provideZoneChangeDetection`
-
-2. Change in `index.html` 
-
-```html
-<base href="/"> 
-
-```
-
-to
-
-```html
-<base href="./index.html"> 
-
-```
-
-
-"./" makes the built URLs relative, which is usually the safest for ACAP/static hosting without server rewrites. Because you are serving the app from a subpath like `/local/<app>/...`
-
-*** This will solve apache issue serving non index.html path ***
-
-
-
-
-
-## Building
-
-To build the project run:
-
-```bash
-ng build --configuration production
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Add content to acap
-
-```bash
-cp -r dist/acap-angular-ui/* my_acap_app/app/html/
-```
+1. Add another route and verify the API still works.
+2. Add an error page for failed API calls.
+3. Explain the difference between a browser route and a backend route.

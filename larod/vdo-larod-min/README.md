@@ -355,6 +355,35 @@ This is the best starting point for a reusable camera inference app:
 - It keeps frame memory zero-copy through DMA-BUF tracking.
 - It uses preprocessing only when needed.
 
+## Build
+
+This Dockerfile requires a `CHIP` argument because it selects a matching
+manifest and model asset.
+
+Build for ARTPEC-9:
+
+```bash
+docker build --tag vdo-larod-min --build-arg ARCH=aarch64 --build-arg CHIP=artpec9 .
+```
+
+Build for ARTPEC-8:
+
+```bash
+docker build --tag vdo-larod-min --build-arg ARCH=aarch64 --build-arg CHIP=artpec8 .
+```
+
+Copy the generated package out of the build container:
+
+```bash
+docker cp $(docker create vdo-larod-min):/opt/app ./build
+```
+
+The Dockerfile packages the person/car model as:
+
+```text
+/usr/local/packages/vdo_larod_min/model/model.tflite
+```
+
 ## What Comes Next
 
 `object-detection-min` uses the same frame/inference structure but changes the

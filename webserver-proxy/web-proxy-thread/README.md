@@ -1,89 +1,67 @@
-# Webserver Civetweb - Web Proxy
+# Web Proxy Thread
 
-This sample demonstrates how to build a **reverse-proxied web server** inside an ACAP application using **CivetWeb + AXParameter + Jansson**, with **pthread-based mutex protection**.
+This example builds on `web-proxy` by running CivetWeb with multiple worker threads and protecting shared parameter access with a mutex.
 
-- CivetWeb runs in its default multi-threaded mode.
-- A pthread_mutex_t protects AXParameter access.
-- JSON endpoints allow get/set of parameters.
-- Reverse proxy forwards requests from /local/api_multicast_thread/ → http://localhost:2002.
+## Threaded Architecture
 
-This pattern is needed when enabling **multiple request-handling threads**.
-
-## Endpoints
-
-Base path: `/local/web_proxy_thread/api`
-
-- **GET** `/info`
-    Returns current parameter values:
-
-    ```json
-    {
-    "MulticastAddress": "224.0.0.1",
-    "MulticastPort": "1024",
-    "ok": true
-    }
-    ```
-- **POST** `/param`
-    Accepts JSON body:
-
-    ```json
-    { "MulticastAddress": "239.1.2.3", "MulticastPort": "9000" }
-    ```
-
-    returns:
-    ```json
-    { "ok": true, "changed": true }
-    ```
-
-- **GET** `/` → Serves `html/index.html` (frontend).
-
----
-
-## Parameters
-
-Configured via `manifest.json`:
-
-- MulticastAddress (default: 224.0.0.1)
-- MulticastPort (default: 1024)
-
-Stored persistently using AXParameter.
-
-## How it works
-
-- CivetWeb listens on port `2002` inside the app.
-- ACAP reverseProxy exposes `/local/web_proxy_thread/api/`.
-- `index.html` uses fetch() calls to the endpoints or/and curl
-- Each HTTP request may be handled by a different worker thread.
-- AXParameter access is guarded by a global pthread_mutex_t.
-
-## Lab:
-
-1. start & open under apps applicatiion web proxy
-2. Test changing values
-3. reload page
-
-4. Test the api with curl:
-
-3. Test with curl:
-
-```bash
-curl --anyauth -u root:pass http://192.168.0.90/local/web_proxy_thread/api/info
+```mermaid
+flowchart TD
+    Request1[Request 1] --> Worker1[CivetWeb worker]
+    Request2[Request 2] --> Worker2[CivetWeb worker]
+    Worker1 --> Mutex[Parameter mutex]
+    Worker2 --> Mutex
+    Mutex --> Param[AXParameter]
 ```
 
-```bash
-curl --anyauth -u root:pass -H "Content-Type: application/json" \
-  -d '{"MulticastAddress":"224.0.0.2","MulticastPort":"9000"}' \
-  http://192.168.0.90/local/web_proxy_thread/api/param
+The server is configured with multiple threads:
 
+```c
+const char* opts[] = {
+    "listening_ports", PORT,
+    "request_timeout_ms", "10000",
+    "num_threads", "4",
+    0
+};
 ```
+
+## Shared State
+
+The global parameter handle is protected:
+
+```c
+static AXParameter* g_param = NULL;
+static pthread_mutex_t g_param_mtx = PTHREAD_MUTEX_INITIALIZER;
+```
+
+Read and write handlers lock before using AXParameter:
+
+```c
+pthread_mutex_lock(&g_param_mtx);
+char* addr = get_param_dup("MulticastAddress");
+char* port = get_param_dup("MulticastPort");
+pthread_mutex_unlock(&g_param_mtx);
+```
+
+## Runtime Defaults
+
+The example adds parameters if missing:
+
+```c
+add_if_missing("MulticastAddress", "224.0.0.1", "string");
+add_if_missing("MulticastPort", "1024", "string");
+```
+
+This makes the application self-contained for teaching and testing.
 
 ## Build
 
-```bash
+```sh
 docker build --tag web-proxy-thread --build-arg ARCH=aarch64 .
-
-```
-```bash
 docker cp $(docker create web-proxy-thread):/opt/app ./build
-
 ```
+
+## Classroom Exercises
+
+1. Increase `num_threads` and send parallel requests.
+2. Add request logging with method and URI.
+3. Explain which data needs a mutex and which data is local to a request.
