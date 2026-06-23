@@ -13,9 +13,9 @@
         "setup": {
             "friendlyName": "parameter manifest",
             "appName": "parameter_manifest",
-            "appId": "415709",
-            "vendor": "Andrés",
-            "vendorId": "6f16357ced",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
             "compatibleOsVersions": [

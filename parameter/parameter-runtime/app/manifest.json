@@ -13,9 +13,8 @@
         "setup": {
             "friendlyName": "parameter runtime",
             "appName": "parameter_runtime",
-            "vendor": "Andrés",
-            "vendorId": "6f16357ced",
-            "appId": "415715",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
