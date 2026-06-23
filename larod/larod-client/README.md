@@ -15,10 +15,10 @@ can first prove that:
 
 ```mermaid
 flowchart LR
-    A[larod-client<br/>manual model execution] --> B[larod-basic<br/>first camera app]
-    B --> C[larod-preprocessing<br/>add resize/convert]
-    C --> D[vdo-larod-min<br/>non-blocking app structure]
-    D --> E[object-detection-min<br/>boxes and overlay]
+    A["larod-client<br/>manual model execution"] --> B["larod-basic<br/>first camera app"]
+    B --> C["larod-preprocessing<br/>add resize/convert"]
+    C --> D["vdo-larod-min<br/>non-blocking app structure"]
+    D --> E["object-detection-min<br/>boxes and overlay"]
 ```
 
 `larod-client` is not a camera pipeline example. It is a model and tensor
@@ -29,10 +29,10 @@ inspection tool.
 ```mermaid
 flowchart TD
     PC[Development PC] --> Image[JPG image]
-    Image --> Convert[img_converter.py<br/>resize and RGB bytes]
+    Image --> Convert["img_converter.py<br/>resize and RGB bytes"]
     Convert --> Bin[input .bin]
     PC --> Model[TFLite model]
-    Model --> Camera[/tmp on camera]
+    Model --> Camera["/tmp on camera"]
     Bin --> Camera
     Camera --> Client[larod-client command]
     Client --> Larod[larod service]
