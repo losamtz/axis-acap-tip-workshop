@@ -9,7 +9,7 @@ flowchart TD
     Index[index.html] --> Router[Angular router]
     Router --> PageA[Settings page]
     Router --> PageB[Other route]
-    PageA --> API[/local/web_proxy/api]
+    PageA --> API["/local/web_proxy/api"]
 ```
 
 The browser route controls which Angular component is displayed. API calls still go to the ACAP backend under `/local/web_proxy/api`.

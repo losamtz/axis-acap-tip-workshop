@@ -8,7 +8,7 @@ This example is the Angular proxy example with client-side routing. It teaches w
 flowchart TD
     BrowserPath[Browser route] --> Angular[Angular router]
     Angular --> View[Rendered component]
-    Angular --> API[/local/web_proxy/api]
+    Angular --> API["/local/web_proxy/api"]
     API --> Backend[CivetWeb handlers]
 ```
 
