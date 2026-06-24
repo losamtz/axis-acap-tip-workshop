@@ -51,16 +51,16 @@ static gboolean send_event(AppData *send_data) {
     ax_event_free(event);
     //g_date_time_unref(time_stamp);
 
-
+    syslog(LOG_INFO, "Value sent: %u", send_data->value);
     // Toggle value
     send_data->value = send_data->value >= 100 ? 0 : send_data->value + 10;
     
     // Returning TRUE keeps the timer going
     return TRUE;
 }
-static void declaration_complete(guint declaration, int *start_value) {
+static void declaration_complete(guint declaration, guint *start_value) {
     syslog(LOG_INFO, "Declaration complete for: %d", declaration);
-    syslog(LOG_INFO, "Declaration complete start value: %d", *start_value);
+    syslog(LOG_INFO, "Declaration complete start value: %u", *start_value);
     app_data->value = *start_value;
 
     // Set up a timer to be called every 10th second
@@ -97,7 +97,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
     //  selectable in the cameras' Event/ActionRule dialog web page
     //  The value may contain information to the client (only recommended for consumers that clients that
     //  can process the data).  It is not recommeded to use the value as a filter for action rules.   
-    ax_event_key_value_set_add_key_value( key_value_set,"value", NULL, &start_value, AX_VALUE_TYPE_INT,NULL);
+    ax_event_key_value_set_add_key_value( key_value_set,"value", NULL, start_value, AX_VALUE_TYPE_INT,NULL);
     ax_event_key_value_set_mark_as_data( key_value_set, "value", NULL, NULL);
     
     //Note that the 3:rd parameter defines if he event is staeful or stateless.  1 = stateless, 0 = stateful
@@ -106,7 +106,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
                                   1, 
                                   &declaration, 
                                   (AXDeclarationCompleteCallback)declaration_complete, 
-                                  &start_value, 
+                                  start_value,
                                   NULL)) {
         syslog(LOG_WARNING, "Could not declare: %s", error->message);
         g_error_free(error);

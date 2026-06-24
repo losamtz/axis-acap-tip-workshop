@@ -57,10 +57,11 @@ static gboolean send_event(AppData *send_data) {
     // Returning TRUE keeps the timer going
     return TRUE;
 }
-static void declaration_complete(guint declaration, int *value) {
-  syslog(LOG_INFO, "Declaration complete for: %d", declaration);
+static void declaration_complete(guint declaration, int *start_value) {
+    syslog(LOG_INFO, "Declaration complete for: %d", declaration);
+    syslog(LOG_INFO, "Declaration complete start value: %u", *start_value);
 
-    app_data->state_value = *value;
+    app_data->state_value = *start_value;
 
     // Set up a timer to be called every 10th second
     app_data->timer = g_timeout_add_seconds(5, (GSourceFunc)send_event, app_data);
@@ -93,7 +94,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
 
     //EVENT DATA INSTANCE
     // A bool data instance called "active" will hold the event state 0 or 1  
-    ax_event_key_value_set_add_key_value( key_value_set,"active", NULL, &start_value, AX_VALUE_TYPE_BOOL, NULL);
+    ax_event_key_value_set_add_key_value( key_value_set,"active", NULL, start_value, AX_VALUE_TYPE_BOOL, NULL);
     ax_event_key_value_set_mark_as_data( key_value_set, "active", NULL, NULL);
     
     //Note that the 3:rd parameter defines if he event is stateful or stateless.  1 = stateless, 0 = stateful
@@ -102,7 +103,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *start_value
                                   0,              // here defines state (0)
                                   &declaration, 
                                   (AXDeclarationCompleteCallback)declaration_complete, 
-                                  &start_value, 
+                                  start_value, 
                                   NULL)) {
         syslog(LOG_WARNING, "Could not declare: %s", error->message);
         g_error_free(error);
