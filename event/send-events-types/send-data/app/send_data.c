@@ -9,7 +9,7 @@
 #define LOG(fmt, args...)    { syslog(LOG_INFO, fmt, ## args); printf(fmt, ## args); }
 #define LOG_ERROR(fmt, args...)    { syslog(LOG_CRIT, fmt, ## args); printf(fmt, ## args); }
 
-#define SERVICE_ID   "send-data"
+#define SERVICE_ID   "send_data"
 
 #define TOPIC0_TAG  "CameraApplicationPlatform"
 #define TOPIC0_NAME "ACAP"
