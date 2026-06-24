@@ -62,24 +62,24 @@ static gboolean send_data(AppData *send_data) {
   // Add the variable elements of the event to the set
     
     if(!ax_event_key_value_set_add_key_value(key_value_set, "Temperature", NULL,
-                                         &app_data->temperature,
+                                         &send_data->temperature,
                                          AX_VALUE_TYPE_DOUBLE, NULL)) {
         syslog(LOG_WARNING, "Could not add temperature key/value pair");
     }                                        
     if(!ax_event_key_value_set_add_key_value(key_value_set, "Load", NULL,
-                                       &app_data->load, AX_VALUE_TYPE_DOUBLE,
+                                       &send_data->load, AX_VALUE_TYPE_DOUBLE,
                                        NULL)) {
         syslog(LOG_WARNING, "Could not add load key/value pair");
     }
   
     if(!ax_event_key_value_set_add_key_value(key_value_set, "UsedMemory", NULL,
-                                        &app_data->used_memory, AX_VALUE_TYPE_INT,
+                                        &send_data->used_memory, AX_VALUE_TYPE_INT,
                                         NULL)) {
         syslog(LOG_WARNING, "Could not add used memory key/value pair");
     }
 
     if(!ax_event_key_value_set_add_key_value(key_value_set, "FreeMemory", NULL,
-                                        &app_data->free_memory, AX_VALUE_TYPE_INT,
+                                        &send_data->free_memory, AX_VALUE_TYPE_INT,
                                         NULL)) {
         syslog(LOG_WARNING, "Could not add free memory key/value pair");
     }
@@ -105,14 +105,21 @@ static gboolean send_data(AppData *send_data) {
   return TRUE;
 }
 
-static void declaration_complete(guint declaration, gdouble *value) {
+static void declaration_complete(guint declaration, gdouble *start_value) {
 
     LOG("Declaration complete for: %d\n", declaration);
+
     
-    app_data->temperature = *value;
+    app_data->temperature = *start_value;
     app_data->load = 0.0;
     app_data->used_memory = 0;
     app_data->free_memory = 0;
+
+    LOG("Initial values: temperature=%.2f load=%.2f used=%u free=%u\n",
+        app_data->temperature,
+        app_data->load,
+        app_data->used_memory,
+        app_data->free_memory);
 
     // timer to be called every 3th second
     app_data->timer = g_timeout_add_seconds(3, (GSourceFunc)send_data, app_data);

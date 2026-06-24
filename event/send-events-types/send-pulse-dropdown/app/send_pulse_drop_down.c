@@ -67,8 +67,7 @@ static gboolean send_event(AppData *send_data) {
 }
 static void declaration_complete(guint declaration, guint *value) {
 
-    syslog(LOG_INFO, "Declaration complete for: %d with value: %d", declaration, *value);
-
+    syslog(LOG_INFO, "Declaration complete for: %u with value: %u", declaration, *value);
     
      // Start timer only once (after declaring the "0" value)
     if(*value == 0) {
@@ -108,7 +107,7 @@ static guint setup_declaration(AXEventHandler* event_handler, guint *value) {
                                       (AXDeclarationCompleteCallback)declaration_complete,
                                       value,
                                       NULL)) {
-            LOG_ERROR("Could not declare event: %s\n", error->message);
+            LOG_ERROR("Could not declare event: %s\n", error ? error->message : "unknown error");
     }
 
     ax_event_key_value_set_free(key_value_set);
