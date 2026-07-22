@@ -130,7 +130,7 @@ int main(void) {
 
     /* ── 5. Create VDO stream (blocking, RGB, model resolution) ── */
     VdoMap* settings = vdo_map_new();
-    vdo_map_set_uint32(settings, "channel", 1); // Using channel 1
+    vdo_map_set_uint32(settings, "channel", 2); // Using channel 1
     vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB);
     vdo_map_set_uint32(settings, "buffer.count", 2);
     vdo_map_set_double(settings, "framerate", 30.0);

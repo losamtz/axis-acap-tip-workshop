@@ -61,7 +61,7 @@
  * example lightweight. The actual frame size and format are read back from VDO
  * after stream creation because VDO may adjust settings to supported values.
  */
-#define VDO_CHANNEL 1u
+#define VDO_CHANNEL 2u
 #define VDO_NUM_BUFFERS 2u
 #define VDO_FRAMERATE 30.0
 #define IMAGE_FIT "crop"

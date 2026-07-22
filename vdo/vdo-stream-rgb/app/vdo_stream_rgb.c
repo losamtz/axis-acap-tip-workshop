@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     // vdo_map_set_pair32u(settings, "resolution", ...);
     // vdo_stream_new(settings, nullptr, &error); 
 
-    stream = vdo_stream_rgb_new(NULL, 1u, (VdoResolution){ .width = 640u, .height = 360u }, &error);
+    stream = vdo_stream_rgb_new(NULL, 1u, (VdoResolution){ .width = 300u, .height = 300u }, &error);
 
     if (!stream)
         return handle_vdo_failed(error);
