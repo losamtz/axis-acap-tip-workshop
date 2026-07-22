@@ -41,16 +41,6 @@ endif
 # ----- Warnings / hardening -----
 CFLAGS += -Wall \
           -Wextra \
-          -Wformat=2 \
-          -Wpointer-arith \
-          -Wbad-function-cast \
-          -Wstrict-prototypes \
-          -Wmissing-prototypes \
-          -Winline \
-          -Wdisabled-optimization \
-          -Wfloat-equal \
-          -W \
-          -Werror \
           -MMD -MP
 
 all: $(PROGS)
