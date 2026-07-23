@@ -29,7 +29,7 @@
 
 #include <glib.h>
 
-#define DEVICE_NAME  "a9-dlpu-tflite" /* or "axis-a8-dlpu-tflite"      */
+#define DEVICE_NAME  "a9-dlpu-tflite" /* or "axis-a8-dlpu-tflite"   "cpu-tflite" "a9-dlpu-tflite"   */
 #define MODEL_PATH   "/usr/local/packages/larod_basic/model/model.tflite"
 
 #define PANIC(fmt, ...)                                 \
