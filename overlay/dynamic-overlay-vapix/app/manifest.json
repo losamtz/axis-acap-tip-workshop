@@ -1,5 +1,5 @@
 {
-    "schemaVersion": "1.7.3",
+    "schemaVersion": "2.0.0",
     "resources": {
         "dbus": {
             "requiredMethods": ["com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"]
@@ -10,10 +10,15 @@
             "friendlyName": "Dynamic Overview Vapix",
             "appName": "dynamic_overview_vapix",
             "vendor": "Axis Communications",
-            "embeddedSdkVersion": "3.0",
+            "vendorId": "1234567890",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
-            "version": "1.0.0"
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
         }
     }
 }

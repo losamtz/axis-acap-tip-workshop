@@ -11,9 +11,9 @@
         "setup": {
             "friendlyName": "vdo dma buffers",
             "appName": "vdo_dma_bufs",
-            "appId": "415733",
             "vendor": "Axis Communications",
-            "vendorId": "6f16357ced",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
             "compatibleOsVersions": [

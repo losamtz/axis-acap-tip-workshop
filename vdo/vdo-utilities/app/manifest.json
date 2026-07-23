@@ -5,15 +5,14 @@
         "setup": {
             "friendlyName": "vdo utilities",
             "appName": "vdo_utilities",
-            "appId": "415718",
             "vendor": "Axis Communications",
-            "vendorId": "6f16357ced",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
             "compatibleOsVersions": [
                 {
-                    "max": "13",
-                    "min": "12.10"
+                    "max": "13"
                 }
             ]
         }

@@ -1,5 +1,5 @@
 {
-    "schemaVersion": "1.7.4",
+    "schemaVersion": "2.0.0",
     "resources": {
         "dbus": {
             "requiredMethods": [
@@ -18,9 +18,15 @@
             "friendlyName": "Bbox View",
             "appName": "bbox_view",
             "vendor": "Axis Communications",
-            "embeddedSdkVersion": "3.0",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
-            "version": "1.0.0"
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
         }
     }
 }

@@ -11,10 +11,9 @@
         "setup": {
             "friendlyName": "VDO stream blocking",
             "appName": "vdo_stream_blocking",
-            "appId": "415706",
             "vendor": "Axis Communications",
-            "vendorId": "6f16357ced",
-            "architecture": "aarch64",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
             "compatibleOsVersions": [
