@@ -2,7 +2,8 @@ ARG ARCH=armv7hf
 ARG REPO=axisecp
 ARG SDK=acap-native-sdk
 ARG UBUNTU_VERSION=24.04
-ARG VERSION=12.5.0
+ARG VERSION=12.11.0
+ARG CIVETWEB_VERSION=v1.16
 
 FROM ${REPO}/${SDK}:${VERSION}-${ARCH}-ubuntu${UBUNTU_VERSION}
 
@@ -15,10 +16,11 @@ ARG BUILD_DIR=/opt/build
 #-------------------------------------------------------------------------------
 # Build Civetweb library
 #-------------------------------------------------------------------------------
+ARG CIVETWEB_VERSION
 ARG CIVETWEB_BUILD_DIR=${BUILD_DIR}/civetweb
 
 WORKDIR ${BUILD_DIR}
-RUN git clone https://github.com/civetweb/civetweb.git
+RUN git clone --depth 1 --branch ${CIVETWEB_VERSION} https://github.com/civetweb/civetweb.git
 
 WORKDIR ${CIVETWEB_BUILD_DIR}
 RUN . /opt/axis/acapsdk/environment-setup* && make lib
