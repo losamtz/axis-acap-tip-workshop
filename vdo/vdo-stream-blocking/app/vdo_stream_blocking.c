@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     if (!vdo_stream_start(stream, &error))
         return handle_vdo_failed(error);
 
-    syslog(LOG_INFO, "Polling stream fd for new frames with non-blocking socket");
+    syslog(LOG_INFO, "Blocking stream started, waiting for frames...");
 
     info = vdo_stream_get_info(stream, &error);
 

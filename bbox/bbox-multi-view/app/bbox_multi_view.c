@@ -36,7 +36,7 @@ static gboolean update_bbox(gpointer user_data) {
     (void)user_data;
 
     // Draw on a multiple views - 4 (4u): 1(1u), 2(2u), 3(3u) and 4(4u)
-    bbox_t* bbox = bbox_new(4u, 1u, 2u, 3u, 4u);
+    bbox_t* bbox = bbox_new(3u, 1u, 2u, 3u);
     if (!bbox)
         panic("Failed creating: %s", strerror(errno));
 
