@@ -29,7 +29,7 @@
 
 #include <glib.h>
 
-#define DEVICE_NAME  "a9-dlpu-tflite" /* or "axis-a8-dlpu-tflite"   "cpu-tflite" "a9-dlpu-tflite"   */
+#define DEVICE_NAME  "cpu-tflite" /* or "axis-a8-dlpu-tflite"   "cpu-tflite" "a9-dlpu-tflite" or "armnn-cpu-tflite"  */
 #define MODEL_PATH   "/usr/local/packages/larod_basic/model/model.tflite"
 
 #define PANIC(fmt, ...)                                 \
@@ -58,6 +58,27 @@ static larodConnection* larod_connect(void) {
     syslog(LOG_INFO, "Connected to larod successfully");
     return conn;
 }
+static void print_larod_devices(larodConnection* conn) {
+
+    larodError* error = NULL;
+    size_t num_devices = 0;
+
+    const larodDevice** devices = larodListDevices(conn, &num_devices, &error);
+    if (num_devices == 0) {
+        PANIC("larodListDevices: %s", error->msg);
+    }
+    for (size_t i = 0; i < num_devices; i++) {
+        uint32_t instance;
+
+        const char *name =
+            larodGetDeviceName(devices[i], &error);
+
+        larodGetDeviceInstance(devices[i], &instance, &error);
+
+        printf("%zu: %s (instance %u)\n",
+            i, name, instance);
+    }
+}
 /* ══════════════════════════════════════════════
  *
  *  STEP 2 — LOAD THE INFERENCE MODEL
@@ -73,13 +94,17 @@ static larodModel* load_inference_model(larodConnection* conn, int* model_fd_out
 
     *model_fd_out = model_fd;
 
+    // List devices for multiple sensors, if needed
+    print_larod_devices(conn);
+
+
     const larodDevice* device = larodGetDevice(conn, DEVICE_NAME, 0, &error);
     larodModel* model = larodLoadModel(conn, model_fd, device,
                                        LAROD_ACCESS_PRIVATE, "", NULL, &error);
     if (!model) {
         PANIC("larodLoadModel: %s", error->msg);
     }
-    syslog(LOG_INFO, "Model loaded successfully");
+    syslog(LOG_INFO, "Model loaded successfully with backend %s", DEVICE_NAME);
     return model;
 }
 

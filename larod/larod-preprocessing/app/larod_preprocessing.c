@@ -33,7 +33,7 @@
 #include <glib.h>
 
 /* ── Configuration ── */
-#define DEVICE_NAME  "a9-dlpu-tflite"
+#define DEVICE_NAME  "axis-a8-dlpu-tflite"
 #define MODEL_PATH   "/usr/local/packages/larod_preprocessing/model/model.tflite"
 #define VDO_WIDTH    640
 #define VDO_HEIGHT   360
@@ -45,6 +45,29 @@
 static volatile sig_atomic_t running = 1;
 static void on_signal(int s) { (void)s; running = 0; }
 
+static int print_larod_devices(larodConnection* conn) {
+
+    larodError* error = NULL;
+    size_t num_devices = 0;
+
+    const larodDevice** devices = larodListDevices(conn, &num_devices, &error);
+    if (num_devices == 0) {
+        syslog(LOG_ERR, "num_devices: %s", error->msg);
+        return EXIT_FAILURE;
+    }
+    for (size_t i = 0; i < num_devices; i++) {
+        uint32_t instance;
+
+        const char *name =
+            larodGetDeviceName(devices[i], &error);
+
+        larodGetDeviceInstance(devices[i], &instance, &error);
+
+        printf("%zu: %s (instance %u)\n",
+            i, name, instance);
+    }
+    return EXIT_SUCCESS;
+}
 int main(void) {
     larodConnection* conn  = NULL;
     larodError*      error = NULL;
@@ -60,7 +83,7 @@ int main(void) {
         syslog(LOG_ERR, "larodConnect: %s", error->msg);
         return EXIT_FAILURE;
     }
-
+    print_larod_devices(conn);
     /* ════════════════════════════════════════════
      *  2. LOAD INFERENCE MODEL + READ METADATA
      * ════════════════════════════════════════════ */

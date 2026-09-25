@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conveyor event monitor</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script>
+</head>
+<body><main>
+<header><div><p class="eyebrow">EVENT API · INDUSTRY EXAMPLE</p><h1>Conveyor event monitor</h1><p class="subtitle">Follow a blockage from sensor condition to published event to subscriber.</p></div><span id="connection" class="badge" role="status">Connecting…</span></header>
+<div class="notice"><strong>Simulated sensor · real Event API</strong><span>Line 1 · automatic 60-second cycle · no machinery control</span></div>
+<div id="offline" class="offline" role="alert" hidden>Connection lost. Displayed values are stale. Check that the app is running on the camera.</div>
+<div class="grid">
+<section class="card live" aria-labelledby="line-title">
+<div class="section-top"><h2 id="line-title">Conveyor 01</h2><span id="ready" class="badge">Declaring events…</span></div>
+<div id="conveyor" class="conveyor" data-state="unknown" aria-hidden="true"><div class="sensor"><span>Checkpoint</span></div><div class="package"></div><div class="belt"></div></div>
+<div class="section-top"><h3 id="condition">Waiting for camera</h3><span id="phase" class="muted">—</span></div>
+<div class="timer"><strong id="blocked">—</strong><span>seconds physically blocked</span></div>
+<label id="progress-label" for="progress">Jam monitoring threshold</label><progress id="progress" max="10" value="0"></progress>
+<p id="policy" class="hint">The initial event establishes JamActive=false.</p>
+<div class="timeline" aria-label="Simulation phases"><span id="phase-flow">0–20s<br>Flowing</span><span id="phase-block">20–40s<br>Blocked</span><span id="phase-clear">40–60s<br>Recovered</span></div>
+<p class="hint">Belt animation is illustrative. Counts and conditions come from the C application.</p>
+</section>
+<section class="card" aria-labelledby="subscriber-title">
+<p class="eyebrow">EVENT DELIVERY</p><h2 id="subscriber-title">What the subscriber sees</h2>
+<div id="received-state" class="receive"><span class="small">Received JamActive property</span><strong id="received-jam">Waiting for an event</strong><p>Updated only by the AXEvent subscription callback.</p></div>
+<div class="metrics"><div class="metric"><strong id="packages">—</strong><span>packages passed</span></div><div class="metric"><strong id="published">—</strong><span>published events</span></div><div class="metric"><strong id="received">—</strong><span>received events</span></div></div>
+<p class="flow">Simulated checkpoint → jam policy<br>Publisher → camera event system → subscriber</p>
+<p class="hint"><code>JamActive</code> represents an ongoing condition.<br><code>PackagePassed</code> represents one occurrence.</p>
+<p id="errors" class="hint" role="status">No Event API errors reported.</p>
+</section>
+</div>
+<section class="card history" aria-labelledby="settings-title">
+<p class="eyebrow">PARAMETER API · PERSISTENT CONFIGURATION</p><h2 id="settings-title">Jam monitoring settings</h2>
+<form id="settings"><fieldset id="fields" disabled>
+<label class="toggle"><span>Enable jam monitoring</span><input id="enabled" type="checkbox" role="switch"></label>
+<label for="threshold">Jam threshold <span class="unit">seconds</span></label>
+<input id="threshold" type="number" min="1" max="86400" step="1" required>
+<p class="hint">Package-passage events continue while jam monitoring is disabled. Re-enabling starts a fresh timer. A threshold of 20 seconds or more will not trigger during the simulated blockage.</p>
+<div class="actions"><button type="submit">Save settings</button><button id="reset" type="button" class="secondary">Use current values</button></div>
+</fieldset><p id="save-message" class="hint" role="status">Waiting for current settings…</p></form>
+</section>
+<section class="card history" aria-labelledby="history-title"><div class="section-top"><div><p class="eyebrow">PUBLISH / SUBSCRIBE</p><h2 id="history-title">Event activity</h2></div><span class="badge">Latest 30 entries</span></div>
+<p class="muted">Newest first. Published means the send call succeeded; Received means the subscriber callback ran.</p>
+<p id="empty" class="empty">Waiting for events…</p><ol id="history" aria-label="Published and received events"></ol></section>
+<footer>Camera-hosted workshop example · Line 1 · Status refreshes every second · History clears on restart</footer>
+</main></body></html>

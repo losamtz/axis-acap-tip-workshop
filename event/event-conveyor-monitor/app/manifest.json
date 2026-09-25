@@ -1,0 +1,50 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Event Conveyor Monitor",
+            "appName": "event_conveyor_monitor",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "httpConfig": [
+                {
+                    "access": "admin",
+                    "name": "status.cgi",
+                    "type": "fastCgi"
+                }
+            ],
+            "paramConfig": [
+                {
+                    "name": "Enabled",
+                    "default": "yes",
+                    "type": "bool"
+                },
+                {
+                    "name": "JamThresholdSeconds",
+                    "default": "10",
+                    "type": "int:min=1;max=86400"
+                }
+            ]
+        }
+    }
+}

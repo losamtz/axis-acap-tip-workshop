@@ -21,6 +21,13 @@ flowchart TD
 | `parameter-manifest` | Parameters declared in `manifest.json` | callbacks and GLib main loop |
 | `parameter-runtime` | Parameters created by C code | add, set, list, remove |
 | `parameter-custom-interface` | Parameters controlled from a web UI | `param.cgi`, callbacks, deferred writes |
+| [parameter-loading-bay-monitor](parameter-loading-bay-monitor/) | Industry scenario: configurable loading-bay alerts | saved configuration, live policy changes, simulated occupancy, visual status page |
+
+The first three examples are API walkthroughs. Follow them with
+[the loading-bay monitor](parameter-loading-bay-monitor/) to see parameters
+control application behavior in a warehouse scenario. Occupancy is simulated
+and alerts appear in the app log and its camera-hosted settings page, so no video
+analytics setup is required.
 
 ## Core Concept
 

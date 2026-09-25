@@ -1,0 +1,55 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Parameter Loading Bay Monitor",
+            "appName": "parameter_loading_bay",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        },
+        "configuration": {
+            "paramConfig": [
+                {
+                    "name": "Enabled",
+                    "default": "yes",
+                    "type": "bool"
+                },
+                {
+                    "name": "MaxOccupancySeconds",
+                    "default": "30",
+                    "type": "int:min=1;max=86400"
+                },
+                {
+                    "name": "AlertCooldownSeconds",
+                    "default": "20",
+                    "type": "int:min=1;max=86400"
+                }
+            ],
+            "settingPage": "index.html",
+            "httpConfig": [
+                {
+                    "access": "admin",
+                    "name": "status.cgi",
+                    "type": "fastCgi"
+                }
+            ]
+        }
+    }
+}

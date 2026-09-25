@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loading bay monitor</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><p class="eyebrow">PARAMETER API · INDUSTRY EXAMPLE</p><h1>Loading bay monitor</h1>
+        <p class="subtitle">See how live configuration changes the way a bay is monitored.</p></div>
+      <span id="connection" class="badge" role="status">Connecting…</span>
+    </header>
+    <div class="notice"><strong>Simulated occupancy</strong><span>90 seconds occupied · 15 seconds free · repeats continuously</span></div>
+    <div id="offline" class="offline" role="alert" hidden>Connection lost. Values below are stale. Start the app and check your camera connection.</div>
+    <div class="grid">
+      <section class="card live" aria-labelledby="bay-heading">
+        <div class="section-top"><h2 id="bay-heading">Bay 01</h2><span id="monitoring" class="badge">Waiting for status</span></div>
+        <div id="bay-visual" class="bay-visual" data-state="unknown" aria-hidden="true">
+          <div class="dock"><span>01</span></div>
+          <div class="truck"><div class="trailer"></div><div class="cab"></div></div>
+          <div class="lane"></div>
+        </div>
+        <div class="section-top"><h3 id="occupancy">Awaiting camera</h3><span id="phase" class="muted">—</span></div>
+        <div class="timer"><strong id="elapsed">—</strong><span>seconds monitored</span></div>
+        <label for="progress" id="progress-label">Occupancy threshold</label>
+        <progress id="progress" value="0" max="100" aria-describedby="timing-note"></progress>
+        <div class="section-top small"><span id="limit">Limit: —</span><span id="next-alert">Next alert: —</span></div>
+        <p id="timing-note" class="hint">Waiting for the application's monitoring state.</p>
+      </section>
+      <section class="card" aria-labelledby="settings-heading">
+        <p class="eyebrow">PERSISTENT CONFIGURATION</p><h2 id="settings-heading">Monitoring settings</h2>
+        <p class="muted">Changes apply while the app runs and survive a restart.</p>
+        <form id="settings">
+          <fieldset id="fields" disabled>
+            <label class="toggle"><span>Enable monitoring</span><input id="enabled" type="checkbox" role="switch"></label>
+            <label for="threshold">Occupancy limit <span class="unit">seconds</span></label>
+            <input id="threshold" type="number" min="1" max="86400" step="1" required>
+            <p class="hint">How long the bay can stay occupied before an alert.</p>
+            <label for="cooldown">Alert cooldown <span class="unit">seconds</span></label>
+            <input id="cooldown" type="number" min="1" max="86400" step="1" required>
+            <p class="hint">Minimum time between repeat alerts for this occupancy.</p>
+            <div class="actions"><button id="save" type="submit">Save settings</button><button id="reset" type="button" class="secondary">Use current values</button></div>
+          </fieldset>
+          <p id="save-message" class="hint" role="status">Settings load from the running application.</p>
+        </form>
+      </section>
+    </div>
+    <section class="card history" aria-labelledby="alerts-heading">
+      <div class="section-top"><div><p class="eyebrow">APPLICATION ACTIVITY</p><h2 id="alerts-heading">Recent alerts</h2></div><span id="alert-count" class="badge">—</span></div>
+      <p class="muted">Latest 20 alerts, newest first. History clears when the app restarts.</p>
+      <p id="empty" class="empty">Waiting for the application…</p>
+      <ol id="alerts" aria-label="Recent simulated alerts"></ol>
+    </section>
+    <footer>Camera-hosted workshop example · Simulated alerts only · Status refreshes every second</footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "dbus": {
+            "requiredMethods": [
+                "com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"
+            ]
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "VAPIX Weather Overlay",
+            "appName": "vapix_weather_overlay",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "httpConfig": [
+                {
+                    "access": "admin",
+                    "name": "status.cgi",
+                    "type": "fastCgi"
+                }
+            ],
+            "paramConfig": [
+                {
+                    "name": "Enabled",
+                    "default": "yes",
+                    "type": "bool"
+                },
+                {
+                    "name": "Latitude",
+                    "default": "55.7047",
+                    "type": "string:maxlen=16"
+                },
+                {
+                    "name": "Longitude",
+                    "default": "13.1910",
+                    "type": "string:maxlen=16"
+                },
+                {
+                    "name": "RefreshSeconds",
+                    "default": "600",
+                    "type": "int:min=300;max=3600"
+                }
+            ]
+        }
+    }
+}

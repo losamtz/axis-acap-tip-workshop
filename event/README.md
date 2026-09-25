@@ -26,6 +26,11 @@ flowchart TD
 | `send-pulse-dropdown` | mark values as source fields for dropdown behavior |
 | `send-state` | declare a stateful event with an active property |
 | `send-state-with-data` | combine state with additional data fields |
+| [event-conveyor-monitor](event-conveyor-monitor/) | Industry scenario: conveyor jam state, package passage events, real subscriber, and visual activity page |
+
+After the API walkthroughs, try the [conveyor jam monitor](event-conveyor-monitor/).
+It uses simulated sensor input to publish real events and shows what its
+subscriber receives, without requiring video analytics or a physical sensor.
 
 ## Core Event Flow
 

@@ -21,6 +21,11 @@ flowchart TD
 | --- | --- | --- |
 | `dynamic-overlay-vapix` | Call a local VAPIX endpoint with JSON | Credentials, libcurl, Jansson, response parsing |
 | `onvif-request` | Send an ONVIF SOAP request | XML body, authentication, service endpoint, response handling |
+| [vapix-weather-overlay](vapix-weather-overlay/) | Industry scenario: weather context on outdoor video | External HTTPS, persistent settings, overlay lifecycle, stale data, and a visual status page |
+
+After the walkthroughs, try the [weather overlay](vapix-weather-overlay/).
+It fetches real weather from Open-Meteo and uses local VAPIX to maintain one
+identifiable text overlay. The README covers provider terms and device setup.
 
 ## Core Architecture
 
