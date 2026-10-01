@@ -210,3 +210,12 @@ buffer ownership and stream lifecycle.
 5. Log `fd`, `offset`, `capacity`, and `frame_size` in `vdo-dma-bufs`.
 6. Capture NV12 to a file and inspect it with `ffplay`.
 7. Use `vdo-stream-events` to log stream creation and close events.
+
+## Industry exercise: inspection zone monitor
+
+After the frame-format examples, try [vdo-inspection-zone-monitor](vdo-inspection-zone-monitor/).
+It uses real NV12 brightness pixels to compare an inspection region against an
+operator-calibrated empty reference. An AXIS-style page shows the analyzed image,
+region, change score and Clear / Occupied / Dwell exceeded states. It combines
+buffer ownership, row pitch, non-blocking capture and persistent parameters,
+without requiring larod or a physical conveyor.

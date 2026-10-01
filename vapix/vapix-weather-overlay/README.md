@@ -82,9 +82,17 @@ Coordinates are sent to the provider whenever enabled weather requests run.
 | Parameter | Default | Allowed values | Effect |
 | --- | --- | --- | --- |
 | `Enabled` | `yes` | `yes`, `no` | Fetch and display weather; disabling removes the app's overlay. |
+| `LocationName` | Empty | Up to 64 UTF-8 bytes; printable text without `\|`. | City/site label in the dashboard and overlay; blank uses coordinates. |
 | `Latitude` | `55.7047` | Decimal, -90 to 90 | Requested latitude. |
 | `Longitude` | `13.1910` | Decimal, -180 to 180 | Requested longitude. |
 | `RefreshSeconds` | `600` | Integer, 300–3600 | Interval between scheduled weather requests. |
+
+`LocationName` is a manually entered display label, not a city search. For example,
+set it to `Lund, Sweden` or `North loading yard`, and set the corresponding latitude
+and longitude. Weather requests still use only coordinates. The dashboard shows
+both the name and coordinates; the overlay uses the name when supplied, otherwise
+coordinates. Update the label when changing coordinates. It persists with the
+other settings and appears even when weather is unavailable or stale.
 
 The default location is **Lund, Sweden**. Coordinates are stored as strings and
 validated numerically by the application. Startup reads saved values; invalid
@@ -155,9 +163,9 @@ remove the clearly tagged overlay manually in the camera interface. Do not assum
 uninstalling an abruptly stopped application removes its VAPIX-created overlay.
 
 Default placement is top left, white text on black, font size 24, camera 1. The
-settings page is a **text preview**, not a live video player. Check the camera's
-live view for actual appearance; long captions can exceed the width of small
-streams. Placement/font/channel are intentionally kept in code for this lab.
+settings page includes a compact live video preview and the last applied overlay
+text. Start the preview to check the actual appearance; long captions can exceed
+the width of small streams. Placement/font/channel are intentionally kept in code for this lab.
 
 ## Build and install
 
@@ -188,14 +196,21 @@ configuration into it; that can prevent service-account credential acquisition.
 The app needs no stored camera administrator password.
 
 The page exposes weather values, source time, fetch time, request state, errors,
-settings, and the last applied overlay text. Open a separate camera live view to
-see the actual caption on video.
+settings, and the last applied overlay text. Select **Start preview** to see the actual caption on video.
+The preview uses the [Media stream over HTTP API](https://developer.axis.com/vapix/network-video/media-stream-over-http/)
+at `/axis-cgi/media.cgi?container=mp4&videocodec=h264&video=1&audio=0&camera=1&fps=10`.
+It uses the browser's camera login and requires device support for `media-cgi`
+and browser support for H.264 in MP4. Resolution follows the camera default.
+No audio is requested. Playback can have buffering delay; **Stop preview** closes
+the stream, and **Start preview** reconnects. Navigating away also closes it.
+Video failures are shown separately from weather and overlay status.
 
 ## Try VAPIX configuration from a terminal
 
 ```bash
 curl --anyauth --user root https://CAMERA_IP/axis-cgi/param.cgi \
   --data-urlencode 'action=update' \
+  --data-urlencode 'root.Vapix_weather_overlay.LocationName=Stockholm, Sweden' \
   --data-urlencode 'root.Vapix_weather_overlay.Latitude=59.3293' \
   --data-urlencode 'root.Vapix_weather_overlay.Longitude=18.0686' \
   --data-urlencode 'root.Vapix_weather_overlay.RefreshSeconds=600'
@@ -248,7 +263,7 @@ again. The VAPIX correction does not fix the separate DNS/network problem.
 ## Tests and source map
 
 ```bash
-node --test tests/dashboard.test.cjs
+node --test tests/*.test.cjs
 docker build -f tests/Dockerfile --tag vapix-weather-overlay-tests .
 ```
 
@@ -267,3 +282,14 @@ and camera services together on a device.
 References: [Dynamic Overlay API](https://developer.axis.com/vapix/network-video/overlay-api/),
 [VAPIX access for ACAP applications](https://www.developer.axis.com/acap/how-to-guides/VAPIX-access-for-ACAP-applications/),
 and [Open-Meteo API documentation](https://open-meteo.com/en/docs).
+
+
+## Build
+
+```
+docker build --tag vapix-weather-overlay --build-arg ARCH=aarch64 .
+mkdir -p build
+container_id=$(docker create vapix-weather-overlay)
+docker cp "$container_id":/opt/app/VAPIX_Weather_Overlay_1_0_0_aarch64.eap ./build/
+docker rm "$container_id"
+```

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Weather on video</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<title>Weather on video</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script><script src="video.js" defer></script></head>
 <body><main>
 <header><div><p class="eyebrow">VAPIX · EXTERNAL DATA EXAMPLE</p><h1>Weather on video</h1><p class="subtitle">Bring outdoor context into your camera's video.</p></div><span id="connection" class="badge" role="status">Connecting…</span></header>
 <div class="notice"><strong>Weather service data</strong><span>Model-based weather for your coordinates, not a sensor measurement from the camera.</span></div>
@@ -13,10 +13,18 @@
 <p id="weather-time" class="subtle">Weather timestamp: —</p><p id="updated" class="subtle">Last successful fetch: —</p>
 <p class="source">Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
 <p id="weather-error" class="api-state" role="status">Waiting for the first weather request.</p>
+<div class="camera-preview" aria-labelledby="video-title">
+<h3 id="video-title">Live camera preview</h3>
+<video id="camera-video" muted playsinline controls preload="none" aria-label="Live video from camera 1" aria-describedby="video-status"></video>
+<div class="actions"><button id="video-start" type="button">Start preview</button><button id="video-stop" type="button" class="secondary" disabled>Stop preview</button></div>
+<p id="video-status" class="hint" role="status">Preview stopped. Start to view camera 1 and its weather overlay.</p>
+</div>
 </section>
 <section class="card" aria-labelledby="settings-title"><p class="eyebrow">PERSISTENT CONFIGURATION</p><h2 id="settings-title">Location & refresh</h2><p class="muted">Coordinates are sent to Open-Meteo when enabled.</p>
 <form id="settings"><fieldset id="fields" disabled>
 <label class="toggle"><span>Enable weather overlay</span><input id="enabled" type="checkbox" role="switch"></label>
+<label for="location-name">City or location name <span class="unit">optional</span></label><input id="location-name" type="text" maxlength="64" placeholder="e.g. Lund, Sweden" aria-describedby="location-name-hint">
+<p id="location-name-hint" class="hint">Display label only; set the matching coordinates below. Leave blank to show coordinates in the overlay. Maximum 64 UTF-8 bytes; no control characters or |.</p>
 <div class="coordinates"><div><label for="latitude">Latitude</label><input id="latitude" type="number" min="-90" max="90" step="any" required></div><div><label for="longitude">Longitude</label><input id="longitude" type="number" min="-180" max="180" step="any" required></div></div>
 <p class="hint">Default: Lund, Sweden. Use decimal degrees.</p>
 <label for="refresh">Refresh interval <span class="unit">seconds</span></label><input id="refresh" type="number" min="300" max="3600" step="1" required><p class="hint">300–3600 seconds. Weather updates are not instantaneous; frequent polling does not improve the source data.</p>
@@ -24,7 +32,7 @@
 </fieldset><p id="save-message" class="hint" role="status">Waiting for current settings…</p></form>
 </section></div>
 <section class="card history" aria-labelledby="overlay-title"><div class="section-top"><div><p class="eyebrow">CAMERA 1 · TOP LEFT</p><h2 id="overlay-title">Last applied overlay text</h2></div><span id="overlay-state" class="badge">Waiting</span></div>
-<pre id="preview" class="preview">No overlay confirmed yet.</pre><p class="subtle">Text preview only. Open the camera's live view to check the actual placement and size. Failed VAPIX requests can leave older text on the video.</p>
+<pre id="preview" class="preview">No overlay confirmed yet.</pre><p class="subtle">Use the live camera preview to check the actual placement and size. Failed VAPIX requests can leave older text on the video.</p>
 <p id="overlay-error" class="api-state" role="status">Waiting for camera API.</p><p id="activity" class="hint">Starting…</p></section>
 <footer>Camera-hosted workshop · Open-Meteo free endpoint is for non-commercial use · <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Provider terms</a></footer>
 </main></body></html>

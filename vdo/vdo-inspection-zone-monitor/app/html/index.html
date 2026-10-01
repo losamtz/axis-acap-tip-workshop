@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inspection zone monitor</title><link rel="stylesheet" href="style.css?v=1"><script src="app.js" defer></script></head>
+<body><main>
+<header><div><p class="eyebrow">VDO · INDUSTRIAL INSPECTION EXAMPLE</p><h1>Inspection zone monitor</h1><p class="subtitle">From real camera pixels to an occupied-zone signal.</p></div><span id="connection" class="badge" role="status">Connecting…</span></header>
+<div class="notice"><strong>Visual change detection</strong><span>A changed zone may contain an object, a shadow, or a lighting change. No object recognition or machinery control.</span></div>
+<div id="offline" class="offline" hidden role="alert">Camera connection lost. Preview and measurements are unavailable.</div>
+<div class="grid"><section class="card" aria-labelledby="preview-title"><div class="section-top"><h2 id="preview-title">Camera 1 · analysis view</h2><span id="state" class="badge">Unknown</span></div>
+<canvas id="preview" width="640" height="360" aria-label="Live grayscale VDO image with inspection region"></canvas>
+<p class="hint">Live sampled brightness plane from VDO, refreshed twice per second. Yellow rectangle: saved inspection region. Blue dashed rectangle: unsaved region.</p>
+<div class="weather-meta"><div><span>CHANGED PIXELS IN ZONE</span><strong id="score">—</strong></div><div><span>OCCUPIED DURATION</span><strong id="duration">—</strong></div></div>
+<p id="stream" class="subtle">Waiting for stream metadata…</p><p id="error" class="api-state" role="status">Waiting for camera frames.</p>
+<button id="calibrate" type="button" disabled>Calibrate empty zone</button><p id="calibration" class="hint" role="status">Clear the zone, apply settings, then calibrate. Keep it empty until all ten frames are captured.</p>
+</section>
+<section class="card" aria-labelledby="settings-title"><p class="eyebrow">PERSISTENT CONFIGURATION</p><h2 id="settings-title">Inspection settings</h2>
+<form id="settings"><fieldset id="fields" disabled>
+<label class="toggle"><span>Enable monitoring</span><input id="enabled" type="checkbox" role="switch"></label>
+<p class="muted">Region in percent of the analysis image, measured from the top left.</p>
+<div class="coordinates"><div><label for="x">Left (%)</label><input id="x" type="number" min="0" max="99" step="1" required></div><div><label for="y">Top (%)</label><input id="y" type="number" min="0" max="98" step="1" required></div><div><label for="w">Width (%)</label><input id="w" type="number" min="1" max="100" step="1" required></div><div><label for="h">Height (%)</label><input id="h" type="number" min="2" max="100" step="1" required></div></div>
+<label for="delta">Pixel brightness difference</label><input id="delta" type="number" min="1" max="255" step="1" required><p class="hint">Minimum difference from the empty reference, on a 0–255 brightness scale. Higher values ignore smaller changes.</p>
+<label for="percent">Changed pixels to declare occupied (%)</label><input id="percent" type="number" min="1" max="100" step="1" required><p class="hint">One second of sustained change is required. The zone clears below 60% of this threshold.</p>
+<label for="dwell">Dwell limit (seconds)</label><input id="dwell" type="number" min="1" max="3600" step="1" required>
+<div class="actions"><button type="submit">Save settings</button><button id="reset" type="button" class="secondary">Use current values</button></div>
+</fieldset><p id="save-message" class="hint" role="status">Loading settings…</p></form>
+</section></div>
+<footer>Camera-hosted VDO workshop · Calibration resets after setting changes, stream loss, and restart · Reference stays in camera memory</footer>
+</main></body></html>

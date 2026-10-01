@@ -11,8 +11,9 @@
         "setup": {
             "friendlyName": "VAPIX Weather Overlay",
             "appName": "vapix_weather_overlay",
+            "appId": "416225",
             "vendor": "Axis Communications",
-            "vendorId": "1234567890",
+            "vendorId": "6f16357ced",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
@@ -36,6 +37,11 @@
                     "name": "Enabled",
                     "default": "yes",
                     "type": "bool"
+                },
+                {
+                    "name": "LocationName",
+                    "default": "",
+                    "type": "string:maxlen=64"
                 },
                 {
                     "name": "Latitude",

@@ -180,7 +180,8 @@ From this directory:
 ```bash
 docker build --tag event-conveyor-monitor --build-arg ARCH=aarch64 .
 container_id=$(docker create event-conveyor-monitor)
-docker cp "$container_id":/opt/app ./build
+mkdir -p build
+docker cp "$container_id":/opt/app/Event_Conveyor_Monitor_1_0_0_aarch64.eap ./build/
 docker rm "$container_id"
 ```
 

@@ -9,7 +9,7 @@
 #include "status_server.h"
 
 #define APP_NAME "vapix_weather_overlay"
-static const char* names[] = {"Enabled", "Latitude", "Longitude", "RefreshSeconds"};
+static const char* names[] = {"Enabled", "Latitude", "Longitude", "RefreshSeconds", "LocationName"};
 typedef struct {
     GMutex lock;
     GCond changed;
@@ -91,6 +91,7 @@ static void snapshot(Worker* w, const char* activity) {
         "overlayError", w->overlay_error ? w->overlay_error : "",
         "fetchedAt", (json_int_t)w->fetched_at,
         "nextFetchSeconds", (json_int_t)MAX(w->next_fetch - now, 0));
+    json_object_set_new(root, "locationName", json_string(w->config.location_name));
     if (w->valid) {
         json_object_set_new(root, "temperature", json_real(w->weather.temperature));
         json_object_set_new(root, "wind", json_real(w->weather.wind));

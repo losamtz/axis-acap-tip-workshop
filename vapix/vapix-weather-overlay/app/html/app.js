@@ -5,19 +5,20 @@ const message = text => { byId('save-message').textContent = text; };
 const stamp = seconds => seconds ? new Date(seconds * 1000).toLocaleString() : '—';
 function populate(state) {
   byId('enabled').checked = state.enabled;
+  byId('location-name').value = state.locationName || '';
   byId('latitude').value = state.latitude;
   byId('longitude').value = state.longitude;
   byId('refresh').value = state.refreshSeconds;
 }
 function matches(state, settings) {
-  return ['enabled', 'latitude', 'longitude', 'refreshSeconds'].every(key => state[key] === settings[key]);
+  return ['enabled', 'latitude', 'longitude', 'refreshSeconds', 'locationName'].every(key => state[key] === settings[key]);
 }
 function render(state) {
   current = state;
   byId('fields').disabled = saving;
   byId('connection').textContent = '● Connected'; byId('connection').dataset.state = 'online';
   byId('offline').hidden = true;
-  byId('location').textContent = `${state.latitude.toFixed(4)}, ${state.longitude.toFixed(4)}`;
+  byId('location').textContent = `${state.locationName ? state.locationName + ' · ' : ''}${state.latitude.toFixed(4)}, ${state.longitude.toFixed(4)}`;
   byId('temperature').textContent = state.valid ? state.temperature.toFixed(1) : '—';
   byId('condition').textContent = state.valid ? state.condition : 'Weather unavailable';
   byId('wind').textContent = state.valid ? `${Math.round(state.wind)} km/h` : '—';
@@ -68,11 +69,17 @@ byId('reset').addEventListener('click', () => {
 byId('settings').addEventListener('submit', async event => {
   event.preventDefault();
   if (!current || saving || !event.target.reportValidity()) return;
-  const settings = {enabled: byId('enabled').checked, latitude: Number(byId('latitude').value),
+  const locationName = byId('location-name').value;
+  if (new TextEncoder().encode(locationName).length > 64 || /[\p{C}\p{Zl}\p{Zp}|]/u.test(locationName)) {
+    message('Location name must be at most 64 UTF-8 bytes, without control characters or |.');
+    return;
+  }
+  const settings = {enabled: byId('enabled').checked, locationName, latitude: Number(byId('latitude').value),
     longitude: Number(byId('longitude').value), refreshSeconds: Number(byId('refresh').value)};
   const body = new URLSearchParams({action: 'update'});
   const scope = 'root.Vapix_weather_overlay.';
   body.set(scope + 'Enabled', settings.enabled ? 'yes' : 'no');
+  body.set(scope + 'LocationName', settings.locationName);
   body.set(scope + 'Latitude', settings.latitude); body.set(scope + 'Longitude', settings.longitude);
   body.set(scope + 'RefreshSeconds', settings.refreshSeconds);
   saving = true; byId('fields').disabled = true; message('Saving…');

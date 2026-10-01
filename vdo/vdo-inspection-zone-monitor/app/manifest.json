@@ -4,6 +4,7 @@
         "linux": {
             "user": {
                 "groups": [
+                    "video",
                     "admin"
                 ]
             }
@@ -11,11 +12,10 @@
     },
     "acapPackageConf": {
         "setup": {
-            "friendlyName": "Parameter Loading Bay Monitor",
-            "appName": "parameter_loading_bay",
-            "appId": "416234",
+            "friendlyName": "VDO Inspection Zone Monitor",
+            "appName": "vdo_inspection_zone",
             "vendor": "Axis Communications",
-            "vendorId": "6f16357ced",
+            "vendorId": "1234567890",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
             "version": "1.0.0",
@@ -33,14 +33,24 @@
                     "type": "bool"
                 },
                 {
-                    "name": "MaxOccupancySeconds",
-                    "default": "30",
-                    "type": "int:min=1;max=86400"
+                    "name": "Zone",
+                    "default": "20,20,60,60",
+                    "type": "string:maxlen=20"
                 },
                 {
-                    "name": "AlertCooldownSeconds",
-                    "default": "20",
-                    "type": "int:min=1;max=86400"
+                    "name": "PixelDelta",
+                    "default": "25",
+                    "type": "int:min=1;max=255"
+                },
+                {
+                    "name": "OccupiedPercent",
+                    "default": "10",
+                    "type": "int:min=1;max=100"
+                },
+                {
+                    "name": "DwellSeconds",
+                    "default": "10",
+                    "type": "int:min=1;max=3600"
                 }
             ],
             "settingPage": "index.html",
@@ -48,6 +58,11 @@
                 {
                     "access": "admin",
                     "name": "status.cgi",
+                    "type": "fastCgi"
+                },
+                {
+                    "access": "admin",
+                    "name": "calibrate.cgi",
                     "type": "fastCgi"
                 }
             ]

@@ -9,6 +9,13 @@ gboolean config_apply(Config* config, const char* name, const char* value) {
     if (g_str_equal(name, "Enabled")) {
         if (!g_str_equal(value, "yes") && !g_str_equal(value, "no")) return FALSE;
         next.enabled = g_str_equal(value, "yes");
+    } else if (g_str_equal(name, "LocationName")) {
+        if (strlen(value) >= sizeof(next.location_name) || !g_utf8_validate(value, -1, NULL)) return FALSE;
+        for (const char* p = value; *p; p = g_utf8_next_char(p)) {
+            gunichar c = g_utf8_get_char(p);
+            if (!g_unichar_isprint(c) || c == '|') return FALSE;
+        }
+        g_strlcpy(next.location_name, value, sizeof(next.location_name));
     } else if (g_str_equal(name, "RefreshSeconds")) {
         guint64 seconds;
         if (!g_ascii_string_to_unsigned(value, 10, 300, 3600, &seconds, NULL)) return FALSE;
@@ -70,14 +77,17 @@ gchar* weather_text(const Weather* weather, const Config* config, gboolean valid
     gchar lat[G_ASCII_DTOSTR_BUF_SIZE], lon[G_ASCII_DTOSTR_BUF_SIZE];
     g_ascii_formatd(lat, sizeof(lat), "%.4f", config->latitude);
     g_ascii_formatd(lon, sizeof(lon), "%.4f", config->longitude);
-    if (!valid) return g_strdup_printf(OVERLAY_PREFIX "%s,%s | Weather unavailable | Open-Meteo.com", lat, lon);
+    gchar coordinates[2 * G_ASCII_DTOSTR_BUF_SIZE + 2];
+    g_snprintf(coordinates, sizeof(coordinates), "%s,%s", lat, lon);
+    const char* location = config->location_name[0] ? config->location_name : coordinates;
+    if (!valid) return g_strdup_printf(OVERLAY_PREFIX "%s | Weather unavailable | Open-Meteo.com", location);
     GDateTime* time = g_date_time_new_from_unix_utc(weather->time);
     gchar* stamp = time ? g_date_time_format(time, "%m-%d %H:%MZ") : g_strdup("unknown time");
     gchar temp[G_ASCII_DTOSTR_BUF_SIZE], wind[G_ASCII_DTOSTR_BUF_SIZE];
     g_ascii_formatd(temp, sizeof(temp), "%.1f", weather->temperature);
     g_ascii_formatd(wind, sizeof(wind), "%.0f", weather->wind);
-    gchar* text = g_strdup_printf(OVERLAY_PREFIX "%s,%s | %sC Wind %skm/h | %s | %s%s | Open-Meteo.com",
-        lat, lon, temp, wind, weather_description(weather->code), stale ? "STALE " : "", stamp);
+    gchar* text = g_strdup_printf(OVERLAY_PREFIX "%s | %sC Wind %skm/h | %s | %s%s | Open-Meteo.com",
+        location, temp, wind, weather_description(weather->code), stale ? "STALE " : "", stamp);
     g_free(stamp);
     if (time) g_date_time_unref(time);
     return text;

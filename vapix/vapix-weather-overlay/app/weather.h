@@ -3,7 +3,7 @@
 #include <glib.h>
 #include <jansson.h>
 #define OVERLAY_PREFIX "WX-WORKSHOP | "
-typedef struct { gboolean enabled; double latitude, longitude; guint refresh; guint generation; } Config;
+typedef struct { gboolean enabled; double latitude, longitude; guint refresh; guint generation; char location_name[65]; } Config;
 typedef struct { double temperature, wind; int code; gint64 time; } Weather;
 gboolean config_apply(Config* config, const char* name, const char* value);
 gboolean weather_parse(json_t* root, Weather* weather, GError** error);
