@@ -17,9 +17,11 @@ char* vapix_post(CURL* handle, const char* credentials, const char* endpoint, co
     curl_easy_setopt(handle, CURLOPT_URL, url);
     curl_easy_setopt(handle, CURLOPT_USERPWD, credentials);
     curl_easy_setopt(handle, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_easy_setopt(handle, CURLOPT_NOPROXY, "*");
     curl_easy_setopt(handle, CURLOPT_POSTFIELDS, request);
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, append_to_gstring_callback);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, response);
+    
 
     CURLcode res = curl_easy_perform(handle);
     if (res != CURLE_OK)

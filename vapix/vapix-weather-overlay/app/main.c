@@ -223,10 +223,15 @@ int main(void) {
     guint registered = 0;
     int result = EXIT_FAILURE;
     GThread* worker = NULL;
+
     openlog(APP_NAME, LOG_PID, LOG_USER); signal(SIGPIPE, SIG_IGN);
+
     if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) return EXIT_FAILURE;
+
     AXParameter* parameters = ax_parameter_new(APP_NAME, &error);
+
     GMainLoop* loop = g_main_loop_new(NULL, FALSE);
+    
     if (!parameters) goto cleanup;
     for (guint i = 0; i < G_N_ELEMENTS(names); ++i) {
         if (!ax_parameter_register_callback(parameters, names[i], parameter_changed, &shared, &error)) goto cleanup;

@@ -46,7 +46,7 @@ vapix_post_json(CURL* handle, const char* credentials, const char* endpoint, con
 }
 
 static json_t* add_text(CURL* handle, const char* credentials) {
-    const char* endpoint = "/axis-cgi/dynamicoverlay/dynamicoverlay.cgi";
+    const char* endpoint = "axis-cgi/dynamicoverlay/dynamicoverlay.cgi";
 
     
     json_t* request_obj = build_addtext_request();

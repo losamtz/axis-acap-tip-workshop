@@ -17,7 +17,7 @@
             "vendorId": "1234567890",
             "vendorUrl": "https://www.axis.com",
             "runMode": "never",
-            "version": "1.0.0",
+            "version": "2.0.0",
             "compatibleOsVersions": [
                 {
                     "max": "13"
