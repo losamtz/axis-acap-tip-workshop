@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Monitoring policy</title>
+    <link rel="stylesheet" href="style.css?v=1" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">FASTCGI + PARAMETER API · WORKSHOP</p>
+          <h1>Monitoring policy</h1>
+          <p class="subtitle">
+            Configure a warehouse policy, verify saved values, and test its decisions.
+          </p>
+        </div>
+        <span id="connection" class="badge" role="status">Connecting…</span>
+      </header>
+      <div class="notice">
+        <strong>Policy test only</strong
+        ><span
+          >No live occupancy sensor, video analysis, or alarm transmission. Test inputs are not
+          saved.</span
+        >
+      </div>
+      <div class="grid">
+        <section class="card">
+          <h2>Configuration</h2>
+          <form id="settings">
+            <fieldset id="fields" disabled>
+              <label for="site">Site name</label
+              ><input id="site" type="text" maxlength="64" required aria-describedby="site-error" />
+              <p id="site-error" class="field-error" role="status"></p>
+              <label class="toggle"
+                ><span>Enable monitoring</span
+                ><input id="enabled" type="checkbox" role="switch" aria-describedby="enabled-error"
+              /></label>
+              <p id="enabled-error" class="field-error" role="status"></p>
+              <label for="limit">Occupancy limit (seconds)</label
+              ><input
+                id="limit"
+                type="number"
+                min="1"
+                max="86400"
+                step="1"
+                required
+                aria-describedby="limit-error"
+              />
+              <p id="limit-error" class="field-error" role="status"></p>
+              <label for="cooldown">Alert cooldown (seconds)</label
+              ><input
+                id="cooldown"
+                type="number"
+                min="1"
+                max="86400"
+                step="1"
+                required
+                aria-describedby="cooldown-error"
+              />
+              <p id="cooldown-error" class="field-error" role="status"></p>
+              <div class="actions">
+                <button type="submit">Save settings</button
+                ><button id="restore" type="button" class="secondary">
+                  Restore current values
+                </button>
+              </div>
+            </fieldset>
+            <p id="save-message" class="hint" role="status">Loading saved settings…</p>
+          </form>
+        </section>
+        <section class="card">
+          <div class="section-top">
+            <h2>Confirmed saved settings</h2>
+            <button id="refresh" type="button" class="secondary">Refresh</button>
+          </div>
+          <dl id="saved">
+            <dt>Site</dt>
+            <dd id="saved-site">—</dd>
+            <dt>Monitoring</dt>
+            <dd id="saved-enabled">—</dd>
+            <dt>Occupancy limit</dt>
+            <dd id="saved-limit">—</dd>
+            <dt>Alert cooldown</dt>
+            <dd id="saved-cooldown">—</dd>
+          </dl>
+          <p id="saved-status" class="hint" role="status">Waiting for a successful read.</p>
+          <p class="subtle">
+            These are the values read back from the camera. Unsaved edits on the left do not change
+            them. Saving multiple parameters is not a single transaction.
+          </p>
+        </section>
+      </div>
+      <section class="card history">
+        <h2>Test saved policy</h2>
+        <p class="muted">
+          Enter an occupied duration and the time since the last hypothetical alert.
+        </p>
+        <form id="test">
+          <fieldset id="test-fields" disabled>
+            <div class="coordinates">
+              <div>
+                <label for="occupied">Occupied duration (seconds)</label
+                ><input
+                  id="occupied"
+                  type="number"
+                  value="35"
+                  min="0"
+                  max="604800"
+                  step="1"
+                  required
+                />
+              </div>
+              <div>
+                <label for="last">Seconds since last alert</label
+                ><input id="last" type="number" value="5" min="0" max="604800" step="1" required />
+              </div>
+            </div>
+            <label class="toggle"
+              ><span>No previous alert</span
+              ><input id="no-previous" type="checkbox" role="switch" checked /></label
+            ><button type="submit">Test policy</button>
+          </fieldset>
+          <p id="test-result" class="api-state" role="status">No test run yet.</p>
+        </form>
+      </section>
+      <footer>
+        Camera-hosted workshop · JSON → validation → persistent parameters → readback · Test policy
+        has no side effects
+      </footer>
+    </main>
+  </body>
+</html>

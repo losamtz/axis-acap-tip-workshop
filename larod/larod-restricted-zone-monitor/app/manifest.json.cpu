@@ -1,0 +1,87 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "video",
+                    "admin"
+                ]
+            }
+        },
+        "dbus": {
+            "requiredMethods": [
+                "com.axis.Graphics2.*",
+                "com.axis.Overlay2.*"
+            ]
+        },
+        "overlay": {
+            "enabled": true,
+            "required": true
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Larod Restricted Zone cpu",
+            "appName": "larod_restricted_zone",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
+            "runOptions": "/usr/local/packages/larod_restricted_zone/model/converted_model.tflite 50 /usr/local/packages/larod_restricted_zone/label/labels.txt -d cpu-tflite",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "httpConfig": [
+                {
+                    "access": "admin",
+                    "name": "status.cgi",
+                    "type": "fastCgi"
+                }
+            ],
+            "paramConfig": [
+                {
+                    "name": "Enabled",
+                    "default": "yes",
+                    "type": "bool"
+                },
+                {
+                    "name": "Zone",
+                    "default": "30,20,40,60",
+                    "type": "string:maxlen=20"
+                },
+                {
+                    "name": "Confidence",
+                    "default": "60",
+                    "type": "int:min=1;max=100"
+                },
+                {
+                    "name": "ActivationSeconds",
+                    "default": "3",
+                    "type": "int:min=0;max=60"
+                },
+                {
+                    "name": "ClearSeconds",
+                    "default": "2",
+                    "type": "int:min=0;max=60"
+                },
+                {
+                    "name": "ViewArea",
+                    "default": "1",
+                    "type": "int:min=1;max=256"
+                },
+                {
+                    "name": "ModelInputPreview",
+                    "default": "no",
+                    "type": "bool"
+                }
+            ]
+        }
+    }
+}

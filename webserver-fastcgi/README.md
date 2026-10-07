@@ -18,6 +18,7 @@ flowchart TD
 | Example | Main idea | What to study |
 | --- | --- | --- |
 | `web-parameter` | Minimal FastCGI JSON API for parameters | `FCGX_Accept_r`, routing by `SCRIPT_NAME`, AXParameter get/set |
+| `web-monitoring-policy` | Validated policy configuration and stateless testing | Typed JSON, synchronized writes, partial failure, readback, AXIS-style UI |
 | `web-parameter-thread` | Same idea with thread-safe parameter access | Mutexes, idempotent parameter creation, CORS headers |
 
 ## Architecture
@@ -40,7 +41,7 @@ sequenceDiagram
 
 ## FastCGI Request Loop
 
-Both examples use the same core pattern:
+The examples use the same core pattern:
 
 ```c
 sock = FCGX_OpenSocket(socket_path, 5);
@@ -89,3 +90,12 @@ flowchart LR
     Validate --> Parameter[AXParameter get/set]
     Parameter --> Reply[JSON response]
 ```
+
+## Practical configuration workshop
+
+[web-monitoring-policy](web-monitoring-policy/) builds on the minimal parameter
+example with a warehouse-policy form and a stateless test endpoint. It validates
+all settings before writing, synchronizes writes, reads them back, and reports
+partial failures. Test inputs never send alarms or change saved configuration.
+Unlike the minimal example's deferred `do_sync=FALSE` writes, it explicitly uses
+`do_sync=TRUE` to persist changes.

@@ -1,68 +1,25 @@
-# Bonding Box 
+# Bounding Box API
 
-This library allows you to draw burnt-in bounding boxes on selected video sources/channels. The aim of this API is to solve one common use-case, supporting all new chips in Axis products and utilizing the most optimized drawing mechanism available for each chip. Meanwhile, the Axoverlay API which is show-cased in the axoverlay example exposes advanced ARTPEC specific overlay functionality.
+BBox draws box graphics into selected camera views. It does not detect or track
+objects. The application supplies the coordinates and chooses when to redraw.
 
-It allows to specify the channel or view area the bounding boxes with be redered and to choose between normalizing by frame or by scene coordinates.
+## Coordinates
 
-## Scene coordinates
+| Mode | Meaning |
+| --- | --- |
+| `bbox_coordinates_frame_normalized()` | Coordinates follow the displayed frame: top-left (0,0), bottom-right (1,1). |
+| `bbox_coordinates_scene_normalized()` | Default scene-normalized coordinates account for global image rotation. |
 
-Scene coordinate system is normalized to [0,0]-[1,1] and follows the filmed scene, i.e. static objects in the world have the same coordinates regardless of global rotation.
+Scene normalization does not provide world coordinates, compensate for camera
+movement, or track objects across cameras. Those tasks require additional
+geometry, calibration or tracking logic. Detector coordinates must first be
+mapped from the model input (including crop, resize or letterboxing) to the view
+where the boxes will be drawn.
 
-## Frame coordinates
+For a UI rectangle specified as percentages of the displayed frame, explicitly
+use `bbox_coordinates_frame_normalized()`. The restricted-zone demo does this.
 
-Frame coordinate system is normalized and aligned with the camera frame, i.e. top-left is [0,0] and bottom-right is [1,1].
-
-
-
-```c
-bbox_coordinates_frame_normalized(bbox);
-
-```
-Green dashed box = scene_normalized() — stays fixed in the real-world position.
-
-- The green bounding box stays in the same position in both views, even though the camera "rotates" (right image).
-
-- This shows how scene-normalized coordinates are fixed to the real-world scene, not affected by camera motion.
-
-
-```c
-bbox_coordinates_scene_normalized(bbox);
-
-```
-
-
-### By default, the AI usually outputs bounding boxes in frame normalized coordinates
-
-
-Object detection models work on input images (e.g. 416×416 or 640×640 pixels).
-
-The bounding box is relative to the input frame.
-
-So when the camera moves, the bounding box follows the object only within the current frame — i.e., it tracks visually, not spatially.
-
-The AI will follow the object, but in frame-normalized coordinates, it looks like the object is moving within the image.
-
-### When would you use scene normalized?
-
-
-You switch to scene-normalized after detection if you want to understand real-world behavior:
-
-Like: “Did this person walk from one side of the hallway to the other?”
-
-Or: “Are multiple cameras seeing the same object in the same world-space location?”
-
-You map or transform frame-based bounding boxes into the scene-space (if supported by your system).
-
-### Summary:
-
-
-| Question                                                                     | Answer                                           |
-| ---------------------------------------------------------------------------- | ------------------------------------------------ |
-| **Will object detection follow the object?**                                 | ✅ Yes, always — regardless of coordinate system. |
-| **Which coordinate system does AI detection usually use?**                   | `bbox_coordinates_scene_normalized()` (aligned with image input). |
-| **Which one shows object position in world space?**                          | `bbox_coordinates_frame_normalized()`                             |
-| **Should you convert to scene-normalized for tracking across time/cameras?** | ✅ Yes, if your system supports it.               |
-
+See the [BBox API reference](https://developer.axis.com/acap/api/src/api/bbox/html/bbox_8h.html).
 
 ## Bbox flow:
 

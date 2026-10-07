@@ -1,0 +1,65 @@
+{
+    "schemaVersion": "2.0.0",
+    "resources": {
+        "linux": {
+            "user": {
+                "groups": [
+                    "admin"
+                ]
+            }
+        }
+    },
+    "acapPackageConf": {
+        "setup": {
+            "friendlyName": "Web Monitoring Policy",
+            "appName": "web_monitoring_policy",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
+            "vendorUrl": "https://www.axis.com",
+            "runMode": "never",
+            "version": "1.0.0",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
+        },
+        "configuration": {
+            "settingPage": "index.html",
+            "httpConfig": [
+                {
+                    "access": "admin",
+                    "name": "settings.cgi",
+                    "type": "fastCgi"
+                },
+                {
+                    "access": "admin",
+                    "name": "test.cgi",
+                    "type": "fastCgi"
+                }
+            ],
+            "paramConfig": [
+                {
+                    "name": "SiteName",
+                    "default": "Warehouse bay 1",
+                    "type": "string:maxlen=64"
+                },
+                {
+                    "name": "Enabled",
+                    "default": "yes",
+                    "type": "bool"
+                },
+                {
+                    "name": "OccupancyLimitSeconds",
+                    "default": "30",
+                    "type": "int:min=1;max=86400"
+                },
+                {
+                    "name": "AlertCooldownSeconds",
+                    "default": "20",
+                    "type": "int:min=1;max=86400"
+                }
+            ]
+        }
+    }
+}

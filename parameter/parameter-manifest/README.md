@@ -69,7 +69,11 @@ Update the parameter through VAPIX:
 
 ```bash
 curl --anyauth -u root:pass \
-  "http://CAMERA_IP/axis-cgi/param.cgi?action=update&root.parameter_manifest.ParameterManifest=yes"
+  "http://CAMERA_IP/axis-cgi/param.cgi?action=update&root.Parameter_manifest.ParameterManifest=yes"
+```
+```bash
+curl --anyauth -u root:pass \
+ "https://CAMERA_IP/axis-cgi/param.cgi?action=list&group=root.Parameter_manifest.ParameterManifest"
 ```
 
 Then check the application log for the callback message.

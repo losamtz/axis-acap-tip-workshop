@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restricted zone monitor</title>
+    <link rel="stylesheet" href="style.css?v=20261006-a9-yuv" />
+    <script src="app.js?v=20261006-a9-yuv" defer></script>
+    <script src="video.js?v=20261006-a9-yuv" defer></script>
+  </head>
+  <body>
+    <header>
+      <span class="accent">▦</span> Workshop applications <span id="connection">Connecting…</span>
+    </header>
+    <main>
+      <h1>Restricted zone monitor <span class="accent">.</span></h1>
+      <p>Person detection · <span id="active-view">Waiting for view information</span></p>
+      <div class="layout">
+        <section class="panel">
+          <h2>Live view</h2>
+          <div class="video-frame">
+          <video
+            id="camera-video"
+            controls
+            muted
+            playsinline
+            aria-label="Selected view live video"
+          ></video>
+          </div>
+          <div class="toolbar">
+            <button id="video-start" type="button" disabled>Start preview</button>
+            <button id="video-stop" type="button" class="secondary" disabled>Stop preview</button>
+          </div>
+          <p id="video-status" role="status">Preview stopped.</p>
+          <p>Yellow: zone · Green: person outside · Amber: person inside · Red: alarm</p>
+          <p>Person boxes and confidence labels are drawn into the selected view’s video stream. Enable application overlays in other viewers and recording profiles to include them.</p>
+          <h2>Actual model input</h2>
+          <p id="input-message">Enable Model input preview in Monitoring policy and save.</p>
+          <canvas
+            id="model-input"
+            width="300"
+            height="300"
+            hidden
+            aria-label="RGB tensor supplied to the model"
+          ></canvas>
+          <p>
+            This optional snapshot copies the RGB tensor after preprocessing, before inference. It
+            updates once per second and may differ in time from live video.
+          </p>
+        </section>
+        <div>
+          <section class="panel" aria-live="polite">
+            <h2>Monitor status</h2>
+            <strong id="state">Unknown</strong>
+            <p id="status-message">Waiting for the application.</p>
+            <dl>
+              <dt>People in frame</dt>
+              <dd id="people">—</dd>
+              <dt>Continuous presence</dt>
+              <dd id="duration">—</dd>
+              <dt>Inference time</dt>
+              <dd id="inference">—</dd>
+              <dt>Model candidates (all classes)</dt>
+              <dd id="raw-detections">—</dd>
+              <dt>Highest person confidence</dt>
+              <dd id="person-confidence">—</dd>
+              <dt>Processed frames/s</dt>
+              <dd id="fps">—</dd>
+            </dl>
+            <p id="detection-hint"></p>
+            <p id="outputs"></p>
+          </section>
+          <section class="panel">
+            <h2>Monitoring policy</h2>
+            <form id="settings">
+              <fieldset id="fields" disabled>
+                <label>Inference view area<select id="view-area" required></select></label>
+                <label class="toggle"
+                  ><input id="preview-enabled" type="checkbox" /> Model input preview
+                  (diagnostic)</label
+                >
+                <p id="view-message">
+                  Create the desired view area in the camera's AXIS interface first.
+                </p>
+                <p>
+                  Saving a view changes the inference stream automatically. Review the restricted
+                  zone on the new view.
+                </p>
+                <label class="toggle"
+                  ><input id="enabled" type="checkbox" /> Monitoring enabled</label
+                >
+                <p>Zone in percent of the image, measured from the top-left corner.</p>
+                <div class="zone-fields">
+                  <label
+                    >Left (%)<input id="x" type="number" min="0" max="99" step="1" required
+                  /></label>
+                  <label
+                    >Top (%)<input id="y" type="number" min="0" max="99" step="1" required
+                  /></label>
+                  <label
+                    >Width (%)<input id="width" type="number" min="1" max="100" step="1" required
+                  /></label>
+                  <label
+                    >Height (%)<input id="height" type="number" min="1" max="100" step="1" required
+                  /></label>
+                </div>
+                <label
+                  >Minimum confidence (%)<input
+                    id="confidence"
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    required
+                /></label>
+                <label
+                  >Activation delay (s)<input
+                    id="activation"
+                    type="number"
+                    min="0"
+                    max="60"
+                    step="1"
+                    required
+                /></label>
+                <label
+                  >Clear delay (s)<input
+                    id="clear"
+                    type="number"
+                    min="0"
+                    max="60"
+                    step="1"
+                    required
+                /></label>
+                <div class="toolbar">
+                  <button type="submit">Save</button
+                  ><button id="reset" type="button" class="secondary">Use current values</button>
+                </div>
+              </fieldset>
+              <p id="save-message" role="status"></p>
+            </form>
+          </section>
+        </div>
+      </div>
+      <p>
+        Zone membership uses the bottom-center of each person box. Timing measures zone occupancy,
+        not an identified person's dwell time. Workshop demonstration; not a machinery safety
+        interlock.
+      </p>
+    </main>
+  </body>
+</html>

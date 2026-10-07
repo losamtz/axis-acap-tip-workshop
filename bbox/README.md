@@ -119,3 +119,12 @@ docker cp $(docker create EXAMPLE_NAME):/opt/app ./build
 3. Switch between pixel and normalized coordinates.
 4. Target a different view id.
 5. Compare recreating the handle every frame with reusing one handle.
+
+## Security exercise: restricted-zone demo
+
+[bbox-restricted-zone-demo](bbox-restricted-zone-demo/) turns the drawing basics
+into a simulated security workflow. A moving object box enters a configurable
+zone and changes color as dwell accumulates. It adds persistent settings, two
+entry rules and an AXIS-style dashboard with optional camera video. Coordinates
+are simulated; BBox draws real overlays but performs no detection. Its README
+compares this output API with the real-frame VDO inspection example.

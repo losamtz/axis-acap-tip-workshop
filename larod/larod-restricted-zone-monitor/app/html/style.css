@@ -1,0 +1,226 @@
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #292929;
+  background: #ebebeb;
+  accent-color: #ffc400;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+header {
+  display: flex;
+  gap: 12px;
+  padding: 20px 28px;
+  align-items: center;
+  font-weight: 600;
+}
+#connection {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: normal;
+}
+main {
+  margin: 0 24px 24px;
+  padding: 28px;
+  background: #fcfcfc;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px #0002;
+}
+h1 {
+  font-size: 26px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ddd;
+  margin-top: 0;
+}
+h2 {
+  font-size: 18px;
+  margin: 0 0 20px;
+}
+p {
+  line-height: 1.5;
+  color: #595959;
+  font-size: 14px;
+}
+.accent {
+  color: #e5a500;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.panel {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 22px;
+  margin-bottom: 22px;
+}
+video,
+canvas {
+  display: block;
+  width: 100%;
+  background: #202020;
+  border-radius: 4px;
+}
+video {
+  object-fit: contain;
+  aspect-ratio: 16 / 9;
+}
+canvas {
+  background: #f4f4f4;
+  border: 1px solid #ddd;
+}
+button {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 10px 20px;
+  background: #ffcf32;
+  color: #171717;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 42px;
+}
+button:hover {
+  background: #ffc400;
+}
+button.secondary {
+  border-color: #ccc;
+  background: white;
+}
+button.secondary:hover {
+  background: #eee;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+:focus-visible {
+  outline: 2px solid #222;
+  outline-offset: 3px;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+label {
+  display: block;
+  margin: 14px 0;
+  font-size: 14px;
+}
+input[type="number"] {
+  display: block;
+  width: 100%;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 7px;
+  font: inherit;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toggle input {
+  appearance: none;
+  width: 42px;
+  height: 24px;
+  border: 1px solid #777;
+  border-radius: 20px;
+  background: #eee;
+  position: relative;
+  cursor: pointer;
+}
+.toggle input::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #666;
+  left: 2px;
+  top: 2px;
+}
+.toggle input:checked {
+  background: #ffc400;
+  border-color: #ffc400;
+}
+.toggle input:checked::before {
+  left: 20px;
+  background: #222;
+}
+.zone-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 15px;
+}
+dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  font-size: 14px;
+}
+dd {
+  margin: 0;
+  font-weight: 600;
+}
+#state {
+  font-size: 24px;
+}
+#state[data-alarm="true"] {
+  color: #bc2626;
+}
+@media (max-width: 850px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  main {
+    margin: 0 8px 8px;
+    padding: 18px;
+  }
+}
+
+select {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 7px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: white;
+  color: inherit;
+  font: inherit;
+}
+
+#model-input {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+#model-input[hidden] {
+  display: none;
+}
+
+/* Component display rules must never reveal a disabled diagnostic canvas. */
+[hidden] {
+  display: none !important;
+}
+
+.video-frame {
+  position: relative;
+}

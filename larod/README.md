@@ -299,3 +299,12 @@ once. Start with `larod-client` or `larod-basic`, then build up.
 4. Log when a VDO fd is tracked and show that tracking happens once per buffer.
 5. Raise/lower confidence thresholds in object detection.
 6. Replace the model and identify which postprocessing assumptions break.
+
+## Industrial workshop: restricted-zone monitor
+
+[`larod-restricted-zone-monitor`](larod-restricted-zone-monitor/) builds on the
+official Axis object-detection helper structure. It detects people in a configured
+zone, applies activation/clear timing, draws BBox overlays, publishes an AXEvent,
+and provides an AXIS-style web page with persistent settings and live preview.
+Start with its README for the tensor lifecycle, comparison with the VDO example,
+chip selection, and commands that copy only the EAP into `build/`.
