@@ -29,7 +29,11 @@
 
 #include <glib.h>
 
-#define DEVICE_NAME  "cpu-tflite" /* or "axis-a8-dlpu-tflite"   "cpu-tflite" "a9-dlpu-tflite" or "armnn-cpu-tflite"  */
+
+/* This application is restricted to work with artpec9 as the code only checks for RGB fmt otherwise panics. If A8 is needed, 
+it would need to fallback to YUV if RGB is not supported and preprocessing should also be implemented */
+
+#define DEVICE_NAME  "a9-dlpu-tflite" /* or "axis-a8-dlpu-tflite"   "cpu-tflite" "a9-dlpu-tflite" or "armnn-cpu-tflite" */
 #define MODEL_PATH   "/usr/local/packages/larod_basic/model/model.tflite"
 
 #define PANIC(fmt, ...)                                 \
@@ -58,6 +62,9 @@ static larodConnection* larod_connect(void) {
     syslog(LOG_INFO, "Connected to larod successfully");
     return conn;
 }
+// A test to list all backends and their instances (in case there is more than one DLPU). 
+// This is irrelevant in this example but shows the possibility to read it.
+
 static void print_larod_devices(larodConnection* conn) {
 
     larodError* error = NULL;
@@ -135,6 +142,7 @@ int main(void) {
     unsigned int model_pitch = pitches->pitches[2];
 
     syslog(LOG_INFO, "Model input: %ux%u pitch=%u", w, h, model_pitch);
+    // Destroy it as it is temporary
     larodDestroyTensors(conn, &tmp_in, num_in, &error);
 
     /* ── 4. Allocate output tensors + mmap ── */
@@ -142,12 +150,17 @@ int main(void) {
     larodTensor** out_tensors = larodAllocModelOutputs(conn, model,
                                     LAROD_FD_PROP_READWRITE | LAROD_FD_PROP_MAP,
                                     &num_out, NULL, &error);
+
     void* out_data[2] = {NULL, NULL};
+
     for (size_t i = 0; i < num_out && i < 2; i++) {
+
         int fd = larodGetTensorFd(out_tensors[i], &error);
+
         size_t sz = 0;
         larodGetTensorFdSize(out_tensors[i], &sz, &error);
         out_data[i] = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0);
+
         if (out_data[i] == MAP_FAILED) {
             PANIC("mmap output[%zu]: %s", i, strerror(errno));
         }
@@ -155,7 +168,7 @@ int main(void) {
 
     /* ── 5. Create VDO stream (blocking, RGB, model resolution) ── */
     VdoMap* settings = vdo_map_new();
-    vdo_map_set_uint32(settings, "channel", 2); // Using channel 1
+    vdo_map_set_uint32(settings, "channel", 2); // Using channel 2
     vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB);
     vdo_map_set_uint32(settings, "buffer.count", 2);
     vdo_map_set_double(settings, "framerate", 30.0);
@@ -187,6 +200,7 @@ int main(void) {
     }
 
     vdo_stream_start(stream, &vdo_err);
+
     syslog(LOG_INFO, "VDO stream started (blocking, RGB %ux%u pitch=%u)",
            vdo_w, vdo_h, vdo_pitch);
 
