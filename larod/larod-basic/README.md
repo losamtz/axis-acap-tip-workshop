@@ -194,31 +194,28 @@ Because this example only supports RGB interleaved frames, the layout is always
 
 ## Step 7: Track VDO Buffers
 
-VDO reuses a small set of frame buffers. The app tracks each buffer the first
-time its fd appears.
+The example targets ARTPEC-9 and keeps RGB frames going directly to inference.
+It checks the actual stream's `buffer.type` instead of assuming a memory type
+from the chip name:
 
-```c
-int vdo_fd = vdo_buffer_get_fd(buf);
-int64_t offset = vdo_buffer_get_offset(buf);
-size_t cap = vdo_buffer_get_capacity(buf);
-int duped = dup(vdo_fd);
+- `dmabuf`: duplicate VDO's descriptor, preserve the buffer offset, and set the
+  tensor's FD size to `offset + capacity` (with an overflow check).
+- `vmem`: export the buffer with `larodConvertVmemFdToDmabuf`. The resulting
+  DMA-BUF starts at offset zero, so its tensor FD size is the buffer capacity.
+- Missing or unsupported types: stop with a clear error.
 
-larodSetTensorFd(t, duped, &error);
-larodSetTensorFdOffset(t, offset, &error);
-larodSetTensorFdSize(t, cap, &error);
-larodTrackTensor(conn, t, &error);
-```
+VMEM export changes the memory handle, not the RGB pixel format. It does not
+introduce preprocessing. VDO width, height, format, and row pitch must match the
+model before direct inference can run.
 
-Why duplicate the fd?
+The app owns the duplicated or exported descriptor and closes it during normal
+cleanup. VDO retains ownership of the original descriptor. Tracking uses the
+original FD, offset, and capacity, since one descriptor can contain multiple
+buffers. Each new buffer's log shows both its VDO offset and tensor offset.
 
-```mermaid
-flowchart LR
-    VDO[VDO owns original fd] --> Dup[dup fd]
-    Dup --> Larod[larod owns a stable fd reference]
-    VDO --> Reuse[VDO can keep recycling its buffers]
-```
-
-This avoids copying image bytes. larod reads the same memory VDO filled.
+Tensor setup, tracking, job creation, and execution are checked immediately.
+This minimal example uses `PANIC` to log a fatal error and exit; it does not retry
+an invalid job. Normal shutdown also unmaps the output tensors.
 
 ## Step 8: Run Inference
 

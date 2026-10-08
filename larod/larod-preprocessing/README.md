@@ -67,10 +67,10 @@ The app requests a fixed VDO stream:
 ```c
 #define VDO_WIDTH    640
 #define VDO_HEIGHT   360
-#define VDO_FMT      VDO_FORMAT_RGB    /* or VDO_FORMAT_YUV for NV12 */
+#define VDO_FMT      VDO_FORMAT_YUV    /* NV12 input */
 #define IMAGE_FIT    "scale"
 #define NUM_BUFFERS  2
-#define VDO_CHANNEL  1
+#define VDO_CHANNEL  2 // VDO channel; adjust for the intended camera view
 ```
 
 The model input size is still read from the model at runtime:
@@ -262,22 +262,31 @@ switch (vdo_fmt) {
 
 ## Step 9: Track VDO Buffers
 
-As in `larod-basic`, the first time a VDO fd appears, it is attached to one
-larod tensor:
+This example targets ARTPEC-8, but reads and logs `buffer.type` from the
+actual VDO stream instead of assuming its memory type from the chip name.
 
-```c
-int vdo_fd = vdo_buffer_get_fd(buf);
-int64_t offset = vdo_buffer_get_offset(buf);
-size_t cap = vdo_buffer_get_capacity(buf);
-int duped = dup(vdo_fd);
+- `vmem`: export the frame using `larodConvertVmemFdToDmabuf(fd, offset, ...)`.
+  The returned DMA-BUF starts at offset zero, so the tensor uses offset `0`
+  and FD size equal to the VDO buffer capacity.
+- `dmabuf`: duplicate the VDO descriptor, preserve its offset, and declare
+  the accessible extent as `offset + capacity`, with an overflow check.
+- Missing or unsupported types: stop with an explicit error.
 
-larodSetTensorFd(t, duped, &error);
-larodSetTensorFdOffset(t, offset, &error);
-larodSetTensorFdSize(t, cap, &error);
-larodTrackTensor(conn, t, &error);
+The exported or duplicated descriptor belongs to the application and is closed
+during cleanup. The original descriptor remains owned by VDO. This conversion
+exports the memory for larod; it does not convert NV12 pixels to RGB. That pixel
+conversion still happens in the preprocessing job.
+
+Tracking identifies each buffer by its original FD, offset, and capacity because
+one VMEM descriptor can contain more than one buffer. Each tensor is bound and
+tracked once. Every setup call is checked before moving to the next step.
+
+For a VMEM frame with offset `1056768` and capacity `345600`, expect logs like:
+
+```text
+VDO buffer.type=vmem
+Tracked buffer slot 0 (VMEM -> DMA-BUF): VDO offset=1056768 tensor offset=0 capacity=345600 fd size=345600
 ```
-
-This is still the zero-copy bridge from VDO to larod.
 
 ## Step 10: Run The Per-Frame Pipeline
 

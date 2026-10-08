@@ -2,8 +2,7 @@
  * larod_basic.c
  *
  * The simplest possible VDO + larod application.
- * Blocking VDO, no preprocessing, no tensor tracking, no poll().
- * ~100 lines of actual logic.
+ * Blocking VDO, no preprocessing, tracked tensors, no poll().
  *
  * Only works on backends that accept RGB directly (e.g. a9-dlpu-tflite).
  * VDO delivers RGB at the model's resolution, frames go straight to inference.
@@ -12,6 +11,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +30,7 @@
 #include <glib.h>
 
 
-/* This application is restricted to work with artpec9 as the code only checks for RGB fmt otherwise panics. If A8 is needed, 
+/* This application is restricted to work with artpec9 as the code only checks for RGB fmt otherwise panics. If A8 is needed,
 it would need to fallback to YUV if RGB is not supported and preprocessing should also be implemented */
 
 #define DEVICE_NAME  "a9-dlpu-tflite" /* or "axis-a8-dlpu-tflite"   "cpu-tflite" "a9-dlpu-tflite" or "armnn-cpu-tflite" */
@@ -62,7 +62,7 @@ static larodConnection* larod_connect(void) {
     syslog(LOG_INFO, "Connected to larod successfully");
     return conn;
 }
-// A test to list all backends and their instances (in case there is more than one DLPU). 
+// A test to list all backends and their instances (in case there is more than one DLPU).
 // This is irrelevant in this example but shows the possibility to read it.
 
 static void print_larod_devices(larodConnection* conn) {
@@ -133,13 +133,25 @@ int main(void) {
     /* ── 3. Get model input size ── */
     size_t num_in = 0;
     larodTensor** tmp_in = larodAllocModelInputs(conn, model, 0, &num_in, NULL, &error);
+    if (!tmp_in || num_in != 1) {
+        PANIC("larodAllocModelInputs: expected one input (%s)",
+              error ? error->msg : "unexpected input count");
+    }
     const larodTensorDims* dims = larodGetTensorDims(tmp_in[0], &error);
+    if (!dims || dims->len != 4) {
+        PANIC("Model input requires four NHWC dimensions (%s)",
+              error ? error->msg : "unexpected dimensions");
+    }
     unsigned int h = dims->dims[1];
     unsigned int w = dims->dims[2];
 
 
     const larodTensorPitches* pitches = larodGetTensorPitches(tmp_in[0], &error);
+    if (!pitches || pitches->len < 3) {
+        PANIC("Invalid model pitch metadata: %s", error ? error->msg : "missing pitches");
+    }
     unsigned int model_pitch = pitches->pitches[2];
+    if (!w || !h || !model_pitch) PANIC("Model dimensions/pitch must be nonzero");
 
     syslog(LOG_INFO, "Model input: %ux%u pitch=%u", w, h, model_pitch);
     // Destroy it as it is temporary
@@ -151,14 +163,23 @@ int main(void) {
                                     LAROD_FD_PROP_READWRITE | LAROD_FD_PROP_MAP,
                                     &num_out, NULL, &error);
 
+    if (!out_tensors || num_out != 2) {
+        PANIC("Expected two classification outputs: %s",
+              error ? error->msg : "unexpected output count");
+    }
     void* out_data[2] = {NULL, NULL};
+    size_t out_sizes[2] = {0, 0};
 
     for (size_t i = 0; i < num_out && i < 2; i++) {
 
         int fd = larodGetTensorFd(out_tensors[i], &error);
 
         size_t sz = 0;
-        larodGetTensorFdSize(out_tensors[i], &sz, &error);
+        if (!larodGetTensorFdSize(out_tensors[i], &sz, &error)) {
+            PANIC("larodGetTensorFdSize: %s", error ? error->msg : "No error details");
+        }
+        if (fd < 0 || sz == 0) PANIC("Invalid inference output fd/size");
+        out_sizes[i] = sz;
         out_data[i] = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0);
 
         if (out_data[i] == MAP_FAILED) {
@@ -168,7 +189,7 @@ int main(void) {
 
     /* ── 5. Create VDO stream (blocking, RGB, model resolution) ── */
     VdoMap* settings = vdo_map_new();
-    vdo_map_set_uint32(settings, "channel", 2); // Using channel 2
+    vdo_map_set_uint32(settings, "channel", 3); // Using channel 2
     vdo_map_set_uint32(settings, "format", VDO_FORMAT_RGB);
     vdo_map_set_uint32(settings, "buffer.count", 2);
     vdo_map_set_double(settings, "framerate", 30.0);
@@ -192,6 +213,13 @@ int main(void) {
     unsigned int vdo_h     = vdo_map_get_uint32(info, "height", 0);
     unsigned int vdo_pitch = vdo_map_get_uint32(info, "pitch", 0);
     VdoFormat    vdo_fmt   = vdo_map_get_uint32(info, "format", 0);
+    const char* buffer_type = vdo_map_get_string(info, "buffer.type", NULL, "unknown");
+    bool convert_vmem = g_strcmp0(buffer_type, "vmem") == 0;
+    bool is_dmabuf = g_strcmp0(buffer_type, "dmabuf") == 0;
+    syslog(LOG_INFO, "VDO buffer.type=%s", buffer_type);
+    if (!convert_vmem && !is_dmabuf) {
+        PANIC("Unsupported VDO buffer type '%s': expected vmem or dmabuf", buffer_type);
+    }
     g_object_unref(info);
 
     if (vdo_fmt != VDO_FORMAT_RGB || vdo_w != w || vdo_h != h) {
@@ -199,18 +227,26 @@ int main(void) {
               vdo_fmt, vdo_w, vdo_h, w, h);
     }
 
-    vdo_stream_start(stream, &vdo_err);
+    if (vdo_pitch != model_pitch) {
+        PANIC("VDO pitch %u differs from model pitch %u; direct RGB input requires a match",
+              vdo_pitch, model_pitch);
+    }
+    if (!vdo_stream_start(stream, &vdo_err)) {
+        PANIC("vdo_stream_start: %s", vdo_err ? vdo_err->message : "No error details");
+    }
 
     syslog(LOG_INFO, "VDO stream started (blocking, RGB %ux%u pitch=%u)",
            vdo_w, vdo_h, vdo_pitch);
 
     /* ── 6. Allocate input tensors (one per buffer) ── */
     larodTensor** in_tensors[2] = {NULL, NULL};
-    int duped_fds[2] = {-1, -1};
+    int tensor_fds[2] = {-1, -1};
     int tracked_vdo_fds[2] = {-1, -1};
+    int64_t tracked_offsets[2] = {0};
+    size_t tracked_capacities[2] = {0};
 
     for(int i = 0; i < 2; i++) {
-        duped_fds[i]       = -1;
+        tensor_fds[i]       = -1;
         tracked_vdo_fds[i] = -1;
 
         in_tensors[i] = larodCreateTensors(1, &error);
@@ -218,11 +254,21 @@ int main(void) {
             PANIC("larodCreateTensors: %s", error->msg);
         }
         larodTensor* t = in_tensors[i][0];
-        larodSetTensorDataType(t, LAROD_TENSOR_DATA_TYPE_UINT8, &error);
-        larodSetTensorLayout(t, LAROD_TENSOR_LAYOUT_NHWC, &error);
-        larodBuildTensorDims(t, LAROD_TENSOR_LAYOUT_NHWC, vdo_w, vdo_h, 3, &error);
-        larodBuildTensorPitches(t, LAROD_TENSOR_LAYOUT_NHWC, vdo_pitch, vdo_h, 3, &error);
-        larodSetTensorFdProps(t, LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error);
+        if (!larodSetTensorDataType(t, LAROD_TENSOR_DATA_TYPE_UINT8, &error)) {
+            PANIC("larodSetTensorDataType: %s", error ? error->msg : "No error details");
+        }
+        if (!larodSetTensorLayout(t, LAROD_TENSOR_LAYOUT_NHWC, &error)) {
+            PANIC("larodSetTensorLayout: %s", error ? error->msg : "No error details");
+        }
+        if (!larodBuildTensorDims(t, LAROD_TENSOR_LAYOUT_NHWC, vdo_w, vdo_h, 3, &error)) {
+            PANIC("larodBuildTensorDims: %s", error ? error->msg : "No error details");
+        }
+        if (!larodBuildTensorPitches(t, LAROD_TENSOR_LAYOUT_NHWC, vdo_pitch, vdo_h, 3, &error)) {
+            PANIC("larodBuildTensorPitches: %s", error ? error->msg : "No error details");
+        }
+        if (!larodSetTensorFdProps(t, LAROD_FD_PROP_MAP | LAROD_FD_PROP_DMABUF, &error)) {
+            PANIC("larodSetTensorFdProps: %s", error ? error->msg : "No error details");
+        }
     }
     syslog(LOG_INFO, "Created %d input tensors (NHWC RGB %ux%u pitch=%u)", 2, vdo_w, vdo_h, vdo_pitch);
 
@@ -232,14 +278,27 @@ int main(void) {
     /* ── 8. Main loop ── */
     while (running) {
         VdoBuffer* buf = vdo_stream_get_buffer(stream, &vdo_err);  /* blocks */
-        if (!buf) continue;
+        if (!buf) {
+            if (!running) break;
+            PANIC("vdo_stream_get_buffer: %s", vdo_err ? vdo_err->message : "No error details");
+        }
 
         int vdo_fd = vdo_buffer_get_fd(buf);
+        int64_t source_offset = vdo_buffer_get_offset(buf);
+        size_t cap = vdo_buffer_get_capacity(buf);
+        if (vdo_fd < 0 || source_offset < 0 || cap == 0) {
+            PANIC("Invalid VDO buffer descriptor, offset, or capacity");
+        }
 
         /* Find or create tracked slot for this buffer */
         int slot = -1;
         for (int i = 0; i < 2; i++) {
-            if (tracked_vdo_fds[i] == vdo_fd) { slot = i; break; }
+            /* One VMEM descriptor can contain buffers at different offsets. */
+            if (tracked_vdo_fds[i] == vdo_fd && tracked_offsets[i] == source_offset &&
+                tracked_capacities[i] == cap) {
+                slot = i;
+                break;
+            }
         }
         if (slot == -1) {
             /* First time seeing this buffer — set up tensor */
@@ -249,24 +308,54 @@ int main(void) {
             if (slot < 0) {
                 PANIC("No free tracking slots");
             }
-            
-            /* Tensors already created in step 6 — just bind the VDO buffer fd */
-            int64_t offset = vdo_buffer_get_offset(buf);
-            size_t cap     = vdo_buffer_get_capacity(buf);
-            int duped      = dup(vdo_fd);
-            if (duped < 0) {
-                PANIC("dup: %s", strerror(errno));
+
+            int64_t offset = source_offset;
+            int tensor_fd;
+            if (convert_vmem) {
+                /* Export the VMEM buffer; the resulting DMA-BUF starts at zero.
+                 * This changes the memory handle, not the RGB pixel format. */
+                tensor_fd = larodConvertVmemFdToDmabuf(vdo_fd, source_offset, &error);
+                if (tensor_fd == LAROD_INVALID_FD) {
+                    PANIC("larodConvertVmemFdToDmabuf: %s",
+                          error ? error->msg : "No error details");
+                }
+                offset = 0;
+            } else {
+                /* VDO owns the original fd; keep our own descriptor. */
+                tensor_fd = dup(vdo_fd);
+                if (tensor_fd < 0) PANIC("dup: %s", strerror(errno));
             }
+            tensor_fds[slot] = tensor_fd;
+
+            /* Capacity is measured from the buffer start, but larod's size
+             * limit is measured from the beginning of the fd. */
+            if ((uint64_t)offset > SIZE_MAX - cap) {
+                PANIC("VDO offset + capacity overflows size_t");
+            }
+            size_t fd_size = (size_t)offset + cap;
 
             larodTensor* t = in_tensors[slot][0];
-            larodSetTensorFd(t, duped, &error);
-            larodSetTensorFdOffset(t, offset, &error);
-            larodSetTensorFdSize(t, cap, &error);
-            larodTrackTensor(conn, t, &error);
+            if (!larodSetTensorFd(t, tensor_fd, &error)) {
+                PANIC("larodSetTensorFd: %s", error ? error->msg : "No error details");
+            }
+            if (!larodSetTensorFdOffset(t, offset, &error)) {
+                PANIC("larodSetTensorFdOffset: %s", error ? error->msg : "No error details");
+            }
+            if (!larodSetTensorFdSize(t, fd_size, &error)) {
+                PANIC("larodSetTensorFdSize: %s", error ? error->msg : "No error details");
+            }
+            if (!larodTrackTensor(conn, t, &error)) {
+                PANIC("larodTrackTensor: %s", error ? error->msg : "No error details");
+            }
 
             tracked_vdo_fds[slot] = vdo_fd;
-            duped_fds[slot] = duped;
-            syslog(LOG_INFO, "Tracked buffer slot %d (vdo_fd=%d)", slot, vdo_fd);
+            tracked_offsets[slot] = source_offset;
+            tracked_capacities[slot] = cap;
+            syslog(LOG_INFO,
+                   "Tracked buffer slot %d (%s): VDO offset=%zu tensor offset=%zu "
+                   "capacity=%zu fd size=%zu",
+                   slot, convert_vmem ? "VMEM -> DMA-BUF" : "DMA-BUF",
+                   (size_t)source_offset, (size_t)offset, cap, fd_size);
         }
 
         /* Create or update job */
@@ -275,17 +364,23 @@ int main(void) {
                                         in_tensors[slot], 1,
                                         out_tensors, num_out,
                                         NULL, &error);
+            if (!job) {
+                PANIC("larodCreateJobRequest: %s", error ? error->msg : "No error details");
+            }
         } else {
-            larodSetJobRequestInputs(job, in_tensors[slot], 1, &error);
+            if (!larodSetJobRequestInputs(job, in_tensors[slot], 1, &error)) {
+                PANIC("larodSetJobRequestInputs: %s", error ? error->msg : "No error details");
+            }
         }
 
         /* Run inference */
-        if (larodRunJob(conn, job, &error)) {
-            uint8_t* person = (uint8_t*)out_data[0];
-            uint8_t* car    = (uint8_t*)out_data[1];
-            syslog(LOG_INFO, "Person: %.1f%% — Car: %.1f%%",
-                   *person / 2.55f, *car / 2.55f);
+        if (!larodRunJob(conn, job, &error)) {
+            PANIC("larodRunJob: %s", error ? error->msg : "No error details");
         }
+        uint8_t* person = (uint8_t*)out_data[0];
+        uint8_t* car    = (uint8_t*)out_data[1];
+        syslog(LOG_INFO, "Person: %.1f%% — Car: %.1f%%",
+               *person / 2.55f, *car / 2.55f);
 
         vdo_stream_buffer_unref(stream, &buf, &vdo_err);
     }
@@ -294,8 +389,9 @@ int main(void) {
     larodDestroyJobRequest(&job);
     for (int i = 0; i < 2; i++) {
         if (in_tensors[i]) larodDestroyTensors(conn, &in_tensors[i], 1, &error);
-        if (duped_fds[i] >= 0) close(duped_fds[i]);
+        if (tensor_fds[i] >= 0) close(tensor_fds[i]);
     }
+    for (size_t i = 0; i < 2; i++) munmap(out_data[i], out_sizes[i]);
     larodDestroyTensors(conn, &out_tensors, num_out, &error);
     larodDestroyModel(&model);
     larodDisconnect(&conn, &error);
