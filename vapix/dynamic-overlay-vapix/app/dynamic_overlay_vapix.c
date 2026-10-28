@@ -13,7 +13,7 @@ static json_t* build_addtext_request(void) {
 
     // Fill the "params" object
     json_object_set_new(params, "camera", json_integer(1));
-    json_object_set_new(params, "text", json_string("AXIS TIP Paris workshop - Date: %c"));
+    json_object_set_new(params, "text", json_string("AXIS TIP workshop - Date: %c"));
     json_object_set_new(params, "position", json_string("topLeft"));
     json_object_set_new(params, "textColor", json_string("white"));
     json_object_set_new(params, "fontSize", json_integer(60));

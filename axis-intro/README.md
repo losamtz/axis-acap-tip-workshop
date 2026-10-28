@@ -119,6 +119,23 @@ export CROSS_COMPILE=aarch64-linux-gnu-
 
 That is why the Makefile can use `$(CC)` and `$(STRIP)` without knowing the compiler path. The SDK environment has already set them.
 
+How to access and read it:
+
+```bash
+docker run --rm -it \
+  axisecp/acap-native-sdk:12.11.0-aarch64-ubuntu24.04 \
+  /bin/bash
+```
+To read the SDK assignments inside the container:
+```bash
+cat /opt/axis/acapsdk/environment-setup*
+```
+To see the resulting environment after loading it:
+```bash
+. /opt/axis/acapsdk/environment-setup*
+printenv | sort
+```
+
 ## Makefile
 
 The minimal app Makefile starts by reading the executable name from the manifest:
